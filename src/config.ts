@@ -56,7 +56,8 @@ export function loadConfig(): AppConfig {
     dbPath: path.join(dataDir, "state.db"),
     globalDir: path.join(dataDir, "global"),
     groupsDir: path.join(dataDir, "groups"),
-    whatsappAuthDir: path.join(dataDir, "whatsapp-auth"),
+    whatsappAuthDir:
+      process.env.CLAWSOME_WHATSAPP_AUTH_DIR ?? path.join(dataDir, "whatsapp-auth"),
   };
 }
 
