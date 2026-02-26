@@ -11,7 +11,7 @@ import { TaskScheduler } from "./task-scheduler.js";
 
 export type InputSource = "cli" | "scheduler" | "chat-sdk";
 
-export class NanoPiCoreRuntime {
+export class ClawsomeCoreRuntime {
   readonly db: Db;
   readonly scheduler: TaskScheduler;
   readonly queue: GroupQueue;

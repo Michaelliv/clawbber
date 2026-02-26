@@ -1,12 +1,12 @@
 import { stdin as input, stdout as output } from "node:process";
 import readline from "node:readline/promises";
 import { loadConfig } from "./config.js";
-import { NanoPiCoreRuntime } from "./core/runtime.js";
+import { ClawsomeCoreRuntime } from "./core/runtime.js";
 import { logger } from "./logger.js";
 
 async function main() {
   const config = loadConfig();
-  const core = new NanoPiCoreRuntime(config);
+  const core = new ClawsomeCoreRuntime(config);
 
   core.startScheduler();
 

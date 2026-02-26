@@ -50,6 +50,6 @@ export type TriggerMatch = "prefix" | "mention" | "always";
 
 export interface TriggerConfig {
   match: TriggerMatch;
-  patterns: string[]; // e.g. ["@Pi", "Pi", "Nano"]
+  patterns: string[]; // e.g. ["@Mick", "Mick"]
   caseSensitive: boolean;
 }

@@ -88,7 +88,7 @@ function matchSinglePattern(
       return stripPrefix(text, pattern, config.caseSensitive);
 
     case "mention": {
-      // Word-boundary match — works for "@Pi", "Pi", "Nano", etc.
+      // Word-boundary match — works for "@Mick", "Mick", "@Clawsome", etc.
       const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const flags = config.caseSensitive ? "" : "i";
       // Use \b for word chars, but @ isn't a word char so we handle it:

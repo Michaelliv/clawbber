@@ -5,7 +5,7 @@ import { type Adapter, Chat, type Message, type Thread } from "chat";
 import { createWhatsAppBaileysAdapter } from "./adapters/whatsapp.js";
 import { loadConfig, resolveProjectPath } from "./config.js";
 import { handleApiRequest } from "./core/api.js";
-import { NanoPiCoreRuntime } from "./core/runtime.js";
+import { ClawsomeCoreRuntime } from "./core/runtime.js";
 import { logger } from "./logger.js";
 
 type WaitUntil = (task: Promise<unknown>) => void;
@@ -32,7 +32,7 @@ function resolveCallerId(message: Message, thread: Thread): string {
 
 async function main() {
   const config = loadConfig();
-  const core = new NanoPiCoreRuntime(config);
+  const core = new ClawsomeCoreRuntime(config);
 
   const adapters: Record<string, Adapter> = {};
 
@@ -74,19 +74,25 @@ async function main() {
   ) => {
     if (message.author.isMe) return;
 
-    if (isNew) await thread.subscribe();
-    await thread.startTyping();
-
     const callerId = resolveCallerId(message, thread);
+
+    // thread.isDM is unreliable for WhatsApp LID JIDs — derive from thread ID
+    const isDM = thread.isDM || !thread.id.includes("@g.us");
 
     const result = await core.handleRawInput({
       groupId: thread.id,
       rawText: message.text,
       callerId,
       authorName: message.author.userName,
-      isDM: thread.isDM ?? false,
+      isDM,
       source: "chat-sdk",
     });
+
+    if (result.type === "ignore") return;
+
+    // Subscribe & type only when we're going to respond
+    if (isNew) await thread.subscribe();
+    await thread.startTyping();
 
     if (result.type === "assistant" && result.reply) {
       await thread.post(result.reply);
@@ -95,7 +101,6 @@ async function main() {
     } else if (result.type === "denied") {
       await thread.post(result.reason);
     }
-    // "ignore" → no response
   };
 
   bot.onNewMention((thread, message) => {

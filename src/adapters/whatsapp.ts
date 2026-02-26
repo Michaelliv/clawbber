@@ -248,7 +248,7 @@ export class WhatsAppBaileysAdapter
           text,
           formatted: parseMarkdown(text),
           raw: msg,
-          isMention: isDM,
+          isMention: true, // always true — router handles trigger matching
           author: {
             userId: sender,
             userName: senderName,
