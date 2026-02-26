@@ -21,6 +21,7 @@ Clawbber is a personal AI assistant that lives where you chat. It connects to Wh
   - [WhatsApp](#whatsapp)
   - [Slack](#slack)
   - [Discord](#discord)
+- [Adding to Groups](#adding-to-groups)
 - [Workspaces](#workspaces)
 - [Sessions](#sessions)
 - [Triggers](#triggers)
@@ -151,6 +152,24 @@ DISCORD_APPLICATION_ID=...
 Endpoint: `POST /webhooks/discord`
 
 Optional gateway trigger: `GET /discord/gateway`
+
+---
+
+## Adding to Groups
+
+Clawbber automatically sets up when it receives its first message from a new group — no manual configuration needed.
+
+| Platform | How to add |
+|----------|------------|
+| **WhatsApp** | Add the phone number to a group (like any contact) |
+| **Slack** | Invite the bot to a channel (`/invite @botname`) |
+| **Discord** | Add bot to server via OAuth URL, it sees channels it has access to |
+
+On first triggered message (e.g., `@Clawbber hello`):
+1. Group record created in database
+2. Workspace directory created at `.clawbber/groups/<group-id>/`
+3. Session file initialized
+4. Bot starts responding
 
 ---
 
