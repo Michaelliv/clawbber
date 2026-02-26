@@ -264,45 +264,86 @@ Tasks run in the context of the current group with the creator's permissions.
 
 ## Permissions
 
-Role-based access control per group.
+Role-based access control per group. Each user has a role, and each role has a set of permissions.
 
-**Default roles:**
+### Roles
 
-| Role | Permissions |
-|------|-------------|
-| `admin` | All permissions |
-| `member` | `prompt` only |
-| `system` | All permissions (internal) |
+| Role | Default Permissions | Description |
+|------|---------------------|-------------|
+| `system` | All | Internal system caller (scheduler, etc.) — not assignable |
+| `admin` | All | Full control over the group |
+| `member` | `prompt` | Can chat with the assistant (default for new users) |
 
-**Available permissions:**
+Custom roles can be created by assigning permissions to any role name.
 
-- `prompt` — Send messages to assistant
-- `stop` — Abort running tasks
-- `compact` — Reset session boundary
-- `tasks.create`, `tasks.delete`, `tasks.pause`, `tasks.resume` — Task management
-- `config.read`, `config.write` — Group configuration
-- `roles.read`, `roles.write` — Role management
+### Permissions
 
-**Manage roles:**
+| Permission | Description |
+|------------|-------------|
+| `prompt` | Send messages to the assistant |
+| `stop` | Abort running agent and clear queue |
+| `compact` | Reset session boundary (fresh context) |
+| `tasks.list` | View scheduled tasks |
+| `tasks.create` | Create new scheduled tasks |
+| `tasks.pause` | Pause scheduled tasks |
+| `tasks.resume` | Resume paused tasks |
+| `tasks.delete` | Delete scheduled tasks |
+| `config.get` | Read group configuration |
+| `config.set` | Modify group configuration |
+| `roles.list` | View roles in the group |
+| `roles.grant` | Assign roles to users |
+| `roles.revoke` | Remove roles from users |
+| `permissions.get` | View role permissions |
+| `permissions.set` | Modify role permissions |
+
+### Managing Roles
 
 ```bash
-clawbber-ctl roles grant <platform-user-id> --role admin
-clawbber-ctl roles revoke <platform-user-id>
+# List all roles in the current group
 clawbber-ctl roles list
+
+# Grant admin role to a user
+clawbber-ctl roles grant 1234567890@s.whatsapp.net --role admin
+
+# Grant a custom role
+clawbber-ctl roles grant 1234567890@s.whatsapp.net --role moderator
+
+# Revoke role (user becomes member)
+clawbber-ctl roles revoke 1234567890@s.whatsapp.net
 ```
 
-**Customize permissions:**
+### Managing Permissions
 
 ```bash
-clawbber-ctl permissions set member prompt,stop
+# Show permissions for all roles
 clawbber-ctl permissions show
+
+# Show permissions for a specific role
+clawbber-ctl permissions show --role member
+
+# Give members ability to stop the agent
+clawbber-ctl permissions set member prompt,stop
+
+# Create a moderator role with task management
+clawbber-ctl permissions set moderator prompt,stop,tasks.list,tasks.pause,tasks.resume
+
+# Give a role full task control
+clawbber-ctl permissions set taskmaster prompt,tasks.list,tasks.create,tasks.pause,tasks.resume,tasks.delete
 ```
 
-**Seed admins** (granted on first interaction):
+### Seeding Admins
+
+Pre-configure admin users via environment variable. They'll be granted admin on first interaction:
 
 ```bash
-CLAWBBER_ADMINS=user1@s.whatsapp.net,user2@s.whatsapp.net
+CLAWBBER_ADMINS=1234567890@s.whatsapp.net,0987654321@s.whatsapp.net
 ```
+
+### Permission Inheritance
+
+- Permissions are **per-group** — a user can be admin in one group and member in another
+- Custom role permissions override defaults for that group only
+- The `system` role always has all permissions and cannot be modified
 
 ---
 
