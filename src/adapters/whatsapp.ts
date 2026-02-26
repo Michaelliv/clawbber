@@ -232,27 +232,19 @@ export class WhatsAppBaileysAdapter
         const mentionedJids = contextInfo?.mentionedJid ?? [];
         const botJid = this.sock?.user?.id;
         const botLid = this.sock?.user?.lid;
-        const botMentioned =
-          mentionedJids.length > 0 &&
-          mentionedJids.some(
-            (jid) =>
-              (botJid && areJidsSameUser(jid, botJid)) ||
-              (botLid && areJidsSameUser(jid, botLid)),
-          );
-        if (botMentioned) {
-          // Replace all mentioned JIDs that match the bot with the configured userName
-          for (const jid of mentionedJids) {
-            if (
-              (botJid && areJidsSameUser(jid, botJid)) ||
-              (botLid && areJidsSameUser(jid, botLid))
-            ) {
-              const user = jidDecode(jid)?.user;
-              if (user) {
-                baseText = baseText.replace(
-                  new RegExp(`@${user}\\b`, "g"),
-                  `@${this.userName}`,
-                );
-              }
+        const isBotJid = (jid: string) =>
+          (botJid && areJidsSameUser(jid, botJid)) ||
+          (botLid && areJidsSameUser(jid, botLid));
+
+        // Replace bot's JID mention with configured userName so trigger patterns match
+        for (const jid of mentionedJids) {
+          if (isBotJid(jid)) {
+            const user = jidDecode(jid)?.user;
+            if (user) {
+              baseText = baseText.replace(
+                new RegExp(`@${user}\\b`, "g"),
+                `@${this.userName}`,
+              );
             }
           }
         }
@@ -458,6 +450,7 @@ export class WhatsAppBaileysAdapter
   async startTyping(threadId: string): Promise<void> {
     const { chatJid } = this.decodeThreadId(threadId);
     if (!this.sock || !this.connected) return;
+    await this.sock.presenceSubscribe(chatJid);
     await this.sock.sendPresenceUpdate("composing", chatJid);
   }
 
