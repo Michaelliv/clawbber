@@ -79,6 +79,12 @@ async function main() {
     // thread.isDM is unreliable for WhatsApp LID JIDs — derive from thread ID
     const isDM = thread.isDM || !thread.id.includes("@g.us");
 
+    // Start typing immediately for DMs and triggered messages
+    if (isDM || message.isMention) {
+      if (isNew) await thread.subscribe();
+      await thread.startTyping();
+    }
+
     const result = await core.handleRawInput({
       groupId: thread.id,
       rawText: message.text,
@@ -89,10 +95,6 @@ async function main() {
     });
 
     if (result.type === "ignore") return;
-
-    // Subscribe & type only when we're going to respond
-    if (isNew) await thread.subscribe();
-    await thread.startTyping();
 
     if (result.type === "assistant" && result.reply) {
       await thread.post(result.reply);

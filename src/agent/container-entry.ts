@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
+import path from "node:path";
 import type { StoredMessage } from "../types.js";
 
 type Payload = {
@@ -33,23 +34,19 @@ function buildSystemPrompt(): string {
 }
 
 function buildPrompt(payload: Payload): string {
-  const historyEntries = payload.messages
-    .filter(
-      (m) =>
-        m.role === "user" || m.role === "assistant" || m.role === "ambient",
-    )
+  const ambientEntries = payload.messages
+    .filter((m) => m.role === "ambient")
     .map((m) => {
-      const role = m.role === "ambient" ? "group" : m.role;
       const ts = formatContextTimestamp(m.createdAt);
-      return `<message role="${role}" timestamp="${ts}">\n${m.content}\n</message>`;
+      return `<message role="group" timestamp="${ts}">\n${m.content}\n</message>`;
     });
 
-  if (historyEntries.length === 0) return payload.prompt;
+  if (ambientEntries.length === 0) return payload.prompt;
 
   return [
-    "<recent_conversation>",
-    ...historyEntries,
-    "</recent_conversation>",
+    "<ambient_messages>",
+    ...ambientEntries,
+    "</ambient_messages>",
     "",
     payload.prompt,
   ].join("\n");
@@ -57,8 +54,12 @@ function buildPrompt(payload: Payload): string {
 
 function runPi(payload: Payload): Promise<string> {
   return new Promise((resolve, reject) => {
+    const sessionFile = path.join(payload.groupWorkspace, ".clawsome.session.jsonl");
+
     const args = [
       "--print",
+      "--session",
+      sessionFile,
       "--provider",
       process.env.CLAWSOME_MODEL_PROVIDER || "anthropic",
       "--model",
