@@ -395,7 +395,7 @@ The agent runs inside a Docker container with:
 
 ### clawbber-ctl
 
-Management CLI for use inside containers (or via `docker exec`).
+Management CLI available inside the agent container. This is how the AI agent manages tasks, permissions, and configuration — you don't run this directly, but the agent uses it to control clawbber from within.
 
 ```bash
 clawbber-ctl whoami                              # Show caller/group info
