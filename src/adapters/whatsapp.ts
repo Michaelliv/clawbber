@@ -1,9 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import makeWASocket, {
+  areJidsSameUser,
   Browsers,
   DisconnectReason,
   fetchLatestWaWebVersion,
+  jidDecode,
   makeCacheableSignalKeyStore,
   type proto,
   useMultiFileAuthState,
@@ -221,8 +223,40 @@ export class WhatsAppBaileysAdapter
           this.pushNames.set(sender, msg.pushName);
         }
 
-        const baseText = extractText(msg.message).trim();
+        let baseText = extractText(msg.message).trim();
         const replyContext = buildReplyContext(msg.message, this.pushNames);
+
+        // WhatsApp @-mentions embed JIDs in text (e.g. "@52669955764381").
+        // Replace the bot's JID mention with the configured userName so trigger matching works.
+        const contextInfo = getContextInfo(msg.message);
+        const mentionedJids = contextInfo?.mentionedJid ?? [];
+        const botJid = this.sock?.user?.id;
+        const botLid = this.sock?.user?.lid;
+        const botMentioned =
+          mentionedJids.length > 0 &&
+          mentionedJids.some(
+            (jid) =>
+              (botJid && areJidsSameUser(jid, botJid)) ||
+              (botLid && areJidsSameUser(jid, botLid)),
+          );
+        if (botMentioned) {
+          // Replace all mentioned JIDs that match the bot with the configured userName
+          for (const jid of mentionedJids) {
+            if (
+              (botJid && areJidsSameUser(jid, botJid)) ||
+              (botLid && areJidsSameUser(jid, botLid))
+            ) {
+              const user = jidDecode(jid)?.user;
+              if (user) {
+                baseText = baseText.replace(
+                  new RegExp(`@${user}\\b`, "g"),
+                  `@${this.userName}`,
+                );
+              }
+            }
+          }
+        }
+
         const text = [baseText, replyContext]
           .filter(Boolean)
           .join("\n\n")
