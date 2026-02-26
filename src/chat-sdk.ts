@@ -6,6 +6,7 @@ import { createWhatsAppBaileysAdapter } from "./adapters/whatsapp.js";
 import { loadConfig, resolveProjectPath } from "./config.js";
 import { handleApiRequest } from "./core/api.js";
 import { ClawbberCoreRuntime } from "./core/runtime.js";
+import { loadTriggerConfig, matchTrigger } from "./core/trigger.js";
 import { logger } from "./logger.js";
 
 type WaitUntil = (task: Promise<unknown>) => void;
@@ -79,8 +80,23 @@ async function main() {
     // thread.isDM is unreliable for WhatsApp LID JIDs — derive from thread ID
     const isDM = thread.isDM || !thread.id.includes("@g.us");
 
-    // Start typing immediately for DMs and triggered messages
-    if (isDM || message.isMention) {
+    // Quick trigger check before starting typing indicator
+    const text = message.text.trim();
+    if (!text) return;
+
+    const defaultPatterns = config.triggerPatterns
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const triggerConfig = loadTriggerConfig(
+      core.db,
+      thread.id,
+      { patterns: defaultPatterns, match: config.triggerMatch },
+    );
+    const triggerResult = matchTrigger(text, triggerConfig, isDM);
+
+    // Only start typing if trigger matched (or DM)
+    if (triggerResult.matched) {
       if (isNew) await thread.subscribe();
       await thread.startTyping();
     }
