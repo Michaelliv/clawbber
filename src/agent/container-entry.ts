@@ -10,8 +10,8 @@ type Payload = {
   prompt: string;
 };
 
-const START = "---CLAWSOME_CONTAINER_RESULT_START---";
-const END = "---CLAWSOME_CONTAINER_RESULT_END---";
+const START = "---CLAWBBER_CONTAINER_RESULT_START---";
+const END = "---CLAWBBER_CONTAINER_RESULT_END---";
 
 function formatContextTimestamp(ms: number): string {
   return new Date(ms).toLocaleString("en-GB", {
@@ -28,7 +28,7 @@ function formatContextTimestamp(ms: number): string {
 
 function buildSystemPrompt(): string {
   return [
-    "You are Clawsome, a concise personal AI assistant.",
+    "You are Clawbber, a concise personal AI assistant.",
     "Prioritize practical outputs and explicit assumptions.",
   ].join("\n");
 }
@@ -54,16 +54,16 @@ function buildPrompt(payload: Payload): string {
 
 function runPi(payload: Payload): Promise<string> {
   return new Promise((resolve, reject) => {
-    const sessionFile = path.join(payload.groupWorkspace, ".clawsome.session.jsonl");
+    const sessionFile = path.join(payload.groupWorkspace, ".clawbber.session.jsonl");
 
     const args = [
       "--print",
       "--session",
       sessionFile,
       "--provider",
-      process.env.CLAWSOME_MODEL_PROVIDER || "anthropic",
+      process.env.CLAWBBER_MODEL_PROVIDER || "anthropic",
       "--model",
-      process.env.CLAWSOME_MODEL || "claude-sonnet-4-20250514",
+      process.env.CLAWBBER_MODEL || "claude-sonnet-4-20250514",
       "--append-system-prompt",
       buildSystemPrompt(),
       buildPrompt(payload),

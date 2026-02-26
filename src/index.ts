@@ -1,19 +1,19 @@
 import { stdin as input, stdout as output } from "node:process";
 import readline from "node:readline/promises";
 import { loadConfig } from "./config.js";
-import { ClawsomeCoreRuntime } from "./core/runtime.js";
+import { ClawbberCoreRuntime } from "./core/runtime.js";
 import { logger } from "./logger.js";
 
 async function main() {
   const config = loadConfig();
-  const core = new ClawsomeCoreRuntime(config);
+  const core = new ClawbberCoreRuntime(config);
 
   core.startScheduler();
 
   const callerId = "cli:local";
 
   const rl = readline.createInterface({ input, output });
-  logger.info("Clawsome ready 🦀");
+  logger.info("Clawbber ready 🦀");
   logger.info(
     `Trigger patterns: ${config.triggerPatterns} (${config.triggerMatch})`,
   );

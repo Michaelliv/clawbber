@@ -111,9 +111,9 @@ export class WhatsAppBaileysAdapter
   private readonly pushNames = new Map<string, string>();
 
   constructor(options?: { userName?: string; authDir?: string }) {
-    this.userName = options?.userName ?? "clawsome";
+    this.userName = options?.userName ?? "clawbber";
     this.authDir =
-      options?.authDir ?? path.join(process.cwd(), ".clawsome", "whatsapp-auth");
+      options?.authDir ?? path.join(process.cwd(), ".clawbber", "whatsapp-auth");
   }
 
   get botUserId(): string | undefined {

@@ -1,4 +1,4 @@
-# clawsome
+# clawbber
 
 NanoClaw-style personal assistant with:
 - single orchestrator process
@@ -9,13 +9,13 @@ NanoClaw-style personal assistant with:
 
 - Host process: routing, queueing, scheduling, persistence
 - Container process: full pi runtime (`pi --print`) via `src/container-agent-entry.ts`
-- Host pi environment mounted into container (`CLAWSOME_PI_AGENT_DIR` -> `/home/node/.pi/agent`)
+- Host pi environment mounted into container (`CLAWBBER_PI_AGENT_DIR` -> `/home/node/.pi/agent`)
 - Group workspaces mounted into container at `/groups`
 
 ## Quick start
 
 ```bash
-cd clawsome
+cd clawbber
 cp .env.example .env
 bun install
 bun run dev:chat
@@ -26,8 +26,8 @@ bun run dev:chat
 Enable any combination:
 
 - WhatsApp (Baileys socket):
-  - `CLAWSOME_ENABLE_WHATSAPP=true`
-  - `CLAWSOME_WHATSAPP_AUTH_DIR=...`
+  - `CLAWBBER_ENABLE_WHATSAPP=true`
+  - `CLAWBBER_WHATSAPP_AUTH_DIR=...`
 - Slack (webhook):
   - `SLACK_BOT_TOKEN`
   - `SLACK_SIGNING_SECRET`
@@ -44,20 +44,20 @@ Enable any combination:
 Set:
 
 ```env
-CLAWSOME_WHATSAPP_AUTH_DIR=/absolute/path/to/nanoclaw/store/auth
+CLAWBBER_WHATSAPP_AUTH_DIR=/absolute/path/to/nanoclaw/store/auth
 ```
 
 Then run `bun run dev:chat`.
 
-This reuses your existing pi auth/settings/extensions/packages exactly as configured in `CLAWSOME_PI_AGENT_DIR`.
+This reuses your existing pi auth/settings/extensions/packages exactly as configured in `CLAWBBER_PI_AGENT_DIR`.
 
 ## Resource-loader compatible environment mounts
 
-clawsome mirrors pi's resource-loader expectations:
+clawbber mirrors pi's resource-loader expectations:
 
-- **Global env** (all sessions): `CLAWSOME_PI_AGENT_DIR` mounted to `/home/node/.pi/agent`
+- **Global env** (all sessions): `CLAWBBER_PI_AGENT_DIR` mounted to `/home/node/.pi/agent`
   - put global files here: `AGENTS.md`, `SYSTEM.md`, `APPEND_SYSTEM.md`, `skills/`, `prompts/`, `extensions/`
-- **Per-session env** (per chat thread): `CLAWSOME_GROUPS_DIR/<session>/` mounted under `/groups`
+- **Per-session env** (per chat thread): `CLAWBBER_GROUPS_DIR/<session>/` mounted under `/groups`
   - each session runs with `cwd=/groups/<session>`
   - put per-session files here: `AGENTS.md` (or `CLAUDE.md`), `.pi/SYSTEM.md`, `.pi/APPEND_SYSTEM.md`, `.pi/{skills,prompts,extensions}/`
 
@@ -67,5 +67,5 @@ Both mounts are read-write, so:
 
 ## Notes
 
-- Agent runtime is always containerized via `CLAWSOME_AGENT_CONTAINER_IMAGE`.
-- Logging level: `CLAWSOME_LOG_LEVEL` (`debug`, `info`, `warn`, `error`, `silent`).
+- Agent runtime is always containerized via `CLAWBBER_AGENT_CONTAINER_IMAGE`.
+- Logging level: `CLAWBBER_LOG_LEVEL` (`debug`, `info`, `warn`, `error`, `silent`).

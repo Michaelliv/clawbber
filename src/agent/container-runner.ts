@@ -5,8 +5,8 @@ import type { AppConfig } from "../config.js";
 import { getApiKeyFromPiAuthFile } from "../storage/pi-auth.js";
 import type { StoredMessage } from "../types.js";
 
-const START = "---CLAWSOME_CONTAINER_RESULT_START---";
-const END = "---CLAWSOME_CONTAINER_RESULT_END---";
+const START = "---CLAWBBER_CONTAINER_RESULT_START---";
+const END = "---CLAWBBER_CONTAINER_RESULT_END---";
 
 export class AgentContainerRunner {
   private readonly runningByGroup = new Map<
@@ -69,20 +69,20 @@ export class AgentContainerRunner {
 
     const envPairs = [
       {
-        key: "CLAWSOME_MODEL_PROVIDER",
-        value: process.env.CLAWSOME_MODEL_PROVIDER,
+        key: "CLAWBBER_MODEL_PROVIDER",
+        value: process.env.CLAWBBER_MODEL_PROVIDER,
       },
-      { key: "CLAWSOME_MODEL", value: process.env.CLAWSOME_MODEL },
-      { key: "CLAWSOME_LOG_LEVEL", value: process.env.CLAWSOME_LOG_LEVEL }, // used by pi CLI inside container
+      { key: "CLAWBBER_MODEL", value: process.env.CLAWBBER_MODEL },
+      { key: "CLAWBBER_LOG_LEVEL", value: process.env.CLAWBBER_LOG_LEVEL }, // used by pi CLI inside container
       { key: "ANTHROPIC_API_KEY", value: authEnv.ANTHROPIC_API_KEY },
       { key: "ANTHROPIC_OAUTH_TOKEN", value: authEnv.ANTHROPIC_OAUTH_TOKEN },
       { key: "OPENAI_API_KEY", value: authEnv.OPENAI_API_KEY },
       { key: "HOME", value: "/home/node" },
       { key: "PI_CODING_AGENT_DIR", value: "/home/node/.pi/agent" },
-      { key: "CLAWSOME_CALLER_ID", value: input.callerId },
-      { key: "CLAWSOME_GROUP_ID", value: input.groupId },
+      { key: "CLAWBBER_CALLER_ID", value: input.callerId },
+      { key: "CLAWBBER_GROUP_ID", value: input.groupId },
       {
-        key: "CLAWSOME_API_URL",
+        key: "CLAWBBER_API_URL",
         value: `http://host.docker.internal:${this.config.chatSdkPort}`,
       },
     ].filter((x): x is { key: string; value: string } => Boolean(x.value));
@@ -136,7 +136,7 @@ export class AgentContainerRunner {
 
         if (this.abortedGroups.has(input.groupId)) {
           this.abortedGroups.delete(input.groupId);
-          reject(new Error("CLAWSOME_ABORTED"));
+          reject(new Error("CLAWBBER_ABORTED"));
           return;
         }
 

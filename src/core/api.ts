@@ -60,8 +60,8 @@ function error(message: string, status: number): Response {
 function parseCallerHeaders(
   request: Request,
 ): { callerId: string; groupId: string } | null {
-  const callerId = request.headers.get("x-clawsome-caller");
-  const groupId = request.headers.get("x-clawsome-group");
+  const callerId = request.headers.get("x-clawbber-caller");
+  const groupId = request.headers.get("x-clawbber-group");
   if (!callerId || !groupId) return null;
   return { callerId, groupId };
 }
@@ -87,7 +87,7 @@ export function handleApiRequest(
 
   const caller = parseCallerHeaders(request);
   if (!caller) {
-    return error("Missing X-Clawsome-Caller or X-Clawsome-Group headers", 400);
+    return error("Missing X-Clawbber-Caller or X-Clawbber-Group headers", 400);
   }
 
   const { callerId, groupId } = caller;

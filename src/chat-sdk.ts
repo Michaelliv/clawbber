@@ -5,7 +5,7 @@ import { type Adapter, Chat, type Message, type Thread } from "chat";
 import { createWhatsAppBaileysAdapter } from "./adapters/whatsapp.js";
 import { loadConfig, resolveProjectPath } from "./config.js";
 import { handleApiRequest } from "./core/api.js";
-import { ClawsomeCoreRuntime } from "./core/runtime.js";
+import { ClawbberCoreRuntime } from "./core/runtime.js";
 import { logger } from "./logger.js";
 
 type WaitUntil = (task: Promise<unknown>) => void;
@@ -32,7 +32,7 @@ function resolveCallerId(message: Message, thread: Thread): string {
 
 async function main() {
   const config = loadConfig();
-  const core = new ClawsomeCoreRuntime(config);
+  const core = new ClawbberCoreRuntime(config);
 
   const adapters: Record<string, Adapter> = {};
 
@@ -57,7 +57,7 @@ async function main() {
 
   if (Object.keys(adapters).length === 0) {
     throw new Error(
-      "No adapters enabled. Configure Slack/Discord env or set CLAWSOME_ENABLE_WHATSAPP=true",
+      "No adapters enabled. Configure Slack/Discord env or set CLAWBBER_ENABLE_WHATSAPP=true",
     );
   }
 
@@ -140,7 +140,7 @@ async function main() {
     fetch: async (request) => {
       const url = new URL(request.url);
 
-      // Internal API — used by clawsome-ctl from inside containers
+      // Internal API — used by clawbber-ctl from inside containers
       if (url.pathname.startsWith("/api/")) {
         return handleApiRequest(request, url, apiCtx);
       }

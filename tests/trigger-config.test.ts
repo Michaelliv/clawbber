@@ -9,7 +9,7 @@ let tmpDir: string;
 let db: Db;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawsome-test-"));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawbber-test-"));
   db = new Db(path.join(tmpDir, "state.db"));
   db.ensureGroup("g1");
 });

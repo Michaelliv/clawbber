@@ -1,21 +1,21 @@
 #!/usr/bin/env bun
 
-const API_URL = process.env.CLAWSOME_API_URL;
-const CALLER_ID = process.env.CLAWSOME_CALLER_ID;
-const GROUP_ID = process.env.CLAWSOME_GROUP_ID;
+const API_URL = process.env.CLAWBBER_API_URL;
+const CALLER_ID = process.env.CLAWBBER_CALLER_ID;
+const GROUP_ID = process.env.CLAWBBER_GROUP_ID;
 
 function fatal(msg: string): never {
   process.stderr.write(`error: ${msg}\n`);
   process.exit(1);
 }
 
-if (!API_URL) fatal("CLAWSOME_API_URL not set");
-if (!CALLER_ID) fatal("CLAWSOME_CALLER_ID not set");
-if (!GROUP_ID) fatal("CLAWSOME_GROUP_ID not set");
+if (!API_URL) fatal("CLAWBBER_API_URL not set");
+if (!CALLER_ID) fatal("CLAWBBER_CALLER_ID not set");
+if (!GROUP_ID) fatal("CLAWBBER_GROUP_ID not set");
 
 const headers: Record<string, string> = {
-  "x-clawsome-caller": CALLER_ID,
-  "x-clawsome-group": GROUP_ID,
+  "x-clawbber-caller": CALLER_ID,
+  "x-clawbber-group": GROUP_ID,
   "content-type": "application/json",
 };
 
@@ -46,29 +46,29 @@ function print(data: unknown): void {
 }
 
 function usage(): never {
-  process.stderr.write(`clawsome-ctl — manage clawsome from inside the agent container
+  process.stderr.write(`clawbber-ctl — manage clawbber from inside the agent container
 
 Usage:
-  clawsome-ctl whoami
-  clawsome-ctl tasks list
-  clawsome-ctl tasks create --cron <expr> --prompt <text>
-  clawsome-ctl tasks pause <id>
-  clawsome-ctl tasks resume <id>
-  clawsome-ctl tasks delete <id>
-  clawsome-ctl config get [key]
-  clawsome-ctl config set <key> <value>
-  clawsome-ctl roles list
-  clawsome-ctl roles grant <platform-user-id> [--role <role>]
-  clawsome-ctl roles revoke <platform-user-id>
-  clawsome-ctl permissions show [--role <role>]
-  clawsome-ctl permissions set <role> <perm1,perm2,...>
-  clawsome-ctl stop
-  clawsome-ctl compact
+  clawbber-ctl whoami
+  clawbber-ctl tasks list
+  clawbber-ctl tasks create --cron <expr> --prompt <text>
+  clawbber-ctl tasks pause <id>
+  clawbber-ctl tasks resume <id>
+  clawbber-ctl tasks delete <id>
+  clawbber-ctl config get [key]
+  clawbber-ctl config set <key> <value>
+  clawbber-ctl roles list
+  clawbber-ctl roles grant <platform-user-id> [--role <role>]
+  clawbber-ctl roles revoke <platform-user-id>
+  clawbber-ctl permissions show [--role <role>]
+  clawbber-ctl permissions set <role> <perm1,perm2,...>
+  clawbber-ctl stop
+  clawbber-ctl compact
 
 Environment:
-  CLAWSOME_API_URL       Host API base URL
-  CLAWSOME_CALLER_ID     Platform user ID of the caller
-  CLAWSOME_GROUP_ID      Current group ID
+  CLAWBBER_API_URL       Host API base URL
+  CLAWBBER_CALLER_ID     Platform user ID of the caller
+  CLAWBBER_GROUP_ID      Current group ID
 `);
   process.exit(1);
 }

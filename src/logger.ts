@@ -21,7 +21,7 @@ function parseLevel(value: string | undefined): LogLevel {
   }
 }
 
-const level = parseLevel(process.env.CLAWSOME_LOG_LEVEL);
+const level = parseLevel(process.env.CLAWBBER_LOG_LEVEL);
 
 function enabled(target: Exclude<LogLevel, "silent">): boolean {
   if (level === "silent") return false;
@@ -31,15 +31,15 @@ function enabled(target: Exclude<LogLevel, "silent">): boolean {
 export const logger = {
   level,
   debug: (...args: unknown[]) => {
-    if (enabled("debug")) console.debug("[clawsome]", ...args);
+    if (enabled("debug")) console.debug("[clawbber]", ...args);
   },
   info: (...args: unknown[]) => {
-    if (enabled("info")) console.log("[clawsome]", ...args);
+    if (enabled("info")) console.log("[clawbber]", ...args);
   },
   warn: (...args: unknown[]) => {
-    if (enabled("warn")) console.warn("[clawsome]", ...args);
+    if (enabled("warn")) console.warn("[clawbber]", ...args);
   },
   error: (...args: unknown[]) => {
-    if (enabled("error")) console.error("[clawsome]", ...args);
+    if (enabled("error")) console.error("[clawbber]", ...args);
   },
 };

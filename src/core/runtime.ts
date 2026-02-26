@@ -11,7 +11,7 @@ import { TaskScheduler } from "./task-scheduler.js";
 
 export type InputSource = "cli" | "scheduler" | "chat-sdk";
 
-export class ClawsomeCoreRuntime {
+export class ClawbberCoreRuntime {
   readonly db: Db;
   readonly scheduler: TaskScheduler;
   readonly queue: GroupQueue;
@@ -97,7 +97,7 @@ export class ClawsomeCoreRuntime {
       );
       return { ...route, reply };
     } catch (error) {
-      if (error instanceof Error && error.message.includes("CLAWSOME_ABORTED")) {
+      if (error instanceof Error && error.message.includes("CLAWBBER_ABORTED")) {
         return { type: "denied", reason: "Stopped current run." };
       }
       throw error;
