@@ -1,0 +1,410 @@
+import { Database } from "bun:sqlite";
+import fs from "node:fs";
+import path from "node:path";
+import type {
+  Group,
+  GroupConfigEntry,
+  GroupRole,
+  ScheduledTask,
+  StoredMessage,
+} from "../types.js";
+
+type GroupRow = {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+};
+type MessageRow = {
+  id: number;
+  groupId: string;
+  role: StoredMessage["role"];
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export class Db {
+  private readonly db: Database;
+
+  constructor(dbPath: string) {
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+    this.db = new Database(dbPath, { create: true });
+    this.db.exec("PRAGMA journal_mode = WAL;");
+    this.migrate();
+  }
+
+  private migrate() {
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS groups (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        group_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_messages_group_created
+      ON messages(group_id, created_at);
+
+      CREATE TABLE IF NOT EXISTS tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        group_id TEXT NOT NULL,
+        cron TEXT NOT NULL,
+        prompt TEXT NOT NULL,
+        active INTEGER NOT NULL DEFAULT 1,
+        next_run_at INTEGER NOT NULL,
+        created_by TEXT NOT NULL DEFAULT 'system',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_tasks_next
+      ON tasks(active, next_run_at);
+
+      CREATE TABLE IF NOT EXISTS chat_state (
+        group_id TEXT PRIMARY KEY,
+        min_message_id INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS group_roles (
+        group_id TEXT NOT NULL,
+        platform_user_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        granted_by TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (group_id, platform_user_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS group_config (
+        group_id TEXT NOT NULL,
+        key TEXT NOT NULL,
+        value TEXT NOT NULL,
+        updated_by TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (group_id, key)
+      );
+    `);
+  }
+
+  ensureGroup(groupId: string): Group {
+    const now = Date.now();
+
+    this.db
+      .query(
+        "INSERT OR IGNORE INTO groups(id, title, created_at, updated_at) VALUES (?, ?, ?, ?)",
+      )
+      .run(groupId, groupId, now, now);
+
+    this.db
+      .query("UPDATE groups SET updated_at = ? WHERE id = ?")
+      .run(now, groupId);
+
+    const row = this.db
+      .query(
+        "SELECT id, title, created_at as createdAt, updated_at as updatedAt FROM groups WHERE id = ?",
+      )
+      .get(groupId) as GroupRow | null;
+
+    if (!row) throw new Error(`Failed to load group ${groupId}`);
+    return row;
+  }
+
+  listGroups(): Group[] {
+    return this.db
+      .query(
+        "SELECT id, title, created_at as createdAt, updated_at as updatedAt FROM groups ORDER BY created_at ASC",
+      )
+      .all() as Group[];
+  }
+
+  addMessage(
+    groupId: string,
+    role: StoredMessage["role"],
+    content: string,
+  ): void {
+    const now = Date.now();
+    this.db
+      .query(
+        "INSERT INTO messages(group_id, role, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+      )
+      .run(groupId, role, content, now, now);
+  }
+
+  clearMessages(groupId: string): void {
+    this.db.query("DELETE FROM messages WHERE group_id = ?").run(groupId);
+  }
+
+  private getSessionBoundary(groupId: string): number {
+    const row = this.db
+      .query(
+        "SELECT min_message_id as minMessageId FROM chat_state WHERE group_id = ?",
+      )
+      .get(groupId) as { minMessageId: number } | null;
+    return row?.minMessageId ?? 0;
+  }
+
+  setSessionBoundaryToLatest(groupId: string): number {
+    const row = this.db
+      .query(
+        "SELECT COALESCE(MAX(id), 0) as id FROM messages WHERE group_id = ?",
+      )
+      .get(groupId) as { id: number } | null;
+    const minMessageId = Number(row?.id ?? 0);
+
+    const now = Date.now();
+    this.db
+      .query(
+        `INSERT INTO chat_state(group_id, min_message_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(group_id)
+         DO UPDATE SET min_message_id = excluded.min_message_id, updated_at = excluded.updated_at`,
+      )
+      .run(groupId, minMessageId, now, now);
+
+    return minMessageId;
+  }
+
+  getRecentMessages(groupId: string, limit = 40): StoredMessage[] {
+    const boundary = this.getSessionBoundary(groupId);
+    return (
+      this.db
+        .query(
+          `SELECT id, group_id as groupId, role, content, created_at as createdAt, updated_at as updatedAt
+         FROM messages
+         WHERE group_id = ? AND id > ?
+         ORDER BY id DESC
+         LIMIT ?`,
+        )
+        .all(groupId, boundary, limit) as MessageRow[]
+    ).reverse();
+  }
+
+  getMessagesSinceLastUserTrigger(
+    groupId: string,
+    limit = 200,
+  ): StoredMessage[] {
+    const boundary = this.getSessionBoundary(groupId);
+
+    const latestUser = this.db
+      .query(
+        `SELECT id
+         FROM messages
+         WHERE group_id = ? AND role = 'user' AND id > ?
+         ORDER BY id DESC
+         LIMIT 1`,
+      )
+      .get(groupId, boundary) as { id: number } | null;
+
+    if (!latestUser) return [];
+
+    const previousUser = this.db
+      .query(
+        `SELECT id
+         FROM messages
+         WHERE group_id = ? AND role = 'user' AND id > ? AND id < ?
+         ORDER BY id DESC
+         LIMIT 1`,
+      )
+      .get(groupId, boundary, latestUser.id) as { id: number } | null;
+
+    const afterId = previousUser?.id ?? boundary;
+
+    return this.db
+      .query(
+        `SELECT id, group_id as groupId, role, content, created_at as createdAt, updated_at as updatedAt
+         FROM messages
+         WHERE group_id = ? AND id > ?
+         ORDER BY id ASC
+         LIMIT ?`,
+      )
+      .all(groupId, afterId, limit) as StoredMessage[];
+  }
+
+  createTask(
+    groupId: string,
+    cron: string,
+    prompt: string,
+    nextRunAt: number,
+    createdBy: string,
+  ): number {
+    const now = Date.now();
+    this.db
+      .query(
+        "INSERT INTO tasks(group_id, cron, prompt, active, next_run_at, created_by, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?, ?, ?)",
+      )
+      .run(groupId, cron, prompt, nextRunAt, createdBy, now, now);
+
+    const row = this.db.query("SELECT last_insert_rowid() as id").get() as {
+      id: number;
+    } | null;
+    if (!row) throw new Error("Failed to read task id");
+    return Number(row.id);
+  }
+
+  listTasks(groupId?: string): ScheduledTask[] {
+    if (groupId) {
+      return this.db
+        .query(
+          `SELECT id, group_id as groupId, cron, prompt, active, next_run_at as nextRunAt, created_by as createdBy, created_at as createdAt, updated_at as updatedAt
+           FROM tasks WHERE group_id = ? ORDER BY id ASC`,
+        )
+        .all(groupId) as ScheduledTask[];
+    }
+
+    return this.db
+      .query(
+        `SELECT id, group_id as groupId, cron, prompt, active, next_run_at as nextRunAt, created_by as createdBy, created_at as createdAt, updated_at as updatedAt
+         FROM tasks ORDER BY id ASC`,
+      )
+      .all() as ScheduledTask[];
+  }
+
+  getDueTasks(now = Date.now()): ScheduledTask[] {
+    return this.db
+      .query(
+        `SELECT id, group_id as groupId, cron, prompt, active, next_run_at as nextRunAt, created_by as createdBy, created_at as createdAt, updated_at as updatedAt
+         FROM tasks
+         WHERE active = 1 AND next_run_at <= ?
+         ORDER BY next_run_at ASC`,
+      )
+      .all(now) as ScheduledTask[];
+  }
+
+  updateTaskNextRun(id: number, nextRunAt: number): void {
+    this.db
+      .query("UPDATE tasks SET next_run_at = ?, updated_at = ? WHERE id = ?")
+      .run(nextRunAt, Date.now(), id);
+  }
+
+  setTaskActive(id: number, active: boolean): void {
+    this.db
+      .query("UPDATE tasks SET active = ?, updated_at = ? WHERE id = ?")
+      .run(active ? 1 : 0, Date.now(), id);
+  }
+
+  deleteTask(id: number, groupId: string): boolean {
+    const result = this.db
+      .query("DELETE FROM tasks WHERE id = ? AND group_id = ?")
+      .run(id, groupId);
+    return result.changes > 0;
+  }
+
+  getTask(id: number): ScheduledTask | null {
+    return this.db
+      .query(
+        `SELECT id, group_id as groupId, cron, prompt, active, next_run_at as nextRunAt, created_by as createdBy, created_at as createdAt, updated_at as updatedAt
+         FROM tasks WHERE id = ?`,
+      )
+      .get(id) as ScheduledTask | null;
+  }
+
+  // --- Roles ---
+
+  upsertMember(groupId: string, platformUserId: string): void {
+    const now = Date.now();
+    this.db
+      .query(
+        `INSERT OR IGNORE INTO group_roles(group_id, platform_user_id, role, granted_by, created_at, updated_at)
+         VALUES (?, ?, 'member', NULL, ?, ?)`,
+      )
+      .run(groupId, platformUserId, now, now);
+  }
+
+  setRole(
+    groupId: string,
+    platformUserId: string,
+    role: string,
+    grantedBy: string,
+  ): void {
+    const now = Date.now();
+    this.db
+      .query(
+        `INSERT INTO group_roles(group_id, platform_user_id, role, granted_by, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(group_id, platform_user_id)
+         DO UPDATE SET role = excluded.role, granted_by = excluded.granted_by, updated_at = excluded.updated_at`,
+      )
+      .run(groupId, platformUserId, role, grantedBy, now, now);
+  }
+
+  getRole(groupId: string, platformUserId: string): string | null {
+    const row = this.db
+      .query(
+        "SELECT role FROM group_roles WHERE group_id = ? AND platform_user_id = ?",
+      )
+      .get(groupId, platformUserId) as { role: string } | null;
+    return row?.role ?? null;
+  }
+
+  listRoles(groupId: string): GroupRole[] {
+    return this.db
+      .query(
+        `SELECT group_id as groupId, platform_user_id as platformUserId, role, granted_by as grantedBy, created_at as createdAt, updated_at as updatedAt
+         FROM group_roles WHERE group_id = ? ORDER BY created_at ASC`,
+      )
+      .all(groupId) as GroupRole[];
+  }
+
+  seedAdmins(groupId: string, adminIds: string[]): void {
+    const now = Date.now();
+    for (const id of adminIds) {
+      this.db
+        .query(
+          `INSERT INTO group_roles(group_id, platform_user_id, role, granted_by, created_at, updated_at)
+           VALUES (?, ?, 'admin', 'seed', ?, ?)
+           ON CONFLICT(group_id, platform_user_id)
+           DO UPDATE SET role = 'admin', granted_by = 'seed', updated_at = excluded.updated_at
+           WHERE group_roles.role != 'admin'`,
+        )
+        .run(groupId, id, now, now);
+    }
+  }
+
+  // --- Group Config ---
+
+  getGroupConfig(groupId: string, key: string): string | null {
+    const row = this.db
+      .query("SELECT value FROM group_config WHERE group_id = ? AND key = ?")
+      .get(groupId, key) as { value: string } | null;
+    return row?.value ?? null;
+  }
+
+  setGroupConfig(
+    groupId: string,
+    key: string,
+    value: string,
+    updatedBy: string,
+  ): void {
+    const now = Date.now();
+    this.db
+      .query(
+        `INSERT INTO group_config(group_id, key, value, updated_by, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(group_id, key)
+         DO UPDATE SET value = excluded.value, updated_by = excluded.updated_by, updated_at = excluded.updated_at`,
+      )
+      .run(groupId, key, value, updatedBy, now, now);
+  }
+
+  listGroupConfig(groupId: string): GroupConfigEntry[] {
+    return this.db
+      .query(
+        `SELECT group_id as groupId, key, value, updated_by as updatedBy, created_at as createdAt, updated_at as updatedAt
+         FROM group_config WHERE group_id = ? ORDER BY key ASC`,
+      )
+      .all(groupId) as GroupConfigEntry[];
+  }
+}
