@@ -13,7 +13,7 @@ async function main() {
   const callerId = "cli:local";
 
   const rl = readline.createInterface({ input, output });
-  logger.info("Nano Pi ready");
+  logger.info("Clawsome ready 🦀");
   logger.info(
     `Trigger patterns: ${config.triggerPatterns} (${config.triggerMatch})`,
   );

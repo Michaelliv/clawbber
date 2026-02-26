@@ -87,7 +87,7 @@ export function handleApiRequest(
 
   const caller = parseCallerHeaders(request);
   if (!caller) {
-    return error("Missing X-Nano-Pi-Caller or X-Nano-Pi-Group headers", 400);
+    return error("Missing X-Clawsome-Caller or X-Clawsome-Group headers", 400);
   }
 
   const { callerId, groupId } = caller;

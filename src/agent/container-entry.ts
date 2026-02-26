@@ -27,7 +27,7 @@ function formatContextTimestamp(ms: number): string {
 
 function buildSystemPrompt(): string {
   return [
-    "You are Nano Pi, a concise personal AI assistant.",
+    "You are Clawsome, a concise personal AI assistant.",
     "Prioritize practical outputs and explicit assumptions.",
   ].join("\n");
 }
