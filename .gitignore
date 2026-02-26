@@ -5,3 +5,4 @@ dist
 bun.lock
 .nanny
 .env
+.clawsome/
