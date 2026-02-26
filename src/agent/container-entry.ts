@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import type { StoredMessage } from "../types.js";
 
 type Payload = {
@@ -75,7 +75,7 @@ function runPi(payload: Payload): Promise<string> {
       buildPrompt(payload),
     ];
 
-    const proc = spawn("bun", ["x", "pi", ...args], {
+    const proc = spawn("pi", args, {
       cwd: payload.groupWorkspace,
       stdio: ["ignore", "pipe", "pipe"],
       env: process.env,
@@ -104,21 +104,7 @@ function runPi(payload: Payload): Promise<string> {
   });
 }
 
-function installCtl(): void {
-  // Create a wrapper script that invokes clawsome-ctl via bun
-  const binDir = "/usr/local/bin";
-  const wrapper = `#!/bin/sh\nexec bun run /app/src/cli/clawsome-ctl.ts "$@"\n`;
-  try {
-    mkdirSync(binDir, { recursive: true });
-    writeFileSync(`${binDir}/clawsome-ctl`, wrapper, "utf8");
-    chmodSync(`${binDir}/clawsome-ctl`, 0o755);
-  } catch (err) {
-    process.stderr.write(`warn: failed to install clawsome-ctl: ${err}\n`);
-  }
-}
-
 async function main() {
-  installCtl();
 
   const input = readFileSync(0, "utf8");
   let payload: Payload;

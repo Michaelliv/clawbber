@@ -92,25 +92,16 @@ export class AgentContainerRunner {
       "--rm",
       "-i",
       "-v",
-      `${projectDir}:/app:ro`,
-      "-v",
       `${groupsRoot}:/groups`,
       "-v",
       `${globalDir}:/home/node/.pi/agent`,
-      "-w",
-      "/app",
     ];
 
     for (const { key, value } of envPairs) {
       args.push("-e", `${key}=${value}`);
     }
 
-    args.push(
-      this.config.agentContainerImage,
-      "bun",
-      "run",
-      "src/agent/container-entry.ts",
-    );
+    args.push(this.config.agentContainerImage);
 
     const payload = {
       ...input,
