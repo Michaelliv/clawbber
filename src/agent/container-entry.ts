@@ -59,13 +59,6 @@ function runPi(payload: Payload): Promise<string> {
   return new Promise((resolve, reject) => {
     const args = [
       "--print",
-      // TODO: pi's --session persists its own conversation history. Combined with
-      // the <recent_conversation> XML we inject in the user message, the agent sees
-      // duplicated history on subsequent invocations. Needs resolution — either drop
-      // the XML history and rely on pi's session, or don't use --session.
-      "--session",
-      `${payload.groupWorkspace}/.clawsome.session.json`,
-
       "--provider",
       process.env.CLAWSOME_MODEL_PROVIDER || "anthropic",
       "--model",
@@ -105,7 +98,6 @@ function runPi(payload: Payload): Promise<string> {
 }
 
 async function main() {
-
   const input = readFileSync(0, "utf8");
   let payload: Payload;
   try {

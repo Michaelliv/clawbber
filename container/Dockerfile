@@ -3,16 +3,14 @@
 
 FROM oven/bun:1.3
 
-# Install pi CLI globally (the main cost we're eliminating per-request)
+# Install pi CLI globally at build time
 RUN bun add -g @mariozechner/pi-coding-agent
-
-# Create workspace directories
-RUN mkdir -p /workspace/group /workspace/global
-
-# Copy container-entry source
-COPY src/agent/container-entry.ts /app/container-entry.ts
-COPY src/cli/clawsome-ctl.ts /app/clawsome-ctl.ts
 
 WORKDIR /app
 
-ENTRYPOINT ["bun", "run", "/app/container-entry.ts"]
+# Copy container-entry source
+COPY src/agent/container-entry.ts /app/src/agent/container-entry.ts
+COPY src/cli/clawsome-ctl.ts /app/src/cli/clawsome-ctl.ts
+COPY src/types.ts /app/src/types.ts
+
+ENTRYPOINT ["bun", "run", "/app/src/agent/container-entry.ts"]

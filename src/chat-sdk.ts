@@ -79,7 +79,6 @@ async function main() {
     // thread.isDM is unreliable for WhatsApp LID JIDs — derive from thread ID
     const isDM = thread.isDM || !thread.id.includes("@g.us");
 
-    const t0 = Date.now();
     const result = await core.handleRawInput({
       groupId: thread.id,
       rawText: message.text,
@@ -88,11 +87,8 @@ async function main() {
       isDM,
       source: "chat-sdk",
     });
-    const elapsed = Date.now() - t0;
 
     if (result.type === "ignore") return;
-
-    logger.info("response ready", { type: result.type, elapsedMs: elapsed });
 
     // Subscribe & type only when we're going to respond
     if (isNew) await thread.subscribe();
