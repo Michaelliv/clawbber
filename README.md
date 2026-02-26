@@ -58,8 +58,8 @@ CLAWBBER_ENABLE_WHATSAPP=true
 Build the container image and run:
 
 ```bash
-./container/build.sh
-bun run dev:chat
+clawbber init
+clawbber run
 ```
 
 Scan the QR code with WhatsApp, then message yourself or a group where the bot is present.
@@ -424,9 +424,10 @@ clawbber-ctl config set <key> <value>            # Set group config
 ### Host process
 
 ```bash
-bun run dev:chat      # Development mode with chat adapters
-bun run dev           # Development mode (API only)
-bun run start         # Production mode
+clawbber run          # Start chat adapters
+clawbber init         # First-time setup
+clawbber build        # Build container image
+clawbber status       # Show status
 ```
 
 ---

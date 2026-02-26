@@ -6,3 +6,4 @@ bun.lock
 .nanny
 .env
 .clawsome/
+.clawbber/

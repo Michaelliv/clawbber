@@ -1,13 +1,25 @@
 {
   "name": "clawbber",
   "version": "0.1.0",
-  "private": true,
+  "description": "Personal AI assistant for chat platforms (WhatsApp, Slack, Discord)",
+  "license": "MIT",
+  "keywords": ["ai", "assistant", "whatsapp", "slack", "discord", "chatbot", "pi"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Michaelliv/clawbber"
+  },
   "type": "module",
+  "bin": {
+    "clawbber": "./src/cli/clawbber.ts"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
   "scripts": {
-    "dev": "bun run src/index.ts",
-    "dev:chat": "bun run src/chat-sdk.ts",
-    "start": "bun run src/index.ts",
-    "build": "bun build src/index.ts src/chat-sdk.ts --outdir dist --target bun",
+    "dev": "bun run src/chat-sdk.ts",
+    "start": "bun run src/chat-sdk.ts",
+    "build": "bun build src/chat-sdk.ts --outdir dist --target bun",
     "typecheck": "bunx tsc --noEmit",
     "lint": "bunx biome check src/ tests/",
     "lint:fix": "bunx biome check --fix src/ tests/",
@@ -22,6 +34,7 @@
     "@mariozechner/pi-coding-agent": "^0.55.0",
     "@whiskeysockets/baileys": "^7.0.0-rc.9",
     "chat": "^4.14.0",
+    "commander": "^14.0.3",
     "cron-parser": "^5.5.0",
     "zod": "^4.3.6"
   },
