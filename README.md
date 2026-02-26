@@ -6,6 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/Michaelliv/clawbber"><img alt="GitHub" src="https://img.shields.io/badge/github-clawbber-181717?style=flat-square&logo=github" /></a>
+  <a href="https://www.npmjs.com/package/clawbber"><img alt="npm" src="https://img.shields.io/npm/v/clawbber?style=flat-square&logo=npm" /></a>
 </p>
 
 Clawbber is a personal AI assistant that lives where you chat. It connects to WhatsApp, Slack, and Discord, runs agents inside containers for isolation, and uses [pi](https://pi.dev) as the runtime — giving you persistent sessions, skills, extensions, and the full coding agent toolkit.
@@ -36,17 +37,15 @@ Clawbber is a personal AI assistant that lives where you chat. It connects to Wh
 ## Quick Start
 
 ```bash
-git clone https://github.com/Michaelliv/clawbber
-cd clawbber
-cp .env.example .env
-bun install
+npm install -g clawbber
+mkdir my-assistant && cd my-assistant
+clawbber init
 ```
 
-Set your model credentials in `.env`:
+Edit `.env` with your model credentials:
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-...
-# or use pi's OAuth via CLAWBBER_AUTH_PATH
 ```
 
 Enable an ingress (e.g., WhatsApp):
@@ -55,10 +54,9 @@ Enable an ingress (e.g., WhatsApp):
 CLAWBBER_ENABLE_WHATSAPP=true
 ```
 
-Build the container image and run:
+Run:
 
 ```bash
-clawbber init
 clawbber run
 ```
 
@@ -421,13 +419,15 @@ clawbber-ctl config get [key]                    # Get group config
 clawbber-ctl config set <key> <value>            # Set group config
 ```
 
-### Host process
+### clawbber
+
+Main CLI for managing your assistant.
 
 ```bash
+clawbber init         # Initialize project in current directory
 clawbber run          # Start chat adapters
-clawbber init         # First-time setup
-clawbber build        # Build container image
-clawbber status       # Show status
+clawbber build        # Rebuild container image
+clawbber status       # Show status and configuration
 ```
 
 ---
