@@ -24,6 +24,15 @@ const schema = z.object({
     .default(5 * 60 * 1000), // 5 minutes
   maxConcurrency: z.coerce.number().int().min(1).max(32).default(2),
 
+  // ─── Rate Limiting ──────────────────────────────────────────────────
+  rateLimitPerUser: z.coerce.number().int().min(1).max(1000).default(10),
+  rateLimitWindowMs: z.coerce
+    .number()
+    .int()
+    .min(1000)
+    .max(60 * 60 * 1000)
+    .default(60 * 1000), // 1 minute
+
   // ─── Chat SDK Server ────────────────────────────────────────────────
   chatSdkPort: z.coerce.number().int().min(1).max(65535).default(8787),
   chatSdkUserName: z.string().default("clawbber"),
@@ -70,6 +79,10 @@ export function loadConfig(): AppConfig {
     agentContainerImage: process.env.CLAWBBER_AGENT_CONTAINER_IMAGE,
     containerTimeoutMs: process.env.CLAWBBER_CONTAINER_TIMEOUT_MS,
     maxConcurrency: process.env.CLAWBBER_MAX_CONCURRENCY,
+
+    // Rate Limiting
+    rateLimitPerUser: process.env.CLAWBBER_RATE_LIMIT_PER_USER,
+    rateLimitWindowMs: process.env.CLAWBBER_RATE_LIMIT_WINDOW_MS,
 
     // Chat SDK Server
     chatSdkPort: process.env.CLAWBBER_CHATSDK_PORT,
