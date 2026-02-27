@@ -288,7 +288,7 @@ function fakeMessage(opts: {
 function fakeThread(threadId = "slack:C999:1234567890.123456"): any {
   return {
     id: threadId,
-    isDM: threadId.split(":")[1]?.startsWith("D") ?? false,
+    isDM: /^[DG]/.test(threadId.split(":")[1] ?? ""),
     adapter: { name: "slack" },
     post: mock(async () => {}),
     subscribe: mock(async () => {}),
