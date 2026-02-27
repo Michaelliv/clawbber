@@ -22,6 +22,7 @@
   },
   "files": [
     "src",
+    "resources",
     "README.md"
   ],
   "scripts": {
