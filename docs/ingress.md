@@ -44,10 +44,28 @@ Uses [Baileys](https://github.com/WhiskeySockets/Baileys) for a direct WhatsApp 
 | **@mention handling** | Bot's JID mention replaced with configured `userName` so trigger patterns match |
 | **Outgoing queue** | Messages queued if socket disconnects, flushed on reconnect |
 | **Reconnect** | Auto-reconnects after 3s on non-logout disconnects |
+| **Media** | Images, videos, voice notes, documents downloaded to workspace |
 
 ```bash
 CLAWBBER_ENABLE_WHATSAPP=true
 CLAWBBER_WHATSAPP_AUTH_DIR=.clawbber/whatsapp-auth  # optional
+```
+
+#### Media Support
+
+WhatsApp media attachments are downloaded and saved to the group workspace. See [media/whatsapp.md](media/whatsapp.md) for details.
+
+| Media Type | Source | Supported |
+|------------|--------|-----------|
+| Images | `imageMessage`, `stickerMessage` | ✅ |
+| Videos | `videoMessage` | ✅ |
+| Voice notes | `audioMessage` (ptt=true) | ✅ |
+| Audio | `audioMessage` | ✅ |
+| Documents | `documentMessage` | ✅ |
+
+```bash
+CLAWBBER_MEDIA_ENABLED=true          # default
+CLAWBBER_MEDIA_MAX_SIZE_MB=10        # default
 ```
 
 ### Slack
