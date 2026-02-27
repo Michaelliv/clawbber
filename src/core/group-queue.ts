@@ -44,6 +44,14 @@ export class GroupQueue {
     return this.activeGlobal;
   }
 
+  get pendingCount(): number {
+    let total = 0;
+    for (const queue of this.perGroupPending.values()) {
+      total += queue.length;
+    }
+    return total;
+  }
+
   waitForActive(timeoutMs: number): Promise<boolean> {
     if (this.activeGlobal === 0) return Promise.resolve(true);
     return new Promise<boolean>((resolve) => {

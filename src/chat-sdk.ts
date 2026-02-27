@@ -13,6 +13,8 @@ import { ClawbberCoreRuntime } from "./core/runtime.js";
 import { loadTriggerConfig, matchTrigger } from "./core/trigger.js";
 import { logger } from "./logger.js";
 
+const startTime = Date.now();
+
 type WaitUntil = (task: Promise<unknown>) => void;
 
 type WebhookHandler = (
@@ -185,6 +187,33 @@ async function main() {
     port: config.chatSdkPort,
     fetch: async (request) => {
       const url = new URL(request.url);
+
+      // Health check endpoint — no auth required
+      if (url.pathname === "/health" && request.method === "GET") {
+        const uptimeSeconds = Math.floor((Date.now() - startTime) / 1000);
+        const adapterStatus: Record<string, boolean> = {};
+        for (const name of Object.keys(adapters)) {
+          adapterStatus[name] = true;
+        }
+        return new Response(
+          JSON.stringify({
+            status: "ok",
+            uptime: uptimeSeconds,
+            queue: {
+              active: core.queue.activeCount,
+              pending: core.queue.pendingCount,
+            },
+            containers: {
+              active: core.containerRunner.activeCount,
+            },
+            adapters: adapterStatus,
+          }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        );
+      }
 
       // Internal API — used by clawbber-ctl from inside containers
       if (url.pathname.startsWith("/api/")) {
