@@ -77,7 +77,7 @@ export function createSlackMessageHandler(opts: SlackMessageHandlerOptions) {
     const callerId = slackCallerId(message);
     const isDM = isSlackDM(thread.id);
 
-    logger.info("slack inbound", {
+    logger.debug("slack inbound", {
       groupId,
       callerId,
       isDM,
@@ -85,29 +85,34 @@ export function createSlackMessageHandler(opts: SlackMessageHandlerOptions) {
       preview: text.slice(0, 120),
     });
 
-    const result = await core.handleRawInput({
-      groupId,
-      rawText: message.text,
-      callerId,
-      authorName: message.author.userName,
-      isDM,
-      source: "chat-sdk",
-    });
+    try {
+      const result = await core.handleRawInput({
+        groupId,
+        rawText: message.text,
+        callerId,
+        authorName: message.author.userName,
+        isDM,
+        source: "chat-sdk",
+      });
 
-    if (result.type === "ignore") return;
+      if (result.type === "ignore") return;
 
-    // Subscribe and start typing only when we're going to reply
-    if (result.type === "assistant" || result.type === "command") {
-      if (isNew) await thread.subscribe();
-      await thread.startTyping();
-    }
+      // Only subscribe/type when we'll actually reply.
+      // isNew guard: already-subscribed threads don't need re-subscribing;
+      // the chat framework tracks subscription state per thread.
+      if (result.type === "assistant" || result.type === "command") {
+        if (isNew) await thread.subscribe();
+        await thread.startTyping();
+      }
 
-    if (result.type === "assistant" && result.reply) {
-      await thread.post(result.reply);
-    } else if (result.type === "command" && result.reply) {
-      await thread.post(result.reply);
-    } else if (result.type === "denied") {
-      await thread.post(result.reason);
+      const replyText =
+        result.type === "denied" ? result.reason : result.reply;
+      if (replyText) {
+        logger.info("slack reply", { groupId, preview: replyText.slice(0, 120) });
+        await thread.post(replyText);
+      }
+    } catch (err) {
+      logger.error("slack handler error", { groupId, error: err });
     }
   };
 }

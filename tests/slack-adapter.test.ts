@@ -1,33 +1,19 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 import {
   createSlackMessageHandler,
   isSlackDM,
   slackCallerId,
   slackGroupId,
 } from "../src/adapters/slack.js";
-import { type AppConfig, loadConfig } from "../src/config.js";
 import { seededGroups } from "../src/core/permissions.js";
 import { ClawbberCoreRuntime } from "../src/core/runtime.js";
-import { Db } from "../src/storage/db.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-let tmpDir: string;
-let db: Db;
-
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawbber-slack-test-"));
-  db = new Db(path.join(tmpDir, "state.db"));
   seededGroups.clear();
-});
-
-afterEach(() => {
-  fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
 // ---------------------------------------------------------------------------
@@ -209,6 +195,19 @@ describe("createSlackMessageHandler", () => {
     expect(thread.startTyping).toHaveBeenCalled();
   });
 
+  test("catches and logs errors from handleRawInput", async () => {
+    const { handler, thread, core } = setup();
+    core.handleRawInput = mock(async () => {
+      throw new Error("boom");
+    });
+
+    const msg = fakeMessage({ text: "@Pi explode" });
+    // Should not throw — error is caught and logged
+    await handler(thread, msg, true);
+
+    expect(thread.post).not.toHaveBeenCalled();
+  });
+
   test("does not subscribe/startTyping for ignored messages", async () => {
     const { handler, thread, core } = setup();
     core.handleRawInput = mock(async () => ({
@@ -260,19 +259,7 @@ function fakeThread(threadId = "slack:C999:1234567890.123456"): any {
 }
 
 function setup() {
-  const config: AppConfig = {
-    ...loadConfig(),
-    admins: "",
-    triggerPatterns: "@Pi,Pi",
-    triggerMatch: "mention",
-    dataDir: tmpDir,
-    dbPath: path.join(tmpDir, "state.db"),
-    globalDir: path.join(tmpDir, "global"),
-    groupsDir: path.join(tmpDir, "groups"),
-    whatsappAuthDir: path.join(tmpDir, "wa-auth"),
-  };
-
-  // We create a partial mock of ClawbberCoreRuntime — we only need handleRawInput
+  // Partial mock of ClawbberCoreRuntime — we only need handleRawInput
   const core = {
     handleRawInput: mock(async () => ({ type: "ignore" as const })),
   } as unknown as ClawbberCoreRuntime;
@@ -280,5 +267,5 @@ function setup() {
   const handler = createSlackMessageHandler({ core });
   const thread = fakeThread();
 
-  return { handler, thread, core, config };
+  return { handler, thread, core };
 }
