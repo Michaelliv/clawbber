@@ -3,8 +3,10 @@
 import { spawn, spawnSync } from "node:child_process";
 import {
   chmodSync,
+  copyFileSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
@@ -140,6 +142,24 @@ agent-browser get text body
 - Running in a container with limited resources
 - Long-running tasks may time out
 - No persistent memory between conversations
+
+## Sub-agents
+
+You can delegate tasks to specialized sub-agents:
+
+| Agent | Purpose | Model |
+|-------|---------|-------|
+| explore | Fast codebase reconnaissance | Haiku |
+| worker | General-purpose tasks | Sonnet |
+
+### Single Agent
+"Use explore to find all authentication code"
+
+### Parallel Execution
+"Run 2 workers in parallel: one to refactor models, one to update tests"
+
+### Chained Workflow
+"Use a chain: first have explore find the code, then have worker implement the fix"
 `;
 
 function getVersion(): string {
@@ -215,6 +235,26 @@ function initAction(): void {
     console.log("  ✓ .clawbber/global/AGENTS.md");
   } else {
     console.log("  • .clawbber/global/AGENTS.md (already exists)");
+  }
+
+  // Copy subagent extension
+  console.log("\nCopying subagent extension:");
+  const extensionsDir = join(CWD, ".clawbber/global/extensions/subagent");
+  mkdirSync(extensionsDir, { recursive: true });
+  const srcExtDir = join(PACKAGE_ROOT, "resources/extensions/subagent");
+  for (const file of readdirSync(srcExtDir)) {
+    copyFileSync(join(srcExtDir, file), join(extensionsDir, file));
+    console.log(`  ✓ .clawbber/global/extensions/subagent/${file}`);
+  }
+
+  // Copy agent definitions
+  console.log("\nCopying agent definitions:");
+  const agentsDir = join(CWD, ".clawbber/global/agents");
+  mkdirSync(agentsDir, { recursive: true });
+  const srcAgentsDir = join(PACKAGE_ROOT, "resources/agents");
+  for (const file of readdirSync(srcAgentsDir)) {
+    copyFileSync(join(srcAgentsDir, file), join(agentsDir, file));
+    console.log(`  ✓ .clawbber/global/agents/${file}`);
   }
 
   // Create container directory and files
