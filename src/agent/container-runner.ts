@@ -6,7 +6,7 @@ import {
 import fs from "node:fs";
 import path from "node:path";
 import type { AppConfig } from "../config.js";
-import { logger } from "../logger.js";
+import { type Logger, logger } from "../logger.js";
 import { getApiKeyFromPiAuthFile } from "../storage/pi-auth.js";
 import type { StoredMessage } from "../types.js";
 import { ContainerError } from "./container-error.js";
@@ -51,9 +51,9 @@ export class AgentContainerRunner {
       const containerIds = result.split("\n").filter(Boolean);
       if (containerIds.length === 0) return 0;
 
-      logger.info(
-        `Found ${containerIds.length} orphaned container(s), cleaning up...`,
-      );
+      logger.info("Found orphaned containers, cleaning up", {
+        count: containerIds.length,
+      });
 
       // Force remove all orphaned containers
       execSync(`docker rm -f ${containerIds.join(" ")}`, {
@@ -61,14 +61,19 @@ export class AgentContainerRunner {
         timeout: 30_000,
       });
 
-      logger.info(`Cleaned up ${containerIds.length} orphaned container(s)`);
+      logger.info("Cleaned up orphaned containers", {
+        count: containerIds.length,
+      });
       return containerIds.length;
     } catch (error) {
       // If docker command fails (e.g., docker not installed), log and continue
       if (error instanceof Error && error.message.includes("ENOENT")) {
         logger.warn("Docker not found, skipping orphan cleanup");
       } else {
-        logger.warn("Failed to cleanup orphaned containers", error);
+        logger.warn(
+          "Failed to cleanup orphaned containers",
+          error instanceof Error ? error : undefined,
+        );
       }
       return 0;
     }
@@ -192,12 +197,23 @@ export class AgentContainerRunner {
       groupWorkspace: input.groupWorkspace.replace(groupsRoot, "/groups"),
     };
 
+    // Create child logger with context for this container run
+    const log: Logger = logger.child({
+      groupId: input.groupId,
+      container: containerName,
+    });
+
+    const startTime = Date.now();
+
     return new Promise<string>((resolve, reject) => {
       const proc = spawn("docker", args, {
         stdio: ["pipe", "pipe", "pipe"],
       });
 
       this.runningByGroup.set(input.groupId, proc);
+
+      // Log container start
+      log.info("Container started", { event: "container.start" });
 
       let stdout = "";
       let stderr = "";
@@ -207,9 +223,9 @@ export class AgentContainerRunner {
       timeoutTimer = setTimeout(() => {
         if (this.runningByGroup.has(input.groupId)) {
           this.timedOutGroups.add(input.groupId);
-          logger.warn(
-            `Container timeout for group ${input.groupId}, killing...`,
-          );
+          log.warn("Container timeout, killing", {
+            event: "container.timeout",
+          });
 
           // Force kill the container by name (more reliable than SIGTERM to docker run)
           try {
@@ -245,15 +261,29 @@ export class AgentContainerRunner {
       proc.on("close", (code) => {
         cleanup();
 
+        const durationMs = Date.now() - startTime;
+
         // Check timeout first (before abort check since timeout sets its own state)
         if (this.timedOutGroups.has(input.groupId)) {
           this.timedOutGroups.delete(input.groupId);
+          log.warn("Container exited", {
+            event: "container.end",
+            exitCode: code,
+            durationMs,
+            reason: "timeout",
+          });
           reject(ContainerError.timeout(input.groupId));
           return;
         }
 
         if (this.abortedGroups.has(input.groupId)) {
           this.abortedGroups.delete(input.groupId);
+          log.info("Container exited", {
+            event: "container.end",
+            exitCode: code,
+            durationMs,
+            reason: "aborted",
+          });
           reject(ContainerError.aborted(input.groupId));
           return;
         }
@@ -261,13 +291,32 @@ export class AgentContainerRunner {
         if (code !== 0) {
           // Check for OOM kill (exit code 137 = 128 + SIGKILL)
           if (code === OOM_EXIT_CODE) {
+            log.error("Container exited", {
+              event: "container.end",
+              exitCode: code,
+              durationMs,
+              reason: "oom",
+            });
             reject(ContainerError.oom(input.groupId, code));
             return;
           }
 
+          log.error("Container exited", {
+            event: "container.end",
+            exitCode: code,
+            durationMs,
+            reason: "error",
+          });
           reject(ContainerError.error(code ?? 1, stderr || stdout));
           return;
         }
+
+        // Success case
+        log.info("Container exited", {
+          event: "container.end",
+          exitCode: 0,
+          durationMs,
+        });
 
         const startIdx = stdout.indexOf(START);
         const endIdx = stdout.indexOf(END);

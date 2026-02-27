@@ -11,7 +11,7 @@ import { loadConfig, resolveProjectPath } from "./config.js";
 import { handleApiRequest } from "./core/api.js";
 import { ClawbberCoreRuntime } from "./core/runtime.js";
 import { loadTriggerConfig, matchTrigger } from "./core/trigger.js";
-import { logger } from "./logger.js";
+import { configureLogger, logger } from "./logger.js";
 
 const startTime = Date.now();
 
@@ -39,6 +39,13 @@ function resolveCallerId(message: Message, thread: Thread): string {
 
 async function main() {
   const config = loadConfig();
+
+  // Apply config-based logger settings
+  configureLogger({
+    level: config.logLevel,
+    format: config.logFormat,
+  });
+
   const core = new ClawbberCoreRuntime(config);
   await core.initialize();
 
@@ -155,13 +162,19 @@ async function main() {
 
   bot.onNewMention((thread, message) => {
     void handleMessage(thread, message, true).catch((error) =>
-      logger.error("chat-sdk message handler failed", error),
+      logger.error(
+        "Message handler failed",
+        error instanceof Error ? error : undefined,
+      ),
     );
   });
 
   bot.onSubscribedMessage((thread, message) => {
     void handleMessage(thread, message, false).catch((error) =>
-      logger.error("chat-sdk message handler failed", error),
+      logger.error(
+        "Message handler failed",
+        error instanceof Error ? error : undefined,
+      ),
     );
   });
 
@@ -172,7 +185,10 @@ async function main() {
 
   const waitUntil: WaitUntil = (task) => {
     void task.catch((error) => {
-      logger.error("background task failed", error);
+      logger.error(
+        "Background task failed",
+        error instanceof Error ? error : undefined,
+      );
     });
   };
 
@@ -220,7 +236,7 @@ async function main() {
         return handleApiRequest(request, url, apiCtx);
       }
 
-      logger.info("chat-sdk incoming request", {
+      logger.info("Incoming request", {
         method: request.method,
         path: url.pathname,
       });
@@ -254,7 +270,7 @@ async function main() {
       }
 
       const platform = match[1];
-      logger.info("chat-sdk webhook dispatch", { platform });
+      logger.info("Webhook dispatch", { platform });
       const handler = webhooks[platform];
       if (!handler) {
         return new Response(`Unknown platform: ${platform}`, { status: 404 });
@@ -271,10 +287,13 @@ async function main() {
       try {
         if ("shutdown" in adapter && typeof adapter.shutdown === "function") {
           await (adapter as { shutdown: () => Promise<void> }).shutdown();
-          logger.info(`Shutdown: ${name} adapter disconnected`);
+          logger.info("Shutdown: adapter disconnected", { adapter: name });
         }
       } catch (err) {
-        logger.error(`Shutdown: failed to disconnect ${name} adapter`, err);
+        logger.error("Shutdown: failed to disconnect adapter", {
+          adapter: name,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }
   });
@@ -286,20 +305,24 @@ async function main() {
 
   core.installSignalHandlers();
 
-  logger.info(`Chat SDK server listening on http://localhost:${server.port}`);
-  logger.info(`Agent runtime: container (${config.agentContainerImage})`);
-  logger.info(`Enabled adapters: ${Object.keys(adapters).join(", ")}`);
+  logger.info("Server started", {
+    port: server.port,
+    image: config.agentContainerImage,
+    adapters: Object.keys(adapters).join(", "),
+  });
   logger.info("Webhook path pattern: POST /webhooks/:platform");
   logger.info("Internal API: /api/*");
-  if (adapters.discord)
+  if (adapters.discord) {
     logger.info("Discord gateway trigger: GET /discord/gateway");
-  if (adapters.whatsapp)
-    logger.info(
-      `WhatsApp auth dir: ${resolveProjectPath(config.whatsappAuthDir)}`,
-    );
+  }
+  if (adapters.whatsapp) {
+    logger.info("WhatsApp enabled", {
+      authDir: resolveProjectPath(config.whatsappAuthDir),
+    });
+  }
 }
 
 main().catch((error) => {
-  logger.error(error);
+  logger.error("Startup failed", error instanceof Error ? error : undefined);
   process.exit(1);
 });

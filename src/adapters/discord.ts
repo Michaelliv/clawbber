@@ -89,7 +89,7 @@ export function createDiscordMessageHandler(
     const callerId = discordCallerId(message);
     const isDM = isDiscordDM(thread.id);
 
-    logger.debug("discord inbound", {
+    logger.debug("Discord inbound", {
       groupId,
       callerId,
       isDM,
@@ -128,14 +128,17 @@ export function createDiscordMessageHandler(
 
       const replyText = result.type === "denied" ? result.reason : result.reply;
       if (replyText) {
-        logger.info("discord reply", {
+        logger.info("Discord reply", {
           groupId,
           preview: replyText.slice(0, 120),
         });
         await thread.post(replyText);
       }
     } catch (err) {
-      logger.error("discord handler error", { groupId, error: err });
+      logger.error("Discord handler error", {
+        groupId,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   };
 }
@@ -159,7 +162,7 @@ export function createDiscordAdapter(options?: {
     );
   }
 
-  logger.info("creating discord adapter", { applicationId });
+  logger.info("Creating Discord adapter", { applicationId });
 
   return createBaseDiscordAdapter({
     botToken,

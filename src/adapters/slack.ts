@@ -88,7 +88,7 @@ export function createSlackMessageHandler(opts: SlackMessageHandlerOptions) {
     const callerId = slackCallerId(message);
     const isDM = isSlackDM(thread.id);
 
-    logger.debug("slack inbound", {
+    logger.debug("Slack inbound", {
       groupId,
       callerId,
       isDM,
@@ -127,14 +127,17 @@ export function createSlackMessageHandler(opts: SlackMessageHandlerOptions) {
 
       const replyText = result.type === "denied" ? result.reason : result.reply;
       if (replyText) {
-        logger.info("slack reply", {
+        logger.info("Slack reply", {
           groupId,
           preview: replyText.slice(0, 120),
         });
         await thread.post(replyText);
       }
     } catch (err) {
-      logger.error("slack handler error", { groupId, error: err });
+      logger.error("Slack handler error", {
+        groupId,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   };
 }

@@ -29,6 +29,16 @@ describe("loadConfig", () => {
     expect(config.maxConcurrency).toBe(2);
     expect(config.chatSdkPort).toBe(8787);
     expect(config.containerTimeoutMs).toBe(5 * 60 * 1000); // 5 minutes default
+    expect(config.logLevel).toBe("info");
+    expect(config.logFormat).toBe("text");
+  });
+
+  test("logLevel and logFormat can be overridden", () => {
+    process.env.CLAWBBER_LOG_LEVEL = "debug";
+    process.env.CLAWBBER_LOG_FORMAT = "json";
+    const config = loadConfig();
+    expect(config.logLevel).toBe("debug");
+    expect(config.logFormat).toBe("json");
   });
 
   test("derived paths use dataDir", () => {

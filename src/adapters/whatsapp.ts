@@ -125,7 +125,7 @@ export class WhatsAppBaileysAdapter
 
   async initialize(chat: ChatInstance): Promise<void> {
     this.chat = chat;
-    logger.info("whatsapp adapter initialize", { authDir: this.authDir });
+    logger.info("WhatsApp adapter initialize", { authDir: this.authDir });
     await this.connect();
   }
 
@@ -166,7 +166,7 @@ export class WhatsAppBaileysAdapter
         this.connected = true;
         this.connectedAtMs = Date.now();
         this.seenMessageIds.clear();
-        logger.info("whatsapp connection open");
+        logger.info("WhatsApp connection open");
         void this.flushOutgoingQueue();
         return;
       }
@@ -176,7 +176,7 @@ export class WhatsAppBaileysAdapter
         const reason = (
           lastDisconnect?.error as { output?: { statusCode?: number } }
         )?.output?.statusCode;
-        logger.warn("whatsapp connection closed", { reason });
+        logger.warn("WhatsApp connection closed", { reason });
         if (reason !== DisconnectReason.loggedOut) {
           setTimeout(() => {
             void this.connect();
@@ -208,7 +208,7 @@ export class WhatsAppBaileysAdapter
           tsMs > 0 &&
           tsMs < this.connectedAtMs - 10_000
         ) {
-          logger.debug("whatsapp skipping backlog message", {
+          logger.debug("WhatsApp skipping backlog message", {
             remoteJid,
             messageId,
             tsMs,
@@ -260,7 +260,7 @@ export class WhatsAppBaileysAdapter
           threadJid: remoteJid,
         });
 
-        logger.info("whatsapp inbound", {
+        logger.info("WhatsApp inbound", {
           remoteJid,
           sender,
           isReply: Boolean(replyContext),
@@ -336,14 +336,14 @@ export class WhatsAppBaileysAdapter
 
     if (!this.connected || !this.sock) {
       this.outgoingQueue.push({ jid: chatJid, text });
-      logger.warn("whatsapp queued outbound", {
+      logger.warn("WhatsApp queued outbound", {
         chatJid,
         queueSize: this.outgoingQueue.length,
       });
       return { id: `queued-${Date.now()}`, threadId, raw: {} };
     }
 
-    logger.info("whatsapp outbound", { chatJid, preview: text.slice(0, 120) });
+    logger.info("WhatsApp outbound", { chatJid, preview: text.slice(0, 120) });
     const sent = await this.sock.sendMessage(chatJid, { text });
     if (!sent) {
       throw new Error("WhatsApp sendMessage returned no message");
@@ -465,7 +465,7 @@ export class WhatsAppBaileysAdapter
     this.flushing = true;
     try {
       if (this.outgoingQueue.length > 0) {
-        logger.info("whatsapp flushing outbound queue", {
+        logger.info("WhatsApp flushing outbound queue", {
           count: this.outgoingQueue.length,
         });
       }
