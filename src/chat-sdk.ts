@@ -2,6 +2,7 @@ import { createDiscordAdapter } from "@chat-adapter/discord";
 import { createSlackAdapter } from "@chat-adapter/slack";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import { type Adapter, Chat, type Message, type Thread } from "chat";
+import { createSlackMessageHandler } from "./adapters/slack.js";
 import { createWhatsAppBaileysAdapter } from "./adapters/whatsapp.js";
 import { loadConfig, resolveProjectPath } from "./config.js";
 import { handleApiRequest } from "./core/api.js";
@@ -68,12 +69,26 @@ async function main() {
     state: createMemoryState(),
   });
 
+  // Slack-specific handler: channel→group mapping, pre-route typing, ambient capture
+  const handleSlackMessage = createSlackMessageHandler({
+    core,
+    db: core.db,
+    config,
+  });
+
+  // Default handler for WhatsApp/Discord/other adapters
   const handleMessage = async (
     thread: Thread,
     message: Message,
     isNew: boolean,
   ) => {
     if (message.author.isMe) return;
+
+    // Delegate to platform-specific handlers early — before any
+    // WhatsApp-specific logic (resolveCallerId, @g.us DM check).
+    if (thread.adapter.name === "slack") {
+      return handleSlackMessage(thread, message, isNew);
+    }
 
     const callerId = resolveCallerId(message, thread);
 
