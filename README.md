@@ -1,7 +1,7 @@
 # 🪽 Mercury
 
 <p align="center">
-  <em>There are many claws, but this one has wings.</em>
+  <em>There are many claws, but this one is mine.</em>
 </p>
 
 <p align="center">
