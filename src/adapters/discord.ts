@@ -47,29 +47,6 @@ export function isDiscordDM(threadId: string): boolean {
 }
 
 /**
- * Extract the guild ID from a Discord thread ID.
- * Returns undefined for DMs or non-Discord threads.
- */
-export function extractGuildId(threadId: string): string | undefined {
-  const parts = threadId.split(":");
-  if (parts.length >= 2 && parts[0] === "discord" && parts[1] !== "@me") {
-    return parts[1];
-  }
-  return undefined;
-}
-
-/**
- * Extract the channel ID from a Discord thread ID.
- */
-export function extractChannelId(threadId: string): string | undefined {
-  const parts = threadId.split(":");
-  if (parts.length >= 3 && parts[0] === "discord") {
-    return parts[2];
-  }
-  return undefined;
-}
-
-/**
  * Build a platform-qualified caller ID from a Discord message.
  */
 export function discordCallerId(message: Message): string {

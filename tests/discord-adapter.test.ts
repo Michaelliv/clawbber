@@ -6,8 +6,6 @@ import {
   createDiscordMessageHandler,
   discordCallerId,
   discordGroupId,
-  extractChannelId,
-  extractGuildId,
   isDiscordDM,
 } from "../src/adapters/discord.js";
 import { type AppConfig, loadConfig } from "../src/config.js";
@@ -77,48 +75,6 @@ describe("isDiscordDM", () => {
 
   test("returns false for non-discord threads", () => {
     expect(isDiscordDM("whatsapp:123@g.us:123@g.us")).toBe(false);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Unit: extractGuildId
-// ---------------------------------------------------------------------------
-
-describe("extractGuildId", () => {
-  test("extracts guild ID from thread ID", () => {
-    expect(extractGuildId("discord:111222333:444555666")).toBe("111222333");
-  });
-
-  test("returns undefined for DM threads", () => {
-    expect(extractGuildId("discord:@me:444555666")).toBeUndefined();
-  });
-
-  test("returns undefined for non-discord threads", () => {
-    expect(extractGuildId("whatsapp:foo")).toBeUndefined();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Unit: extractChannelId
-// ---------------------------------------------------------------------------
-
-describe("extractChannelId", () => {
-  test("extracts channel ID from thread ID", () => {
-    expect(extractChannelId("discord:111222333:444555666")).toBe("444555666");
-  });
-
-  test("extracts channel ID from DM thread ID", () => {
-    expect(extractChannelId("discord:@me:444555666")).toBe("444555666");
-  });
-
-  test("extracts channel ID when thread ID present", () => {
-    expect(extractChannelId("discord:111222333:444555666:777888999")).toBe(
-      "444555666",
-    );
-  });
-
-  test("returns undefined for short IDs", () => {
-    expect(extractChannelId("discord:onlyGuild")).toBeUndefined();
   });
 });
 
