@@ -2,7 +2,7 @@
  * Slack adapter integration layer.
  *
  * The low-level Slack API is handled by @chat-adapter/slack (SlackAdapter).
- * This module provides the clawbber-specific glue:
+ * This module provides the bearclaw-specific glue:
  *   - Channel → group mapping (groupId = "slack:<channelId>")
  *   - Trigger matching + routing through the core runtime
  *   - Ambient message capture for non-triggered messages
@@ -11,13 +11,13 @@
 
 import type { Message, Thread } from "chat";
 import type { AppConfig } from "../config.js";
-import type { ClawbberCoreRuntime } from "../core/runtime.js";
+import type { BearClawCoreRuntime } from "../core/runtime.js";
 import { loadTriggerConfig, matchTrigger } from "../core/trigger.js";
 import { logger } from "../logger.js";
 import type { Db } from "../storage/db.js";
 
 /**
- * Derive the clawbber group ID from a Slack thread.
+ * Derive the bearclaw group ID from a Slack thread.
  *
  * Slack thread IDs are encoded as "slack:<channel>:<threadTs>".
  * We group by channel, so the group ID is "slack:<channel>".
@@ -56,7 +56,7 @@ export function slackCallerId(message: Message): string {
 }
 
 export interface SlackMessageHandlerOptions {
-  core: ClawbberCoreRuntime;
+  core: BearClawCoreRuntime;
   db: Db;
   config: AppConfig;
 }

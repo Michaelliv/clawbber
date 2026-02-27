@@ -33,8 +33,8 @@ describe("logger", () => {
 
   test("text format outputs structured text", async () => {
     // Set up env before import
-    process.env.CLAWBBER_LOG_LEVEL = "info";
-    process.env.CLAWBBER_LOG_FORMAT = "text";
+    process.env.BEARCLAW_LOG_LEVEL = "info";
+    process.env.BEARCLAW_LOG_FORMAT = "text";
 
     // Clear module cache and re-import
     delete require.cache[require.resolve("../src/logger.js")];
@@ -57,8 +57,8 @@ describe("logger", () => {
   });
 
   test("json format outputs valid JSON", async () => {
-    process.env.CLAWBBER_LOG_LEVEL = "info";
-    process.env.CLAWBBER_LOG_FORMAT = "json";
+    process.env.BEARCLAW_LOG_LEVEL = "info";
+    process.env.BEARCLAW_LOG_FORMAT = "json";
 
     delete require.cache[require.resolve("../src/logger.js")];
     const { logger, configureLogger } = await import("../src/logger.js");
@@ -77,7 +77,7 @@ describe("logger", () => {
   });
 
   test("child logger inherits and extends context", async () => {
-    process.env.CLAWBBER_LOG_FORMAT = "json";
+    process.env.BEARCLAW_LOG_FORMAT = "json";
 
     delete require.cache[require.resolve("../src/logger.js")];
     const { logger, configureLogger } = await import("../src/logger.js");
@@ -96,7 +96,7 @@ describe("logger", () => {
   });
 
   test("child logger can be nested", async () => {
-    process.env.CLAWBBER_LOG_FORMAT = "json";
+    process.env.BEARCLAW_LOG_FORMAT = "json";
 
     delete require.cache[require.resolve("../src/logger.js")];
     const { logger, configureLogger } = await import("../src/logger.js");
@@ -148,7 +148,7 @@ describe("logger", () => {
   });
 
   test("error objects are handled in JSON format", async () => {
-    process.env.CLAWBBER_LOG_FORMAT = "json";
+    process.env.BEARCLAW_LOG_FORMAT = "json";
 
     delete require.cache[require.resolve("../src/logger.js")];
     const { logger, configureLogger } = await import("../src/logger.js");
@@ -166,7 +166,7 @@ describe("logger", () => {
   });
 
   test("error objects are handled in text format", async () => {
-    process.env.CLAWBBER_LOG_FORMAT = "text";
+    process.env.BEARCLAW_LOG_FORMAT = "text";
 
     delete require.cache[require.resolve("../src/logger.js")];
     const { logger, configureLogger } = await import("../src/logger.js");
@@ -188,7 +188,7 @@ describe("logger", () => {
 
     const childLogger = logger.child({
       groupId: "abc123",
-      container: "clawbber-123-1",
+      container: "bearclaw-123-1",
     });
 
     childLogger.info("Container started");
@@ -197,7 +197,7 @@ describe("logger", () => {
 
     expect(output).toContain("Container started");
     expect(output).toContain("groupId=abc123");
-    expect(output).toContain("container=clawbber-123-1");
+    expect(output).toContain("container=bearclaw-123-1");
   });
 
   test("debug level enables all logs", async () => {
@@ -217,7 +217,7 @@ describe("logger", () => {
   });
 
   test("container lifecycle log format (JSON)", async () => {
-    process.env.CLAWBBER_LOG_FORMAT = "json";
+    process.env.BEARCLAW_LOG_FORMAT = "json";
 
     delete require.cache[require.resolve("../src/logger.js")];
     const { logger, configureLogger } = await import("../src/logger.js");
@@ -225,7 +225,7 @@ describe("logger", () => {
 
     const containerLog = logger.child({
       groupId: "abc123",
-      container: "clawbber-1705312200-1",
+      container: "bearclaw-1705312200-1",
     });
 
     containerLog.info("Container started", { event: "container.start" });
@@ -235,7 +235,7 @@ describe("logger", () => {
 
     expect(startParsed.msg).toBe("Container started");
     expect(startParsed.groupId).toBe("abc123");
-    expect(startParsed.container).toBe("clawbber-1705312200-1");
+    expect(startParsed.container).toBe("bearclaw-1705312200-1");
     expect(startParsed.event).toBe("container.start");
 
     containerLog.info("Container exited", {

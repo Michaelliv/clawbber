@@ -8,7 +8,7 @@ describe("loadConfig", () => {
   afterEach(() => {
     // Restore env
     for (const key of Object.keys(process.env)) {
-      if (key.startsWith("CLAWBBER_")) {
+      if (key.startsWith("BEARCLAW_")) {
         delete process.env[key];
       }
     }
@@ -17,12 +17,12 @@ describe("loadConfig", () => {
 
   test("defaults", () => {
     const config = loadConfig();
-    expect(config.dataDir).toBe(".clawbber");
-    expect(config.dbPath).toBe(path.join(".clawbber", "state.db"));
-    expect(config.globalDir).toBe(path.join(".clawbber", "global"));
-    expect(config.groupsDir).toBe(path.join(".clawbber", "groups"));
+    expect(config.dataDir).toBe(".bearclaw");
+    expect(config.dbPath).toBe(path.join(".bearclaw", "state.db"));
+    expect(config.globalDir).toBe(path.join(".bearclaw", "global"));
+    expect(config.groupsDir).toBe(path.join(".bearclaw", "groups"));
     expect(config.whatsappAuthDir).toBe(
-      path.join(".clawbber", "whatsapp-auth"),
+      path.join(".bearclaw", "whatsapp-auth"),
     );
     expect(config.triggerPatterns).toBe("@Pi,Pi");
     expect(config.triggerMatch).toBe("mention");
@@ -34,15 +34,15 @@ describe("loadConfig", () => {
   });
 
   test("logLevel and logFormat can be overridden", () => {
-    process.env.CLAWBBER_LOG_LEVEL = "debug";
-    process.env.CLAWBBER_LOG_FORMAT = "json";
+    process.env.BEARCLAW_LOG_LEVEL = "debug";
+    process.env.BEARCLAW_LOG_FORMAT = "json";
     const config = loadConfig();
     expect(config.logLevel).toBe("debug");
     expect(config.logFormat).toBe("json");
   });
 
   test("derived paths use dataDir", () => {
-    process.env.CLAWBBER_DATA_DIR = "/custom/data";
+    process.env.BEARCLAW_DATA_DIR = "/custom/data";
     const config = loadConfig();
     expect(config.dbPath).toBe("/custom/data/state.db");
     expect(config.globalDir).toBe("/custom/data/global");
@@ -51,10 +51,10 @@ describe("loadConfig", () => {
   });
 
   test("env overrides", () => {
-    process.env.CLAWBBER_TRIGGER_PATTERNS = "@Bot,Bot";
-    process.env.CLAWBBER_TRIGGER_MATCH = "prefix";
-    process.env.CLAWBBER_ADMINS = "user1,user2";
-    process.env.CLAWBBER_MAX_CONCURRENCY = "4";
+    process.env.BEARCLAW_TRIGGER_PATTERNS = "@Bot,Bot";
+    process.env.BEARCLAW_TRIGGER_MATCH = "prefix";
+    process.env.BEARCLAW_ADMINS = "user1,user2";
+    process.env.BEARCLAW_MAX_CONCURRENCY = "4";
 
     const config = loadConfig();
     expect(config.triggerPatterns).toBe("@Bot,Bot");
@@ -64,7 +64,7 @@ describe("loadConfig", () => {
   });
 
   test("containerTimeoutMs can be overridden", () => {
-    process.env.CLAWBBER_CONTAINER_TIMEOUT_MS = "120000"; // 2 minutes
+    process.env.BEARCLAW_CONTAINER_TIMEOUT_MS = "120000"; // 2 minutes
     const config = loadConfig();
     expect(config.containerTimeoutMs).toBe(120000);
   });
@@ -76,7 +76,7 @@ describe("resolveProjectPath", () => {
   });
 
   test("relative path resolves against cwd", () => {
-    const result = resolveProjectPath(".clawbber/state.db");
-    expect(result).toBe(path.join(process.cwd(), ".clawbber/state.db"));
+    const result = resolveProjectPath(".bearclaw/state.db");
+    expect(result).toBe(path.join(process.cwd(), ".bearclaw/state.db"));
   });
 });

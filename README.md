@@ -1,15 +1,15 @@
-# 🦞 clawbber
+# 🐻🦞 BearClaw
 
 <p align="center">
   <em>There are many claws, but this one is mine.</em>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Michaelliv/clawbber"><img alt="GitHub" src="https://img.shields.io/badge/github-clawbber-181717?style=flat-square&logo=github" /></a>
-  <a href="https://www.npmjs.com/package/clawbber"><img alt="npm" src="https://img.shields.io/npm/v/clawbber?style=flat-square&logo=npm" /></a>
+  <a href="https://github.com/Michaelliv/bearclaw"><img alt="GitHub" src="https://img.shields.io/badge/github-bearclaw-181717?style=flat-square&logo=github" /></a>
+  <a href="https://www.npmjs.com/package/bearclaw"><img alt="npm" src="https://img.shields.io/npm/v/bearclaw?style=flat-square&logo=npm" /></a>
 </p>
 
-Clawbber is a personal AI assistant that lives where you chat. It connects to WhatsApp, Slack, and Discord, runs agents inside containers for isolation, and uses [pi](https://pi.dev) as the runtime — giving you persistent sessions, skills, extensions, and the full coding agent toolkit.
+BearClaw is a personal AI assistant that lives where you chat. It connects to WhatsApp, Slack, and Discord, runs agents inside containers for isolation, and uses [pi](https://pi.dev) as the runtime — giving you persistent sessions, skills, extensions, and the full coding agent toolkit.
 
 ---
 
@@ -39,9 +39,9 @@ Clawbber is a personal AI assistant that lives where you chat. It connects to Wh
 ## Quick Start
 
 ```bash
-npm install -g clawbber
+npm install -g bearclaw
 mkdir my-assistant && cd my-assistant
-clawbber init
+bearclaw init
 ```
 
 Edit `.env` with your model credentials:
@@ -53,13 +53,13 @@ ANTHROPIC_API_KEY=sk-ant-...
 Enable an ingress (e.g., WhatsApp):
 
 ```bash
-CLAWBBER_ENABLE_WHATSAPP=true
+BEARCLAW_ENABLE_WHATSAPP=true
 ```
 
 Run:
 
 ```bash
-clawbber run
+bearclaw run
 ```
 
 Scan the QR code with WhatsApp, then message yourself or a group where the bot is present.
@@ -121,8 +121,8 @@ Enable any combination of chat platforms.
 Uses [Baileys](https://github.com/WhiskeySockets/Baileys) for WhatsApp Web socket connection.
 
 ```bash
-CLAWBBER_ENABLE_WHATSAPP=true
-CLAWBBER_WHATSAPP_AUTH_DIR=/path/to/auth  # optional, defaults to .clawbber/whatsapp-auth
+BEARCLAW_ENABLE_WHATSAPP=true
+BEARCLAW_WHATSAPP_AUTH_DIR=/path/to/auth  # optional, defaults to .bearclaw/whatsapp-auth
 ```
 
 On first run, scan the QR code displayed in the terminal.
@@ -130,7 +130,7 @@ On first run, scan the QR code displayed in the terminal.
 **Reuse existing auth** (e.g., from nanoclaw):
 
 ```bash
-CLAWBBER_WHATSAPP_AUTH_DIR=/path/to/nanoclaw/store/auth
+BEARCLAW_WHATSAPP_AUTH_DIR=/path/to/nanoclaw/store/auth
 ```
 
 ### Slack
@@ -158,7 +158,7 @@ Optional gateway trigger: `GET /discord/gateway`
 
 ## Adding to Groups
 
-Clawbber automatically sets up when it receives its first message from a new group — no manual configuration needed.
+BearClaw automatically sets up when it receives its first message from a new group — no manual configuration needed.
 
 | Platform | How to add |
 |----------|------------|
@@ -166,9 +166,9 @@ Clawbber automatically sets up when it receives its first message from a new gro
 | **Slack** | Invite the bot to a channel (`/invite @botname`) |
 | **Discord** | Add bot to server via OAuth URL, it sees channels it has access to |
 
-On first triggered message (e.g., `@Clawbber hello`):
+On first triggered message (e.g., `@BearClaw hello`):
 1. Group record created in database
-2. Workspace directory created at `.clawbber/groups/<group-id>/`
+2. Workspace directory created at `.bearclaw/groups/<group-id>/`
 3. Session file initialized
 4. Bot starts responding
 
@@ -179,7 +179,7 @@ On first triggered message (e.g., `@Clawbber hello`):
 Each group/thread gets its own workspace directory:
 
 ```
-.clawbber/
+.bearclaw/
 ├── global/                    # Shared across all groups
 │   ├── AGENTS.md              # Global instructions
 │   ├── auth.json              # pi OAuth tokens
@@ -190,7 +190,7 @@ Each group/thread gets its own workspace directory:
 ├── groups/
 │   ├── <group-id>/            # Per-group workspace
 │   │   ├── AGENTS.md          # Group-specific instructions
-│   │   ├── .clawbber.session.jsonl  # pi session file
+│   │   ├── .bearclaw.session.jsonl  # pi session file
 │   │   ├── media/             # Downloaded media files
 │   │   └── .pi/
 │   │       ├── extensions/
@@ -209,10 +209,10 @@ Workspaces are mounted into the container, so:
 
 ## Sessions
 
-Clawbber uses native pi session persistence. Each group has a session file at:
+BearClaw uses native pi session persistence. Each group has a session file at:
 
 ```
-.clawbber/groups/<group-id>/.clawbber.session.jsonl
+.bearclaw/groups/<group-id>/.bearclaw.session.jsonl
 ```
 
 Sessions are tree-structured (see [pi session docs](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent/docs/session.md)):
@@ -238,22 +238,22 @@ Control when the assistant responds.
 Configure globally:
 
 ```bash
-CLAWBBER_TRIGGER_MATCH=mention
-CLAWBBER_TRIGGER_PATTERNS=@Clawbber,Clawbber
+BEARCLAW_TRIGGER_MATCH=mention
+BEARCLAW_TRIGGER_PATTERNS=@BearClaw,BearClaw
 ```
 
-Or per-group via `clawbber-ctl`:
+Or per-group via `bearclaw-ctl`:
 
 ```bash
-clawbber-ctl config set trigger_match always
-clawbber-ctl config set trigger_patterns "@Bot,Bot"
+bearclaw-ctl config set trigger_match always
+bearclaw-ctl config set trigger_patterns "@Bot,Bot"
 ```
 
 ---
 
 ## Media
 
-Clawbber downloads media attachments from chat messages and passes them to pi.
+BearClaw downloads media attachments from chat messages and passes them to pi.
 
 ### Supported Types
 
@@ -269,15 +269,15 @@ Clawbber downloads media attachments from chat messages and passes them to pi.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CLAWBBER_MEDIA_ENABLED` | `true` | Enable media downloads |
-| `CLAWBBER_MEDIA_MAX_SIZE_MB` | `10` | Max file size to download |
+| `BEARCLAW_MEDIA_ENABLED` | `true` | Enable media downloads |
+| `BEARCLAW_MEDIA_MAX_SIZE_MB` | `10` | Max file size to download |
 
 ### Storage
 
 Media is saved to the group workspace:
 
 ```
-.clawbber/groups/<group-id>/media/
+.bearclaw/groups/<group-id>/media/
 ├── 1709012345-image.jpg
 ├── 1709012400-voice.ogg
 └── 1709012500-report.pdf
@@ -292,7 +292,7 @@ Attachments are passed to pi as XML:
   <attachment type="image" path="/groups/xxx/media/123.jpg" mime="image/jpeg" size="12345" />
 </attachments>
 
-@clawbber what's in this image?
+@bearclaw what's in this image?
 ```
 
 See [docs/media/overview.md](docs/media/overview.md) for architecture details.
@@ -308,9 +308,9 @@ Chat commands for control (require trigger in groups, work directly in DMs):
 | `stop` | Abort current run and clear queue |
 | `compact` | Set session boundary (fresh context) |
 
-Example: `@Clawbber stop`
+Example: `@BearClaw stop`
 
-On process shutdown (`SIGTERM`/`SIGINT`), clawbber runs a full teardown sequence — stopping the scheduler, draining the queue, killing containers, disconnecting adapters, and closing the database. See [docs/graceful-shutdown.md](docs/graceful-shutdown.md) for details.
+On process shutdown (`SIGTERM`/`SIGINT`), bearclaw runs a full teardown sequence — stopping the scheduler, draining the queue, killing containers, disconnecting adapters, and closing the database. See [docs/graceful-shutdown.md](docs/graceful-shutdown.md) for details.
 
 ---
 
@@ -319,12 +319,12 @@ On process shutdown (`SIGTERM`/`SIGINT`), clawbber runs a full teardown sequence
 Create recurring tasks with cron expressions:
 
 ```bash
-# Inside container via clawbber-ctl
-clawbber-ctl tasks create --cron "0 9 * * *" --prompt "Good morning! What's on my calendar today?"
-clawbber-ctl tasks list
-clawbber-ctl tasks pause <id>
-clawbber-ctl tasks resume <id>
-clawbber-ctl tasks delete <id>
+# Inside container via bearclaw-ctl
+bearclaw-ctl tasks create --cron "0 9 * * *" --prompt "Good morning! What's on my calendar today?"
+bearclaw-ctl tasks list
+bearclaw-ctl tasks pause <id>
+bearclaw-ctl tasks resume <id>
+bearclaw-ctl tasks delete <id>
 ```
 
 Tasks run in the context of the current group with the creator's permissions.
@@ -369,35 +369,35 @@ Custom roles can be created by assigning permissions to any role name.
 
 ```bash
 # List all roles in the current group
-clawbber-ctl roles list
+bearclaw-ctl roles list
 
 # Grant admin role to a user
-clawbber-ctl roles grant 1234567890@s.whatsapp.net --role admin
+bearclaw-ctl roles grant 1234567890@s.whatsapp.net --role admin
 
 # Grant a custom role
-clawbber-ctl roles grant 1234567890@s.whatsapp.net --role moderator
+bearclaw-ctl roles grant 1234567890@s.whatsapp.net --role moderator
 
 # Revoke role (user becomes member)
-clawbber-ctl roles revoke 1234567890@s.whatsapp.net
+bearclaw-ctl roles revoke 1234567890@s.whatsapp.net
 ```
 
 ### Managing Permissions
 
 ```bash
 # Show permissions for all roles
-clawbber-ctl permissions show
+bearclaw-ctl permissions show
 
 # Show permissions for a specific role
-clawbber-ctl permissions show --role member
+bearclaw-ctl permissions show --role member
 
 # Give members ability to stop the agent
-clawbber-ctl permissions set member prompt,stop
+bearclaw-ctl permissions set member prompt,stop
 
 # Create a moderator role with task management
-clawbber-ctl permissions set moderator prompt,stop,tasks.list,tasks.pause,tasks.resume
+bearclaw-ctl permissions set moderator prompt,stop,tasks.list,tasks.pause,tasks.resume
 
 # Give a role full task control
-clawbber-ctl permissions set taskmaster prompt,tasks.list,tasks.create,tasks.pause,tasks.resume,tasks.delete
+bearclaw-ctl permissions set taskmaster prompt,tasks.list,tasks.create,tasks.pause,tasks.resume,tasks.delete
 ```
 
 ### Seeding Admins
@@ -405,7 +405,7 @@ clawbber-ctl permissions set taskmaster prompt,tasks.list,tasks.create,tasks.pau
 Pre-configure admin users via environment variable. They'll be granted admin on first interaction:
 
 ```bash
-CLAWBBER_ADMINS=1234567890@s.whatsapp.net,0987654321@s.whatsapp.net
+BEARCLAW_ADMINS=1234567890@s.whatsapp.net,0987654321@s.whatsapp.net
 ```
 
 ### Permission Inheritance
@@ -425,8 +425,8 @@ Set in `.env` or environment. See [Environment Variables](#environment-variables
 ### Per-group (database)
 
 ```bash
-clawbber-ctl config set <key> <value>
-clawbber-ctl config get [key]
+bearclaw-ctl config set <key> <value>
+bearclaw-ctl config get [key]
 ```
 
 Available keys:
@@ -451,54 +451,54 @@ The agent runs inside a Docker container with:
 ./container/build.sh
 ```
 
-**Image name:** `clawbber-agent:latest` (override with `CLAWBBER_AGENT_CONTAINER_IMAGE`)
+**Image name:** `bearclaw-agent:latest` (override with `BEARCLAW_AGENT_CONTAINER_IMAGE`)
 
 **What's mounted:**
 
 | Host | Container |
 |------|-----------|
-| `CLAWBBER_PI_AGENT_DIR` | `/home/node/.pi/agent` |
-| `CLAWBBER_GROUPS_DIR` | `/groups` |
+| `BEARCLAW_PI_AGENT_DIR` | `/home/node/.pi/agent` |
+| `BEARCLAW_GROUPS_DIR` | `/groups` |
 
 ---
 
 ## CLI Reference
 
-### clawbber-ctl
+### bearclaw-ctl
 
-Management CLI available inside the agent container. This is how the AI agent manages tasks, permissions, and configuration — you don't run this directly, but the agent uses it to control clawbber from within.
+Management CLI available inside the agent container. This is how the AI agent manages tasks, permissions, and configuration — you don't run this directly, but the agent uses it to control bearclaw from within.
 
 ```bash
-clawbber-ctl whoami                              # Show caller/group info
-clawbber-ctl stop                                # Abort current run
-clawbber-ctl compact                             # Reset session boundary
+bearclaw-ctl whoami                              # Show caller/group info
+bearclaw-ctl stop                                # Abort current run
+bearclaw-ctl compact                             # Reset session boundary
 
-clawbber-ctl tasks list                          # List scheduled tasks
-clawbber-ctl tasks create --cron <expr> --prompt <text>
-clawbber-ctl tasks pause <id>
-clawbber-ctl tasks resume <id>
-clawbber-ctl tasks delete <id>
+bearclaw-ctl tasks list                          # List scheduled tasks
+bearclaw-ctl tasks create --cron <expr> --prompt <text>
+bearclaw-ctl tasks pause <id>
+bearclaw-ctl tasks resume <id>
+bearclaw-ctl tasks delete <id>
 
-clawbber-ctl roles list                          # List roles in group
-clawbber-ctl roles grant <user-id> [--role <role>]
-clawbber-ctl roles revoke <user-id>
+bearclaw-ctl roles list                          # List roles in group
+bearclaw-ctl roles grant <user-id> [--role <role>]
+bearclaw-ctl roles revoke <user-id>
 
-clawbber-ctl permissions show [--role <role>]    # Show permissions
-clawbber-ctl permissions set <role> <perm1,perm2,...>
+bearclaw-ctl permissions show [--role <role>]    # Show permissions
+bearclaw-ctl permissions set <role> <perm1,perm2,...>
 
-clawbber-ctl config get [key]                    # Get group config
-clawbber-ctl config set <key> <value>            # Set group config
+bearclaw-ctl config get [key]                    # Get group config
+bearclaw-ctl config set <key> <value>            # Set group config
 ```
 
-### clawbber
+### bearclaw
 
 Main CLI for managing your assistant.
 
 ```bash
-clawbber init         # Initialize project in current directory
-clawbber run          # Start chat adapters
-clawbber build        # Rebuild container image
-clawbber status       # Show status and configuration
+bearclaw init         # Initialize project in current directory
+bearclaw run          # Start chat adapters
+bearclaw build        # Rebuild container image
+bearclaw status       # Show status and configuration
 ```
 
 ---
@@ -509,51 +509,51 @@ clawbber status       # Show status and configuration
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CLAWBBER_DATA_DIR` | `.clawbber` | Data directory |
-| `CLAWBBER_MAX_CONCURRENCY` | `3` | Max concurrent agent runs |
-| `CLAWBBER_CHATSDK_PORT` | `3000` | API server port |
-| `CLAWBBER_CHATSDK_USERNAME` | `clawbber` | Bot display name |
-| `CLAWBBER_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error`, `silent` |
+| `BEARCLAW_DATA_DIR` | `.bearclaw` | Data directory |
+| `BEARCLAW_MAX_CONCURRENCY` | `3` | Max concurrent agent runs |
+| `BEARCLAW_CHATSDK_PORT` | `3000` | API server port |
+| `BEARCLAW_CHATSDK_USERNAME` | `bearclaw` | Bot display name |
+| `BEARCLAW_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error`, `silent` |
 
 ### Model
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CLAWBBER_MODEL_PROVIDER` | `anthropic` | Model provider |
-| `CLAWBBER_MODEL` | `claude-sonnet-4-20250514` | Model ID |
+| `BEARCLAW_MODEL_PROVIDER` | `anthropic` | Model provider |
+| `BEARCLAW_MODEL` | `claude-sonnet-4-20250514` | Model ID |
 | `ANTHROPIC_API_KEY` | — | Anthropic API key |
 | `OPENAI_API_KEY` | — | OpenAI API key |
-| `CLAWBBER_AUTH_PATH` | — | Path to pi auth.json for OAuth |
+| `BEARCLAW_AUTH_PATH` | — | Path to pi auth.json for OAuth |
 
 ### Container
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CLAWBBER_AGENT_CONTAINER_IMAGE` | `clawbber-agent:latest` | Docker image |
-| `CLAWBBER_PI_AGENT_DIR` | `.clawbber/global` | Mounted as `/home/node/.pi/agent` |
-| `CLAWBBER_GROUPS_DIR` | `.clawbber/groups` | Mounted as `/groups` |
+| `BEARCLAW_AGENT_CONTAINER_IMAGE` | `bearclaw-agent:latest` | Docker image |
+| `BEARCLAW_PI_AGENT_DIR` | `.bearclaw/global` | Mounted as `/home/node/.pi/agent` |
+| `BEARCLAW_GROUPS_DIR` | `.bearclaw/groups` | Mounted as `/groups` |
 
 ### Triggers
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CLAWBBER_TRIGGER_MATCH` | `mention` | `mention`, `prefix`, `always` |
-| `CLAWBBER_TRIGGER_PATTERNS` | `@Clawbber,Clawbber` | Comma-separated |
-| `CLAWBBER_ADMINS` | — | Comma-separated admin user IDs |
+| `BEARCLAW_TRIGGER_MATCH` | `mention` | `mention`, `prefix`, `always` |
+| `BEARCLAW_TRIGGER_PATTERNS` | `@BearClaw,BearClaw` | Comma-separated |
+| `BEARCLAW_ADMINS` | — | Comma-separated admin user IDs |
 
 ### Media
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CLAWBBER_MEDIA_ENABLED` | `true` | Enable media downloads |
-| `CLAWBBER_MEDIA_MAX_SIZE_MB` | `10` | Max file size (MB) |
+| `BEARCLAW_MEDIA_ENABLED` | `true` | Enable media downloads |
+| `BEARCLAW_MEDIA_MAX_SIZE_MB` | `10` | Max file size (MB) |
 
 ### WhatsApp
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CLAWBBER_ENABLE_WHATSAPP` | `false` | Enable WhatsApp adapter |
-| `CLAWBBER_WHATSAPP_AUTH_DIR` | `.clawbber/whatsapp-auth` | Auth storage path |
+| `BEARCLAW_ENABLE_WHATSAPP` | `false` | Enable WhatsApp adapter |
+| `BEARCLAW_WHATSAPP_AUTH_DIR` | `.bearclaw/whatsapp-auth` | Auth storage path |
 
 ### Slack
 
@@ -569,8 +569,8 @@ clawbber status       # Show status and configuration
 | `DISCORD_BOT_TOKEN` | Discord bot token |
 | `DISCORD_PUBLIC_KEY` | Discord public key |
 | `DISCORD_APPLICATION_ID` | Discord application ID |
-| `CLAWBBER_DISCORD_GATEWAY_SECRET` | Optional gateway auth |
-| `CLAWBBER_DISCORD_GATEWAY_DURATION_MS` | Gateway duration |
+| `BEARCLAW_DISCORD_GATEWAY_SECRET` | Optional gateway auth |
+| `BEARCLAW_DISCORD_GATEWAY_DURATION_MS` | Gateway duration |
 
 ---
 
@@ -581,5 +581,5 @@ MIT
 ---
 
 <p align="center">
-  <em>There are many claws, but this one is mine.</em> 🦞
+  <em>There are many claws, but this one is mine.</em> 🐻
 </p>

@@ -10,7 +10,7 @@ import {
 } from "../src/adapters/slack.js";
 import { type AppConfig, loadConfig } from "../src/config.js";
 import { seededGroups } from "../src/core/permissions.js";
-import type { ClawbberCoreRuntime } from "../src/core/runtime.js";
+import type { BearClawCoreRuntime } from "../src/core/runtime.js";
 import { Db } from "../src/storage/db.js";
 
 // ---------------------------------------------------------------------------
@@ -21,7 +21,7 @@ let tmpDir: string;
 let db: Db;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawbber-slack-test-"));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "bearclaw-slack-test-"));
   db = new Db(path.join(tmpDir, "state.db"));
   seededGroups.clear();
 });
@@ -309,10 +309,10 @@ function setup() {
     whatsappAuthDir: path.join(tmpDir, "wa-auth"),
   };
 
-  // Partial mock of ClawbberCoreRuntime — we only need handleRawInput
+  // Partial mock of BearClawCoreRuntime — we only need handleRawInput
   const core = {
     handleRawInput: mock(async () => ({ type: "ignore" as const })),
-  } as unknown as ClawbberCoreRuntime;
+  } as unknown as BearClawCoreRuntime;
 
   const handler = createSlackMessageHandler({ core, db, config });
   const thread = fakeThread();

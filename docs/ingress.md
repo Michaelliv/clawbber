@@ -1,6 +1,6 @@
 # Ingress
 
-Clawbber connects to chat platforms through **adapters**. Each adapter translates platform-specific messages into a common flow: trigger check → route → queue → container agent → reply.
+BearClaw connects to chat platforms through **adapters**. Each adapter translates platform-specific messages into a common flow: trigger check → route → queue → container agent → reply.
 
 ## Message Flow
 
@@ -47,8 +47,8 @@ Uses [Baileys](https://github.com/WhiskeySockets/Baileys) for a direct WhatsApp 
 | **Media** | Images, videos, voice notes, documents downloaded to workspace |
 
 ```bash
-CLAWBBER_ENABLE_WHATSAPP=true
-CLAWBBER_WHATSAPP_AUTH_DIR=.clawbber/whatsapp-auth  # optional
+BEARCLAW_ENABLE_WHATSAPP=true
+BEARCLAW_WHATSAPP_AUTH_DIR=.bearclaw/whatsapp-auth  # optional
 ```
 
 #### Media Support
@@ -64,8 +64,8 @@ WhatsApp media attachments are downloaded and saved to the group workspace. See 
 | Documents | `documentMessage` | ✅ |
 
 ```bash
-CLAWBBER_MEDIA_ENABLED=true          # default
-CLAWBBER_MEDIA_MAX_SIZE_MB=10        # default
+BEARCLAW_MEDIA_ENABLED=true          # default
+BEARCLAW_MEDIA_MAX_SIZE_MB=10        # default
 ```
 
 ### Slack
@@ -96,7 +96,7 @@ Uses [`@chat-adapter/discord`](https://www.npmjs.com/package/@chat-adapter/disco
 | **Group ID** | `discord:<channelId>` (channel-level, sub-threads share a group) |
 | **Caller ID** | `discord:<userId>` |
 | **DM detection** | Guild ID is `@me` |
-| **Gateway** | Optional `GET /discord/gateway` endpoint, gated by `CLAWBBER_DISCORD_GATEWAY_SECRET` |
+| **Gateway** | Optional `GET /discord/gateway` endpoint, gated by `BEARCLAW_DISCORD_GATEWAY_SECRET` |
 
 ```bash
 DISCORD_BOT_TOKEN=...
@@ -132,13 +132,13 @@ DMs always match regardless of mode.
 
 ```bash
 # Global defaults
-CLAWBBER_TRIGGER_MATCH=mention
-CLAWBBER_TRIGGER_PATTERNS=@Clawbber,Clawbber
+BEARCLAW_TRIGGER_MATCH=mention
+BEARCLAW_TRIGGER_PATTERNS=@BearClaw,BearClaw
 
-# Per-group overrides (via clawbber-ctl)
-clawbber-ctl config set trigger_match always
-clawbber-ctl config set trigger_patterns "@Bot,Bot"
-clawbber-ctl config set trigger_case_sensitive false
+# Per-group overrides (via bearclaw-ctl)
+bearclaw-ctl config set trigger_match always
+bearclaw-ctl config set trigger_patterns "@Bot,Bot"
+bearclaw-ctl config set trigger_case_sensitive false
 ```
 
 ## Ambient Context
@@ -148,7 +148,7 @@ Non-triggered messages in group chats are stored as ambient context in the datab
 ```
 User A: anyone tried the new API?
 User B: yeah it's broken
-User A: @Clawbber can you check the API logs?
+User A: @BearClaw can you check the API logs?
          ↑ agent sees the prior conversation as context
 ```
 

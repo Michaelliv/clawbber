@@ -25,27 +25,27 @@ ANTHROPIC_API_KEY=
 # OPENAI_API_KEY=
 
 # Identity
-CLAWBBER_CHATSDK_USERNAME=clawbber
-CLAWBBER_CHATSDK_PORT=3000
-CLAWBBER_TRIGGER_PATTERNS=@Clawbber,Clawbber
+BEARCLAW_CHATSDK_USERNAME=bearclaw
+BEARCLAW_CHATSDK_PORT=3000
+BEARCLAW_TRIGGER_PATTERNS=@BearClaw,BearClaw
 
 # Model
-CLAWBBER_MODEL_PROVIDER=anthropic
-CLAWBBER_MODEL=claude-sonnet-4-20250514
+BEARCLAW_MODEL_PROVIDER=anthropic
+BEARCLAW_MODEL=claude-sonnet-4-20250514
 
 # Runtime
-CLAWBBER_DATA_DIR=.clawbber
-CLAWBBER_MAX_CONCURRENCY=2
-CLAWBBER_LOG_LEVEL=info
+BEARCLAW_DATA_DIR=.bearclaw
+BEARCLAW_MAX_CONCURRENCY=2
+BEARCLAW_LOG_LEVEL=info
 
 # Containerized agent runtime
-CLAWBBER_AGENT_CONTAINER_IMAGE=clawbber-agent:latest
+BEARCLAW_AGENT_CONTAINER_IMAGE=bearclaw-agent:latest
 
 # Optional: admin caller IDs (comma-separated)
-# CLAWBBER_ADMINS=
+# BEARCLAW_ADMINS=
 
 # WhatsApp ingress (Baileys socket)
-CLAWBBER_ENABLE_WHATSAPP=false
+BEARCLAW_ENABLE_WHATSAPP=false
 
 # Optional Slack ingress
 # SLACK_BOT_TOKEN=
@@ -57,7 +57,7 @@ CLAWBBER_ENABLE_WHATSAPP=false
 # DISCORD_APPLICATION_ID=
 `;
 
-const DOCKERFILE_TEMPLATE = `# Clawbber Agent Container
+const DOCKERFILE_TEMPLATE = `# BearClaw Agent Container
 FROM oven/bun:1.3
 
 # Install Chromium dependencies (from agent-browser install --with-deps)
@@ -80,7 +80,7 @@ WORKDIR /app
 
 # Copy container runtime files
 COPY src/agent/container-entry.ts /app/src/agent/container-entry.ts
-COPY src/cli/clawbber-ctl.ts /app/src/cli/clawbber-ctl.ts
+COPY src/cli/bearclaw-ctl.ts /app/src/cli/bearclaw-ctl.ts
 COPY src/types.ts /app/src/types.ts
 
 ENTRYPOINT ["bun", "run", "/app/src/agent/container-entry.ts"]
@@ -93,10 +93,10 @@ SCRIPT_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
-IMAGE_NAME="clawbber-agent"
+IMAGE_NAME="bearclaw-agent"
 TAG="\${1:-latest}"
 
-echo "Building Clawbber agent container image..."
+echo "Building BearClaw agent container image..."
 echo "Image: \${IMAGE_NAME}:\${TAG}"
 
 docker build -f container/Dockerfile -t "\${IMAGE_NAME}:\${TAG}" .
@@ -105,7 +105,7 @@ echo ""
 echo "Build complete: \${IMAGE_NAME}:\${TAG}"
 `;
 
-const AGENTS_MD_TEMPLATE = `# Clawbber Agent Instructions
+const AGENTS_MD_TEMPLATE = `# BearClaw Agent Instructions
 
 You are a helpful AI assistant running inside a chat platform (WhatsApp, Slack, or Discord).
 
@@ -143,19 +143,19 @@ agent-browser get text body
 - Long-running tasks may time out
 - No persistent memory between conversations
 
-## Clawbber Documentation
+## BearClaw Documentation
 
-When users ask about clawbber's capabilities, configuration, or how things work, read the relevant docs:
+When users ask about bearclaw's capabilities, configuration, or how things work, read the relevant docs:
 
 | Path | Contents |
 |------|----------|
-| /docs/clawbber/README.md | Overview, commands, triggers, permissions, tasks, config |
-| /docs/clawbber/docs/ingress.md | Adapter message flow (WhatsApp, Slack, Discord) |
-| /docs/clawbber/docs/media/ | Media handling (downloads, attachments) |
-| /docs/clawbber/docs/subagents.md | Delegating to sub-agents |
-| /docs/clawbber/docs/web-search.md | Web search capabilities |
-| /docs/clawbber/docs/auth/ | Platform authentication |
-| /docs/clawbber/docs/rate-limiting.md | Rate limiting configuration |
+| /docs/bearclaw/README.md | Overview, commands, triggers, permissions, tasks, config |
+| /docs/bearclaw/docs/ingress.md | Adapter message flow (WhatsApp, Slack, Discord) |
+| /docs/bearclaw/docs/media/ | Media handling (downloads, attachments) |
+| /docs/bearclaw/docs/subagents.md | Delegating to sub-agents |
+| /docs/bearclaw/docs/web-search.md | Web search capabilities |
+| /docs/bearclaw/docs/auth/ | Platform authentication |
+| /docs/bearclaw/docs/rate-limiting.md | Rate limiting configuration |
 
 Read these lazily — only when the user asks about a specific topic.
 
@@ -223,7 +223,7 @@ function loadEnvFile(envPath: string): Record<string, string> {
 
 // Commands
 function initAction(): void {
-  console.log("🦞 Initializing clawbber project...\n");
+  console.log("🐻 Initializing bearclaw project...\n");
 
   // Create .env if it doesn't exist
   const envPath = join(CWD, ".env");
@@ -235,7 +235,7 @@ function initAction(): void {
   }
 
   // Create data directories
-  const dirs = [".clawbber", ".clawbber/groups", ".clawbber/global"];
+  const dirs = [".bearclaw", ".bearclaw/groups", ".bearclaw/global"];
   for (const dir of dirs) {
     const fullPath = join(CWD, dir);
     if (!existsSync(fullPath)) {
@@ -245,32 +245,32 @@ function initAction(): void {
   }
 
   // Create AGENTS.md for the agent
-  const agentsMdPath = join(CWD, ".clawbber/global/AGENTS.md");
+  const agentsMdPath = join(CWD, ".bearclaw/global/AGENTS.md");
   if (!existsSync(agentsMdPath)) {
     writeFileSync(agentsMdPath, AGENTS_MD_TEMPLATE);
-    console.log("  ✓ .clawbber/global/AGENTS.md");
+    console.log("  ✓ .bearclaw/global/AGENTS.md");
   } else {
-    console.log("  • .clawbber/global/AGENTS.md (already exists)");
+    console.log("  • .bearclaw/global/AGENTS.md (already exists)");
   }
 
   // Copy subagent extension
   console.log("\nCopying subagent extension:");
-  const extensionsDir = join(CWD, ".clawbber/global/extensions/subagent");
+  const extensionsDir = join(CWD, ".bearclaw/global/extensions/subagent");
   mkdirSync(extensionsDir, { recursive: true });
   const srcExtDir = join(PACKAGE_ROOT, "resources/extensions/subagent");
   for (const file of readdirSync(srcExtDir)) {
     copyFileSync(join(srcExtDir, file), join(extensionsDir, file));
-    console.log(`  ✓ .clawbber/global/extensions/subagent/${file}`);
+    console.log(`  ✓ .bearclaw/global/extensions/subagent/${file}`);
   }
 
   // Copy agent definitions
   console.log("\nCopying agent definitions:");
-  const agentsDir = join(CWD, ".clawbber/global/agents");
+  const agentsDir = join(CWD, ".bearclaw/global/agents");
   mkdirSync(agentsDir, { recursive: true });
   const srcAgentsDir = join(PACKAGE_ROOT, "resources/agents");
   for (const file of readdirSync(srcAgentsDir)) {
     copyFileSync(join(srcAgentsDir, file), join(agentsDir, file));
-    console.log(`  ✓ .clawbber/global/agents/${file}`);
+    console.log(`  ✓ .bearclaw/global/agents/${file}`);
   }
 
   // Create container directory and files
@@ -298,7 +298,7 @@ function initAction(): void {
     "src/agent/container-entry.ts",
     "src/agent/container-entry.ts",
   );
-  copySourceFile("src/cli/clawbber-ctl.ts", "src/cli/clawbber-ctl.ts");
+  copySourceFile("src/cli/bearclaw-ctl.ts", "src/cli/bearclaw-ctl.ts");
   copySourceFile("src/types.ts", "src/types.ts");
 
   // Build container
@@ -310,14 +310,14 @@ function initAction(): void {
 
   if (buildResult.status !== 0) {
     console.error(
-      "\n⚠️  Container build failed. You can retry with 'clawbber build'",
+      "\n⚠️  Container build failed. You can retry with 'bearclaw build'",
     );
   }
 
-  console.log("\n🦞 Initialization complete!");
+  console.log("\n🐻 Initialization complete!");
   console.log("\nNext steps:");
   console.log("  1. Edit .env to set your API keys and enable adapters");
-  console.log("  2. Run 'clawbber run' to start");
+  console.log("  2. Run 'bearclaw run' to start");
 }
 
 async function runAction(): Promise<void> {
@@ -325,27 +325,27 @@ async function runAction(): Promise<void> {
   if (!existsSync(envPath)) {
     console.error("Error: .env file not found in current directory.");
     console.error(
-      "Run 'clawbber init' first, or cd into your clawbber project.",
+      "Run 'bearclaw init' first, or cd into your bearclaw project.",
     );
     process.exit(1);
   }
 
   const imageCheck = spawnSync(
     "docker",
-    ["image", "inspect", "clawbber-agent:latest"],
+    ["image", "inspect", "bearclaw-agent:latest"],
     {
       stdio: "pipe",
     },
   );
   if (imageCheck.status !== 0) {
-    console.error("Error: Container image 'clawbber-agent:latest' not found.");
-    console.error("Run 'clawbber build' to build it.");
+    console.error("Error: Container image 'bearclaw-agent:latest' not found.");
+    console.error("Run 'bearclaw build' to build it.");
     process.exit(1);
   }
 
   const envVars = loadEnvFile(envPath);
 
-  console.log("🦞 Starting clawbber...\n");
+  console.log("🐻 Starting bearclaw...\n");
 
   const entryPoint = join(PACKAGE_ROOT, "src/chat-sdk.ts");
 
@@ -370,7 +370,7 @@ function buildAction(): void {
 
   if (!existsSync(buildScript)) {
     console.error("Error: container/build.sh not found in current directory.");
-    console.error("Run 'clawbber init' first.");
+    console.error("Run 'bearclaw init' first.");
     process.exit(1);
   }
 
@@ -385,37 +385,37 @@ function buildAction(): void {
 }
 
 function statusAction(): void {
-  console.log("🦞 clawbber status\n");
+  console.log("🐻 bearclaw status\n");
   console.log(`Project directory: ${CWD}\n`);
 
   const envPath = join(CWD, ".env");
   const hasEnv = existsSync(envPath);
   console.log(
-    `Configuration:   ${hasEnv ? "✓ .env exists" : "✗ .env missing (run 'clawbber init')"}`,
+    `Configuration:   ${hasEnv ? "✓ .env exists" : "✗ .env missing (run 'bearclaw init')"}`,
   );
 
   const hasContainerFiles = existsSync(join(CWD, "container/Dockerfile"));
   console.log(
-    `Container files: ${hasContainerFiles ? "✓ present" : "✗ missing (run 'clawbber init')"}`,
+    `Container files: ${hasContainerFiles ? "✓ present" : "✗ missing (run 'bearclaw init')"}`,
   );
 
   const imageCheck = spawnSync(
     "docker",
-    ["image", "inspect", "clawbber-agent:latest"],
+    ["image", "inspect", "bearclaw-agent:latest"],
     {
       stdio: "pipe",
     },
   );
   const hasImage = imageCheck.status === 0;
   console.log(
-    `Container image: ${hasImage ? "✓ clawbber-agent:latest" : "✗ not built (run 'clawbber build')"}`,
+    `Container image: ${hasImage ? "✓ bearclaw-agent:latest" : "✗ not built (run 'bearclaw build')"}`,
   );
 
   if (hasEnv) {
     console.log("\nConfigured adapters:");
     const envContent = readFileSync(envPath, "utf-8");
 
-    const hasWhatsApp = /CLAWBBER_ENABLE_WHATSAPP\s*=\s*true/i.test(envContent);
+    const hasWhatsApp = /BEARCLAW_ENABLE_WHATSAPP\s*=\s*true/i.test(envContent);
     const hasSlack = /^[^#]*SLACK_BOT_TOKEN=\S+/m.test(envContent);
     const hasDiscord = /^[^#]*DISCORD_BOT_TOKEN=\S+/m.test(envContent);
 
@@ -427,7 +427,7 @@ function statusAction(): void {
       `  Discord:  ${hasDiscord ? "✓ configured" : "○ not configured"}`,
     );
 
-    const portMatch = envContent.match(/CLAWBBER_CHATSDK_PORT\s*=\s*(\d+)/);
+    const portMatch = envContent.match(/BEARCLAW_CHATSDK_PORT\s*=\s*(\d+)/);
     const port = portMatch ? portMatch[1] : "3000";
 
     const portCheck = spawnSync("lsof", ["-i", `:${port}`, "-t"], {
@@ -445,13 +445,13 @@ function statusAction(): void {
 const program = new Command();
 
 program
-  .name("clawbber")
+  .name("bearclaw")
   .description("Personal AI assistant for chat platforms")
   .version(getVersion());
 
 program
   .command("init")
-  .description("Initialize a new clawbber project in current directory")
+  .description("Initialize a new bearclaw project in current directory")
   .action(initAction);
 
 program
@@ -484,17 +484,17 @@ authCommand
   )
   .action(async (options: { pairingCode?: boolean; phone?: string }) => {
     const envPath = join(CWD, ".env");
-    let dataDir = ".clawbber";
+    let dataDir = ".bearclaw";
 
     if (existsSync(envPath)) {
       const envVars = loadEnvFile(envPath);
-      if (envVars.CLAWBBER_DATA_DIR) {
-        dataDir = envVars.CLAWBBER_DATA_DIR;
+      if (envVars.BEARCLAW_DATA_DIR) {
+        dataDir = envVars.BEARCLAW_DATA_DIR;
       }
     }
 
     const authDir =
-      process.env.CLAWBBER_WHATSAPP_AUTH_DIR ||
+      process.env.BEARCLAW_WHATSAPP_AUTH_DIR ||
       join(CWD, dataDir, "whatsapp-auth");
     const statusDir = join(CWD, dataDir);
 

@@ -30,8 +30,8 @@ function parseFormat(value: string | undefined): LogFormat {
 }
 
 // Configuration - read from env at module load
-let currentLevel = parseLevel(process.env.CLAWBBER_LOG_LEVEL);
-let currentFormat = parseFormat(process.env.CLAWBBER_LOG_FORMAT);
+let currentLevel = parseLevel(process.env.BEARCLAW_LOG_LEVEL);
+let currentFormat = parseFormat(process.env.BEARCLAW_LOG_FORMAT);
 
 /** Configure logger settings (typically called after config load) */
 export function configureLogger(opts: {
