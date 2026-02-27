@@ -41,9 +41,9 @@ napkin daily read                  # Read today's daily note
 ### Writing
 
 ```bash
-napkin create --name "Sarah" --path entities --content "..."
-napkin append --file "Sarah" --content "..."
-napkin property set --file "Sarah" --name birthday --value "April 15"
+napkin create --name "Liat" --path entities --content "..."
+napkin append --file "Liat" --content "..."
+napkin property set --file "Liat" --name birthday --value "April 15"
 napkin daily append --content "- Discussed vacation plans"
 ```
 
@@ -57,7 +57,7 @@ type: person
 relationship: wife
 ---
 
-# Sarah
+# Liat
 
 [[Michael]]'s wife. Planning a surprise party at [[Dizengoff Italian Place]].
 ```
@@ -68,8 +68,8 @@ Users manage memory through natural chat:
 
 | User says | What happens |
 |-----------|--------------|
-| "Remember that Sarah's birthday is April 15" | Agent writes to `entities/Sarah.md` |
-| "What do you know about Sarah?" | Agent reads and summarizes the entity file |
+| "Remember that Liat's birthday is April 15" | Agent writes to `entities/Liat.md` |
+| "What do you know about Liat?" | Agent reads and summarizes the entity file |
 | "Forget everything about the project" | Agent deletes the entity file |
 
 ## Entity Format
@@ -82,9 +82,9 @@ type: person
 birthday: April 15
 ---
 
-# Sarah
+# Liat
 
-Context and notes about Sarah.
+Context and notes about Liat.
 
 _2026-02-20:_ Booked the Italian place for April 12.
 _2026-02-25:_ Changed venue to [[Cafe Nimrod]].

@@ -249,7 +249,7 @@ type: person
 birthday: April 15
 ---
 
-# Sarah
+# Liat
 
 [[Michael]]'s wife. Planning a surprise party at [[Dizengoff Italian Place]].
 ```
@@ -258,8 +258,8 @@ birthday: April 15
 
 | You say | What happens |
 |---------|--------------|
-| "Remember that Sarah's birthday is April 15" | Agent writes to `entities/Sarah.md` |
-| "What do you know about Sarah?" | Agent reads and summarizes the file |
+| "Remember that Liat's birthday is April 15" | Agent writes to `entities/Liat.md` |
+| "What do you know about Liat?" | Agent reads and summarizes the file |
 | "Forget the project" | Agent deletes the entity |
 
 Memory persists across sessions. You can also open the workspace in Obsidian and browse/edit directly.
