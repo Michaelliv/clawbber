@@ -14,4 +14,8 @@ COPY src/agent/container-entry.ts /app/src/agent/container-entry.ts
 COPY src/cli/mercury-ctl.ts /app/src/cli/mercury-ctl.ts
 COPY src/types.ts /app/src/types.ts
 
+# Make mercury-ctl available as a command
+RUN echo '#!/bin/sh\nbun run /app/src/cli/mercury-ctl.ts "$@"' > /usr/local/bin/mercury-ctl && \
+    chmod +x /usr/local/bin/mercury-ctl
+
 ENTRYPOINT ["bun", "run", "/app/src/agent/container-entry.ts"]
