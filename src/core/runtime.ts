@@ -1,5 +1,6 @@
 import { AgentContainerRunner } from "../agent/container-runner.js";
 import { type AppConfig, resolveProjectPath } from "../config.js";
+import { logger } from "../logger.js";
 import { Db } from "../storage/db.js";
 import {
   ensureGroupWorkspace,
@@ -11,11 +12,15 @@ import { TaskScheduler } from "./task-scheduler.js";
 
 export type InputSource = "cli" | "scheduler" | "chat-sdk";
 
+export type ShutdownHook = () => Promise<void> | void;
+
 export class ClawbberCoreRuntime {
   readonly db: Db;
   readonly scheduler: TaskScheduler;
   readonly queue: GroupQueue;
   readonly containerRunner: AgentContainerRunner;
+  private readonly shutdownHooks: ShutdownHook[] = [];
+  private shuttingDown = false;
 
   constructor(readonly config: AppConfig) {
     this.db = new Db(resolveProjectPath(config.dbPath));
@@ -120,6 +125,91 @@ export class ClawbberCoreRuntime {
       }
       default:
         return `Unknown command: ${command}`;
+    }
+  }
+
+  onShutdown(hook: ShutdownHook): void {
+    this.shutdownHooks.push(hook);
+  }
+
+  get isShuttingDown(): boolean {
+    return this.shuttingDown;
+  }
+
+  installSignalHandlers(): void {
+    let forceCount = 0;
+
+    const handler = (signal: string) => {
+      if (this.shuttingDown) {
+        forceCount++;
+        if (forceCount >= 1) {
+          logger.warn("Second signal received, forcing exit");
+          process.exit(1);
+        }
+        return;
+      }
+      logger.info(`Received ${signal}, starting graceful shutdown...`);
+      void this.shutdown().then(
+        () => process.exit(0),
+        (err) => {
+          logger.error("Shutdown failed", err);
+          process.exit(1);
+        },
+      );
+    };
+
+    process.on("SIGTERM", () => handler("SIGTERM"));
+    process.on("SIGINT", () => handler("SIGINT"));
+  }
+
+  async shutdown(timeoutMs = 10_000): Promise<void> {
+    if (this.shuttingDown) return;
+    this.shuttingDown = true;
+
+    const forceTimer = setTimeout(() => {
+      logger.error("Shutdown timed out, forcing exit");
+      process.exit(1);
+    }, timeoutMs);
+    // Don't keep the process alive just for this timer
+    if (forceTimer.unref) forceTimer.unref();
+
+    try {
+      // 1. Stop scheduler
+      logger.info("Shutdown: stopping task scheduler");
+      this.scheduler.stop();
+
+      // 2. Drain queue — cancel pending, wait for active
+      logger.info("Shutdown: draining group queue");
+      const dropped = this.queue.cancelAll();
+      if (dropped > 0) logger.info(`Shutdown: cancelled ${dropped} pending queue entries`);
+
+      // 3. Kill running containers
+      logger.info("Shutdown: stopping running containers");
+      this.containerRunner.killAll();
+
+      // 4. Wait for active work to finish (with a shorter timeout)
+      const drainTimeout = Math.max(timeoutMs - 2000, 1000);
+      const drained = await this.queue.waitForActive(drainTimeout);
+      if (!drained) {
+        logger.warn("Shutdown: active work did not finish in time");
+      }
+
+      // 5. Run registered shutdown hooks (adapters, server, etc.)
+      for (const hook of this.shutdownHooks) {
+        try {
+          await hook();
+        } catch (err) {
+          logger.error("Shutdown hook failed", err);
+        }
+      }
+
+      // 6. Close database
+      logger.info("Shutdown: closing database");
+      this.db.close();
+
+      logger.info("Shutdown: complete");
+    } finally {
+      clearTimeout(forceTimer);
     }
   }
 

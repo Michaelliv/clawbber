@@ -21,6 +21,20 @@ export class AgentContainerRunner {
     return this.runningByGroup.has(groupId);
   }
 
+  killAll(): void {
+    for (const [groupId, proc] of this.runningByGroup) {
+      this.abortedGroups.add(groupId);
+      proc.kill("SIGTERM");
+      setTimeout(() => {
+        if (!proc.killed) proc.kill("SIGKILL");
+      }, 2500);
+    }
+  }
+
+  get activeCount(): number {
+    return this.runningByGroup.size;
+  }
+
   abort(groupId: string): boolean {
     const proc = this.runningByGroup.get(groupId);
     if (!proc) return false;

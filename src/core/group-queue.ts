@@ -31,6 +31,35 @@ export class GroupQueue {
     });
   }
 
+  cancelAll(): number {
+    let total = 0;
+    for (const [groupId, queue] of this.perGroupPending) {
+      total += queue.length;
+    }
+    this.perGroupPending.clear();
+    return total;
+  }
+
+  get activeCount(): number {
+    return this.activeGlobal;
+  }
+
+  waitForActive(timeoutMs: number): Promise<boolean> {
+    if (this.activeGlobal === 0) return Promise.resolve(true);
+    return new Promise<boolean>((resolve) => {
+      const checkInterval = setInterval(() => {
+        if (this.activeGlobal === 0) {
+          clearInterval(checkInterval);
+          resolve(true);
+        }
+      }, 100);
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        resolve(this.activeGlobal === 0);
+      }, timeoutMs);
+    });
+  }
+
   cancelPending(groupId: string): number {
     const queue = this.perGroupPending.get(groupId);
     if (!queue || queue.length === 0) return 0;
