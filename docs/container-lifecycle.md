@@ -39,7 +39,7 @@ Container failures are classified by `ContainerError`:
 | Reason | Exit Code | Cause | User Message |
 |--------|-----------|-------|--------------|
 | `timeout` | — | Exceeded `containerTimeoutMs` | "Container timed out." |
-| `oom` | 137 | Killed by OOM (out of memory) | "Container ran out of memory." |
+| `oom` | 137 | SIGKILL (OOM, resource limits, or manual kill) | "Container was killed (possibly out of memory)." |
 | `aborted` | — | User sent `stop` command | "Stopped current run." |
 | `error` | non-zero | Agent crashed or failed | *(error thrown, logged)* |
 

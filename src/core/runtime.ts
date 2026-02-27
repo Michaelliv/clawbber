@@ -119,7 +119,10 @@ export class ClawbberCoreRuntime {
           case "timeout":
             return { type: "denied", reason: "Container timed out." };
           case "oom":
-            return { type: "denied", reason: "Container ran out of memory." };
+            return {
+              type: "denied",
+              reason: "Container was killed (possibly out of memory).",
+            };
           case "error":
             logger.error("Container error", error);
             throw error;

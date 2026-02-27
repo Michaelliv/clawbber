@@ -38,6 +38,7 @@ function resolveCallerId(message: Message, thread: Thread): string {
 async function main() {
   const config = loadConfig();
   const core = new ClawbberCoreRuntime(config);
+  await core.initialize();
 
   const adapters: Record<string, Adapter> = {};
 

@@ -27,7 +27,7 @@ export class ContainerError extends Error {
     return new ContainerError(
       "oom",
       exitCode,
-      `Container killed by OOM for group ${groupId} (exit code ${exitCode})`,
+      `Container was killed for group ${groupId} (exit code ${exitCode}, possibly out of memory)`,
     );
   }
 

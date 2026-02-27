@@ -16,7 +16,7 @@ describe("ContainerError", () => {
     expect(err.reason).toBe("oom");
     expect(err.exitCode).toBe(137);
     expect(err.message).toContain("group-2");
-    expect(err.message).toContain("OOM");
+    expect(err.message).toContain("killed");
     expect(err.message).toContain("137");
   });
 
