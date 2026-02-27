@@ -291,8 +291,9 @@ async function main() {
           .sort((a, b) => b.lastActivity - a.lastActivity);
 
         const tasks = core.db.listTasks();
+        const activeGroups = core.containerRunner.getActiveGroups();
 
-        return new Response(JSON.stringify({ groups, tasks }), {
+        return new Response(JSON.stringify({ groups, tasks, activeGroups }), {
           status: 200,
           headers: { "content-type": "application/json" },
         });

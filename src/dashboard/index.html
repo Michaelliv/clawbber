@@ -557,6 +557,19 @@
         pushHistory('containers', containerCount);
         document.getElementById('m-containers').innerHTML = containerCount + sparkline(history.containers);
 
+        // Update active runs
+        const activePanel = document.getElementById('active-panel');
+        const activeRuns = document.getElementById('active-runs');
+        if (dashboard.activeGroups?.length > 0) {
+          activePanel.style.display = 'block';
+          activeRuns.innerHTML = dashboard.activeGroups.map(g => {
+            const platform = g.split(':')[0];
+            return `<div class="row"><span class="badge">${platform}</span> <span class="status active">running</span></div>`;
+          }).join('');
+        } else {
+          activePanel.style.display = 'none';
+        }
+
         // Update adapters
         const adaptersEl = document.getElementById('adapters');
         const adapterRows = Object.entries(health.adapters).map(([name, connected]) => {
