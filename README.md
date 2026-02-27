@@ -1,7 +1,7 @@
 # 🪽 Mercury
 
 <p align="center">
-  <em>Swift messenger of the gods — personal AI assistant for chat platforms</em>
+  <em>There are many claws, but this one has wings.</em>
 </p>
 
 <p align="center">
