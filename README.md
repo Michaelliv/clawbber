@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/Michaelliv/mercury"><img alt="GitHub" src="https://img.shields.io/badge/github-mercury-181717?style=flat-square&logo=github" /></a>
-  <a href="https://www.npmjs.com/package/@miclivs/mercury"><img alt="npm" src="https://img.shields.io/npm/v/@miclivs/mercury?style=flat-square&logo=npm" /></a>
+  <a href="https://www.npmjs.com/package/mercury-ai"><img alt="npm" src="https://img.shields.io/npm/v/mercury-ai?style=flat-square&logo=npm" /></a>
 </p>
 
 Mercury is a personal AI assistant that lives where you chat. It connects to WhatsApp, Slack, and Discord, runs agents inside containers for isolation, and uses [pi](https://pi.dev) as the runtime — giving you persistent sessions, skills, extensions, and the full coding agent toolkit.
