@@ -226,6 +226,75 @@
     .refresh-indicator.loading {
       color: var(--yellow);
     }
+
+    .help-hint {
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-left: 12px;
+      cursor: help;
+    }
+
+    .help-hint:hover {
+      color: var(--accent);
+    }
+
+    .help-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 99;
+      display: none;
+    }
+
+    .help-overlay.visible {
+      display: block;
+    }
+
+    .help-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      padding: 16px 24px;
+      z-index: 100;
+      display: none;
+      min-width: 320px;
+    }
+
+    .help-modal.visible {
+      display: block;
+    }
+
+    .help-modal h2 {
+      font-size: 11px;
+      font-weight: normal;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .help-modal .shortcut {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      gap: 24px;
+    }
+
+    .help-modal .key {
+      font-weight: bold;
+      color: var(--accent);
+      min-width: 60px;
+    }
+
+    .help-modal .desc {
+      color: var(--text);
+      flex: 1;
+    }
   </style>
 </head>
 <body>
@@ -235,6 +304,7 @@
       <div>
         <span class="uptime" id="uptime">—</span>
         <span class="refresh-indicator" id="refresh">●</span>
+        <span class="help-hint" onclick="toggleHelp()">?</span>
       </div>
     </div>
 
@@ -307,8 +377,57 @@
 
   </div>
 
+  <div class="help-overlay" id="help-overlay" onclick="closeHelp()"></div>
+  <div class="help-modal" id="help-modal">
+    <h2>Keyboard Shortcuts</h2>
+    <div class="shortcut">
+      <span class="key">r</span>
+      <span class="desc">Refresh now</span>
+    </div>
+    <div class="shortcut">
+      <span class="key">?</span>
+      <span class="desc">Toggle this help</span>
+    </div>
+    <div class="shortcut">
+      <span class="key">Esc</span>
+      <span class="desc">Close</span>
+    </div>
+  </div>
+
   <script>
     const API_BASE = '';
+
+    function toggleHelp() {
+      const modal = document.getElementById('help-modal');
+      const overlay = document.getElementById('help-overlay');
+      modal.classList.toggle('visible');
+      overlay.classList.toggle('visible');
+    }
+
+    function closeHelp() {
+      const modal = document.getElementById('help-modal');
+      const overlay = document.getElementById('help-overlay');
+      modal.classList.remove('visible');
+      overlay.classList.remove('visible');
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      // r - refresh now
+      if (e.key === 'r' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        fetchData();
+      }
+      // ? - show help
+      if (e.key === '?') {
+        e.preventDefault();
+        toggleHelp();
+      }
+      // Escape - close help
+      if (e.key === 'Escape') {
+        closeHelp();
+      }
+    });
 
     function formatUptime(seconds) {
       const d = Math.floor(seconds / 86400);
@@ -354,7 +473,7 @@
 
     function truncate(str, len = 40) {
       if (!str) return '—';
-      return str.length > len ? str.slice(0, len) + '...' : str;
+      return str.length > len ? `${str.slice(0, len)}...` : str;
     }
 
     function escapeHtml(str) {

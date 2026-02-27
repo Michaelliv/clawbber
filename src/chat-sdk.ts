@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createSlackAdapter } from "@chat-adapter/slack";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import { type Adapter, Chat, type Message, type Thread } from "chat";
@@ -10,13 +13,11 @@ import {
   createWhatsAppBaileysAdapter,
   type WhatsAppBaileysAdapter,
 } from "./adapters/whatsapp.js";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { loadConfig, resolveProjectPath } from "./config.js";
 import { handleApiRequest } from "./core/api.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
 import { MercuryCoreRuntime } from "./core/runtime.js";
 import { loadTriggerConfig, matchTrigger } from "./core/trigger.js";
 import { configureLogger, logger } from "./logger.js";
@@ -230,9 +231,15 @@ async function main() {
       const url = new URL(request.url);
 
       // Dashboard — serve static HTML
-      if ((url.pathname === "/" || url.pathname === "/dashboard") && request.method === "GET") {
+      if (
+        (url.pathname === "/" || url.pathname === "/dashboard") &&
+        request.method === "GET"
+      ) {
         try {
-          const html = readFileSync(join(__dirname, "dashboard/index.html"), "utf8");
+          const html = readFileSync(
+            join(__dirname, "dashboard/index.html"),
+            "utf8",
+          );
           return new Response(html, {
             status: 200,
             headers: { "content-type": "text/html; charset=utf-8" },
@@ -244,11 +251,14 @@ async function main() {
 
       // Dashboard data endpoint — public, read-only
       if (url.pathname === "/dashboard/data" && request.method === "GET") {
-        const groups = core.db.listGroups().map(g => ({
-          id: g.id,
-          title: g.title,
-          lastActivity: g.updatedAt,
-        })).sort((a, b) => b.lastActivity - a.lastActivity);
+        const groups = core.db
+          .listGroups()
+          .map((g) => ({
+            id: g.id,
+            title: g.title,
+            lastActivity: g.updatedAt,
+          }))
+          .sort((a, b) => b.lastActivity - a.lastActivity);
 
         const tasks = core.db.listTasks();
 
