@@ -12,7 +12,7 @@ let db: Db;
 let config: AppConfig;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawbber-test-"));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "bearclaw-test-"));
   db = new Db(path.join(tmpDir, "state.db"));
   config = {
     ...loadConfig(),

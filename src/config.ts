@@ -17,7 +17,7 @@ const schema = z.object({
   triggerMatch: z.string().default("mention"),
 
   // ─── Storage ────────────────────────────────────────────────────────
-  dataDir: z.string().default(".clawbber"),
+  dataDir: z.string().default(".bearclaw"),
   authPath: z.string().optional(),
 
   // ─── Container / Agent ──────────────────────────────────────────────
@@ -41,7 +41,7 @@ const schema = z.object({
 
   // ─── Chat SDK Server ────────────────────────────────────────────────
   chatSdkPort: z.coerce.number().int().min(1).max(65535).default(8787),
-  chatSdkUserName: z.string().default("clawbber"),
+  chatSdkUserName: z.string().default("bearclaw"),
 
   // ─── Discord ────────────────────────────────────────────────────────
   discordGatewayDurationMs: z.coerce
@@ -74,47 +74,47 @@ export type AppConfig = z.infer<typeof schema> & {
 export function loadConfig(): AppConfig {
   const base = schema.parse({
     // Logging
-    logLevel: process.env.CLAWBBER_LOG_LEVEL,
-    logFormat: process.env.CLAWBBER_LOG_FORMAT,
+    logLevel: process.env.BEARCLAW_LOG_LEVEL,
+    logFormat: process.env.BEARCLAW_LOG_FORMAT,
 
     // AI Model
-    modelProvider: process.env.CLAWBBER_MODEL_PROVIDER,
-    model: process.env.CLAWBBER_MODEL,
+    modelProvider: process.env.BEARCLAW_MODEL_PROVIDER,
+    model: process.env.BEARCLAW_MODEL,
 
     // Trigger Behavior
-    triggerPatterns: process.env.CLAWBBER_TRIGGER_PATTERNS,
-    triggerMatch: process.env.CLAWBBER_TRIGGER_MATCH,
+    triggerPatterns: process.env.BEARCLAW_TRIGGER_PATTERNS,
+    triggerMatch: process.env.BEARCLAW_TRIGGER_MATCH,
 
     // Storage
-    dataDir: process.env.CLAWBBER_DATA_DIR,
-    authPath: process.env.CLAWBBER_AUTH_PATH,
+    dataDir: process.env.BEARCLAW_DATA_DIR,
+    authPath: process.env.BEARCLAW_AUTH_PATH,
 
     // Container / Agent
-    agentContainerImage: process.env.CLAWBBER_AGENT_CONTAINER_IMAGE,
-    containerTimeoutMs: process.env.CLAWBBER_CONTAINER_TIMEOUT_MS,
-    maxConcurrency: process.env.CLAWBBER_MAX_CONCURRENCY,
+    agentContainerImage: process.env.BEARCLAW_AGENT_CONTAINER_IMAGE,
+    containerTimeoutMs: process.env.BEARCLAW_CONTAINER_TIMEOUT_MS,
+    maxConcurrency: process.env.BEARCLAW_MAX_CONCURRENCY,
 
     // Rate Limiting
-    rateLimitPerUser: process.env.CLAWBBER_RATE_LIMIT_PER_USER,
-    rateLimitWindowMs: process.env.CLAWBBER_RATE_LIMIT_WINDOW_MS,
+    rateLimitPerUser: process.env.BEARCLAW_RATE_LIMIT_PER_USER,
+    rateLimitWindowMs: process.env.BEARCLAW_RATE_LIMIT_WINDOW_MS,
 
     // Chat SDK Server
-    chatSdkPort: process.env.CLAWBBER_CHATSDK_PORT,
-    chatSdkUserName: process.env.CLAWBBER_CHATSDK_USERNAME,
+    chatSdkPort: process.env.BEARCLAW_CHATSDK_PORT,
+    chatSdkUserName: process.env.BEARCLAW_CHATSDK_USERNAME,
 
     // Discord
-    discordGatewayDurationMs: process.env.CLAWBBER_DISCORD_GATEWAY_DURATION_MS,
-    discordGatewaySecret: process.env.CLAWBBER_DISCORD_GATEWAY_SECRET,
+    discordGatewayDurationMs: process.env.BEARCLAW_DISCORD_GATEWAY_DURATION_MS,
+    discordGatewaySecret: process.env.BEARCLAW_DISCORD_GATEWAY_SECRET,
 
     // WhatsApp
-    enableWhatsApp: process.env.CLAWBBER_ENABLE_WHATSAPP,
+    enableWhatsApp: process.env.BEARCLAW_ENABLE_WHATSAPP,
 
     // Media Handling
-    mediaEnabled: process.env.CLAWBBER_MEDIA_ENABLED,
-    mediaMaxSizeMb: process.env.CLAWBBER_MEDIA_MAX_SIZE_MB,
+    mediaEnabled: process.env.BEARCLAW_MEDIA_ENABLED,
+    mediaMaxSizeMb: process.env.BEARCLAW_MEDIA_MAX_SIZE_MB,
 
     // Permissions
-    admins: process.env.CLAWBBER_ADMINS,
+    admins: process.env.BEARCLAW_ADMINS,
   });
 
   const dataDir = base.dataDir;
@@ -125,7 +125,7 @@ export function loadConfig(): AppConfig {
     globalDir: path.join(dataDir, "global"),
     groupsDir: path.join(dataDir, "groups"),
     whatsappAuthDir:
-      process.env.CLAWBBER_WHATSAPP_AUTH_DIR ??
+      process.env.BEARCLAW_WHATSAPP_AUTH_DIR ??
       path.join(dataDir, "whatsapp-auth"),
   };
 }

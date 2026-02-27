@@ -1,6 +1,6 @@
 # Media Handling
 
-Clawbber downloads and processes media attachments from chat platforms, saving them to group workspaces and passing them to pi for processing.
+BearClaw downloads and processes media attachments from chat platforms, saving them to group workspaces and passing them to pi for processing.
 
 ## Supported Platforms
 
@@ -45,20 +45,20 @@ interface MessageAttachment {
 
 | Env Variable | Default | Description |
 |--------------|---------|-------------|
-| `CLAWBBER_MEDIA_ENABLED` | `true` | Enable/disable media downloads |
-| `CLAWBBER_MEDIA_MAX_SIZE_MB` | `10` | Max file size to download (MB) |
+| `BEARCLAW_MEDIA_ENABLED` | `true` | Enable/disable media downloads |
+| `BEARCLAW_MEDIA_MAX_SIZE_MB` | `10` | Max file size to download (MB) |
 
 ## Storage
 
 Media files are saved to the group workspace:
 
 ```
-.clawbber/groups/<group_id>/media/<timestamp>-<type>.<ext>
+.bearclaw/groups/<group_id>/media/<timestamp>-<type>.<ext>
 ```
 
 Example:
 ```
-.clawbber/groups/whatsapp_123456_g_us/media/
+.bearclaw/groups/whatsapp_123456_g_us/media/
 ├── 1709012345-image.jpg
 ├── 1709012400-voice.ogg
 └── 1709012500-document.pdf
@@ -92,7 +92,7 @@ Attachments are passed to pi as XML:
   <attachment type="image" path="/groups/xxx/media/123-image.jpg" mime="image/jpeg" size="12345" />
 </attachments>
 
-@clawbber what's in this image?
+@bearclaw what's in this image?
 ```
 
 Reply context includes media info:

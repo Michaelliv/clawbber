@@ -1,6 +1,6 @@
 # Rate Limiting
 
-Clawbber rate limits messages per-user per-group to prevent abuse. This protects against users flooding the agent or bot loops exhausting resources.
+BearClaw rate limits messages per-user per-group to prevent abuse. This protects against users flooding the agent or bot loops exhausting resources.
 
 ## How It Works
 
@@ -28,32 +28,32 @@ Commands like `stop` and `compact` bypass rate limiting so users can always abor
 
 | Config | Env Var | Default | Range |
 |--------|---------|---------|-------|
-| `rateLimitPerUser` | `CLAWBBER_RATE_LIMIT_PER_USER` | 10 | 1 – 1000 |
-| `rateLimitWindowMs` | `CLAWBBER_RATE_LIMIT_WINDOW_MS` | 60000 (1 min) | 1s – 1h |
+| `rateLimitPerUser` | `BEARCLAW_RATE_LIMIT_PER_USER` | 10 | 1 – 1000 |
+| `rateLimitWindowMs` | `BEARCLAW_RATE_LIMIT_WINDOW_MS` | 60000 (1 min) | 1s – 1h |
 
 ```bash
 # Allow 5 requests per user per group per minute
-export CLAWBBER_RATE_LIMIT_PER_USER=5
-export CLAWBBER_RATE_LIMIT_WINDOW_MS=60000
+export BEARCLAW_RATE_LIMIT_PER_USER=5
+export BEARCLAW_RATE_LIMIT_WINDOW_MS=60000
 ```
 
 ## Per-Group Override
 
-Groups can set a custom limit via `clawbber-ctl` or the API:
+Groups can set a custom limit via `bearclaw-ctl` or the API:
 
 ```bash
 # Inside agent container (group context is automatic)
-clawbber-ctl config set rate_limit 5
+bearclaw-ctl config set rate_limit 5
 
 # Via API with explicit group
 curl -X PUT http://localhost:8787/api/config \
-  -H "X-Clawbber-Group: slack:C123" \
-  -H "X-Clawbber-Caller: slack:U456" \
+  -H "X-BearClaw-Group: slack:C123" \
+  -H "X-BearClaw-Caller: slack:U456" \
   -H "Content-Type: application/json" \
   -d '{"key": "rate_limit", "value": "5"}'
 ```
 
-The per-group `rate_limit` config takes precedence over the global `CLAWBBER_RATE_LIMIT_PER_USER`.
+The per-group `rate_limit` config takes precedence over the global `BEARCLAW_RATE_LIMIT_PER_USER`.
 
 ## Behavior
 
@@ -95,7 +95,7 @@ limiter.clear()                              // Reset all state
 limiter.bucketCount                          // Number of tracked user/group pairs
 ```
 
-### `ClawbberCoreRuntime`
+### `BearClawCoreRuntime`
 
 ```ts
 runtime.rateLimiter                          // Access the rate limiter instance

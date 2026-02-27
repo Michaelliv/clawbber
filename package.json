@@ -1,5 +1,5 @@
 {
-  "name": "clawbber",
+  "name": "bearclaw",
   "version": "0.1.0",
   "description": "Personal AI assistant for chat platforms (WhatsApp, Slack, Discord)",
   "license": "MIT",
@@ -14,11 +14,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Michaelliv/clawbber"
+    "url": "https://github.com/Michaelliv/bearclaw"
   },
   "type": "module",
   "bin": {
-    "clawbber": "./src/cli/clawbber.ts"
+    "bearclaw": "./src/cli/bearclaw.ts",
+    "bearclaw-ctl": "./src/cli/bearclaw-ctl.ts"
   },
   "files": [
     "src",

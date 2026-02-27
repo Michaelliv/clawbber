@@ -1,4 +1,4 @@
-# Clawbber — Agent Instructions
+# BearClaw — Agent Instructions
 
 Personal AI assistant for chat platforms (WhatsApp, Slack, Discord). Runs agents inside Docker containers using pi as the runtime.
 
@@ -34,8 +34,8 @@ src/
 │   ├── db.ts            # SQLite (groups, messages, tasks, roles)
 │   └── memory.ts        # Workspace/file management
 ├── cli/
-│   ├── clawbber.ts      # Main CLI (init, run, build, status)
-│   └── clawbber-ctl.ts  # In-container management CLI
+│   ├── bearclaw.ts      # Main CLI (init, run, build, status)
+│   └── bearclaw-ctl.ts  # In-container management CLI
 ├── chat-sdk.ts          # Entry point, HTTP server, adapters
 ├── config.ts            # Zod config schema + env parsing
 ├── logger.ts            # Logging
@@ -53,20 +53,20 @@ container/               # Dockerfile + build script
 | `GET /health` | No | Health check (uptime, queue, containers, adapters) |
 | `POST /webhooks/slack` | Slack signature | Slack events |
 | `POST /webhooks/discord` | Discord signature | Discord interactions |
-| `/api/*` | `X-Clawbber-Caller` + `X-Clawbber-Group` headers | Internal API for clawbber-ctl |
+| `/api/*` | `X-BearClaw-Caller` + `X-BearClaw-Group` headers | Internal API for bearclaw-ctl |
 
 ## Configuration
 
 All config via environment variables. See `src/config.ts` for the full schema.
 
 Key ones:
-- `CLAWBBER_CONTAINER_TIMEOUT_MS` — Container timeout (default 5 min)
-- `CLAWBBER_MAX_CONCURRENCY` — Max concurrent containers (default 2)
-- `CLAWBBER_CHATSDK_PORT` — HTTP server port (default 8787)
+- `BEARCLAW_CONTAINER_TIMEOUT_MS` — Container timeout (default 5 min)
+- `BEARCLAW_MAX_CONCURRENCY` — Max concurrent containers (default 2)
+- `BEARCLAW_CHATSDK_PORT` — HTTP server port (default 8787)
 
 ## Container Lifecycle
 
-Containers are labeled `clawbber.managed=true` for tracking. On startup, orphaned containers from previous runs are cleaned up. See `docs/container-lifecycle.md`.
+Containers are labeled `bearclaw.managed=true` for tracking. On startup, orphaned containers from previous runs are cleaned up. See `docs/container-lifecycle.md`.
 
 ## Testing
 

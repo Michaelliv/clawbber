@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import type { AppConfig } from "../src/config.js";
 import { GroupQueue } from "../src/core/group-queue.js";
-import { ClawbberCoreRuntime } from "../src/core/runtime.js";
+import { BearClawCoreRuntime } from "../src/core/runtime.js";
 
 describe("GroupQueue shutdown", () => {
   test("cancelAll cancels all pending work across groups", () => {
@@ -68,9 +68,9 @@ describe("GroupQueue shutdown", () => {
   });
 });
 
-describe("ClawbberCoreRuntime.shutdown (real runtime)", () => {
+describe("BearClawCoreRuntime.shutdown (real runtime)", () => {
   let tmpDir: string;
-  let core: ClawbberCoreRuntime;
+  let core: BearClawCoreRuntime;
 
   function makeConfig(dir: string): AppConfig {
     return {
@@ -96,8 +96,8 @@ describe("ClawbberCoreRuntime.shutdown (real runtime)", () => {
   }
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawbber-shutdown-"));
-    core = new ClawbberCoreRuntime(makeConfig(tmpDir));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "bearclaw-shutdown-"));
+    core = new BearClawCoreRuntime(makeConfig(tmpDir));
   });
 
   afterEach(() => {
