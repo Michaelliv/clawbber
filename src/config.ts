@@ -55,6 +55,10 @@ const schema = z.object({
   // ─── WhatsApp ───────────────────────────────────────────────────────
   enableWhatsApp: z.coerce.boolean().default(false),
 
+  // ─── Media Handling ─────────────────────────────────────────────────
+  mediaEnabled: z.coerce.boolean().default(true),
+  mediaMaxSizeMb: z.coerce.number().min(1).max(100).default(10),
+
   // ─── Permissions ────────────────────────────────────────────────────
   admins: z.string().default(""),
 });
@@ -104,6 +108,10 @@ export function loadConfig(): AppConfig {
 
     // WhatsApp
     enableWhatsApp: process.env.CLAWBBER_ENABLE_WHATSAPP,
+
+    // Media Handling
+    mediaEnabled: process.env.CLAWBBER_MEDIA_ENABLED,
+    mediaMaxSizeMb: process.env.CLAWBBER_MEDIA_MAX_SIZE_MB,
 
     // Permissions
     admins: process.env.CLAWBBER_ADMINS,

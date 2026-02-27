@@ -9,6 +9,7 @@ import makeWASocket, {
   makeCacheableSignalKeyStore,
   type proto,
   useMultiFileAuthState,
+  type WAMessage,
   type WASocket,
 } from "@whiskeysockets/baileys";
 import {
@@ -28,6 +29,11 @@ import {
   type WebhookOptions,
 } from "chat";
 import { logger } from "../logger.js";
+import type { MessageAttachment } from "../types.js";
+import {
+  detectWhatsAppMedia,
+  downloadWhatsAppMedia,
+} from "./whatsapp-media.js";
 
 type WhatsAppThreadId = {
   chatJid: string;
@@ -74,9 +80,34 @@ function buildReplyContext(
     pushNames?.get(quotedJid) || quotedJid.split("@")[0] || "unknown";
   const quotedMessageId = contextInfo.stanzaId || "unknown";
 
+  // Check if quoted message has media
+  const quotedMedia = detectWhatsAppMedia(contextInfo.quotedMessage);
+
+  const attrs = [
+    `name="${quotedName}"`,
+    `jid="${quotedJid}"`,
+    `message_id="${quotedMessageId}"`,
+  ];
+
+  if (quotedMedia) {
+    attrs.push(`media_type="${quotedMedia.type}"`);
+    attrs.push(`media_mime="${quotedMedia.mimeType}"`);
+  }
+
+  const contentParts: string[] = [];
+  if (quotedText) {
+    contentParts.push(quotedText);
+  }
+  if (quotedMedia && !quotedText) {
+    // If no caption, describe the media
+    const typeLabel =
+      quotedMedia.type === "voice" ? "voice note" : quotedMedia.type;
+    contentParts.push(`[${typeLabel}]`);
+  }
+
   const lines = [
-    `<reply_to name="${quotedName}" jid="${quotedJid}" message_id="${quotedMessageId}">`,
-    quotedText || "",
+    `<reply_to ${attrs.join(" ")}>`,
+    contentParts.join("\n") || "",
     "</reply_to>",
   ];
 
@@ -99,6 +130,25 @@ export type WhatsAppQrStatus =
   | { status: "waiting"; qr: string }
   | { status: "disconnected" };
 
+/**
+ * Callback for media download. Called when a message with media is received.
+ * Returns the group workspace path where media should be saved.
+ */
+export type MediaDownloadCallback = (
+  groupId: string,
+) => Promise<string | null> | string | null;
+
+export interface WhatsAppAdapterOptions {
+  userName?: string;
+  authDir?: string;
+  /** Enable media downloads (default: true) */
+  mediaEnabled?: boolean;
+  /** Max media file size in bytes (default: 10MB) */
+  mediaMaxSizeBytes?: number;
+  /** Callback to get workspace path for media storage */
+  getGroupWorkspace?: MediaDownloadCallback;
+}
+
 export class WhatsAppBaileysAdapter
   implements Adapter<WhatsAppThreadId, proto.IWebMessageInfo>
 {
@@ -116,11 +166,21 @@ export class WhatsAppBaileysAdapter
   private readonly pushNames = new Map<string, string>();
   private currentQr: string | null = null;
 
-  constructor(options?: { userName?: string; authDir?: string }) {
+  // Media handling
+  private readonly mediaEnabled: boolean;
+  private readonly mediaMaxSizeBytes: number;
+  private readonly getGroupWorkspace?: MediaDownloadCallback;
+
+  constructor(options?: WhatsAppAdapterOptions) {
     this.userName = options?.userName ?? "clawbber";
     this.authDir =
       options?.authDir ??
       path.join(process.cwd(), ".clawbber", "whatsapp-auth");
+
+    // Media config
+    this.mediaEnabled = options?.mediaEnabled ?? true;
+    this.mediaMaxSizeBytes = options?.mediaMaxSizeBytes ?? 10 * 1024 * 1024; // 10MB
+    this.getGroupWorkspace = options?.getGroupWorkspace;
   }
 
   /**
@@ -217,110 +277,7 @@ export class WhatsAppBaileysAdapter
       if (type !== "notify") return;
 
       for (const msg of messages) {
-        if (!msg.message) continue;
-        if (msg.key.fromMe) continue;
-
-        const remoteJid = msg.key.remoteJid;
-        if (!remoteJid || remoteJid === "status@broadcast") continue;
-
-        const messageId = msg.key.id;
-        if (messageId) {
-          if (this.seenMessageIds.has(messageId)) continue;
-          this.seenMessageIds.add(messageId);
-          if (this.seenMessageIds.size > 5000) this.seenMessageIds.clear();
-        }
-
-        const tsMs = Number(msg.messageTimestamp ?? 0) * 1000;
-        if (
-          this.connectedAtMs &&
-          tsMs > 0 &&
-          tsMs < this.connectedAtMs - 10_000
-        ) {
-          logger.debug("WhatsApp skipping backlog message", {
-            remoteJid,
-            messageId,
-            tsMs,
-          });
-          continue;
-        }
-
-        const sender = msg.key.participant || remoteJid;
-        const senderName = msg.pushName || sender.split("@")[0] || "unknown";
-
-        // Track push names for reply context resolution
-        if (msg.pushName && sender) {
-          this.pushNames.set(sender, msg.pushName);
-        }
-
-        let baseText = extractText(msg.message).trim();
-        const replyContext = buildReplyContext(msg.message, this.pushNames);
-
-        // WhatsApp @-mentions embed JIDs in text (e.g. "@52669955764381").
-        // Replace the bot's JID mention with the configured userName so trigger matching works.
-        const contextInfo = getContextInfo(msg.message);
-        const mentionedJids = contextInfo?.mentionedJid ?? [];
-        const botJid = this.sock?.user?.id;
-        const botLid = this.sock?.user?.lid;
-        const isBotJid = (jid: string) =>
-          (botJid && areJidsSameUser(jid, botJid)) ||
-          (botLid && areJidsSameUser(jid, botLid));
-
-        // Replace bot's JID mention with configured userName so trigger patterns match
-        for (const jid of mentionedJids) {
-          if (isBotJid(jid)) {
-            const user = jidDecode(jid)?.user;
-            if (user) {
-              baseText = baseText.replace(
-                new RegExp(`@${user}\\b`, "g"),
-                `@${this.userName}`,
-              );
-            }
-          }
-        }
-
-        const text = [baseText, replyContext]
-          .filter(Boolean)
-          .join("\n\n")
-          .trim();
-        if (!text) continue;
-        const threadId = this.encodeThreadId({
-          chatJid: remoteJid,
-          threadJid: remoteJid,
-        });
-
-        logger.info("WhatsApp inbound", {
-          remoteJid,
-          sender,
-          isReply: Boolean(replyContext),
-          preview: text.slice(0, 120),
-        });
-
-        const _isDM = !remoteJid.endsWith("@g.us");
-
-        const incoming = new Message<proto.IWebMessageInfo>({
-          id: msg.key.id ?? `${Date.now()}`,
-          threadId,
-          text,
-          formatted: parseMarkdown(text),
-          raw: msg,
-          isMention: true, // always true — router handles trigger matching
-          author: {
-            userId: sender,
-            userName: senderName,
-            fullName: senderName,
-            isBot: "unknown",
-            isMe: false,
-          },
-          metadata: {
-            dateSent: new Date(
-              Number(msg.messageTimestamp ?? Date.now() / 1000) * 1000,
-            ),
-            edited: false,
-          },
-          attachments: [],
-        });
-
-        this.chat?.processMessage(this, threadId, incoming);
+        void this.handleIncomingMessage(msg);
       }
     });
 
@@ -488,6 +445,151 @@ export class WhatsAppBaileysAdapter
     this.sock?.end(undefined);
   }
 
+  /**
+   * Handle an incoming WhatsApp message.
+   * Downloads media if present and enabled.
+   */
+  private async handleIncomingMessage(msg: WAMessage): Promise<void> {
+    if (!msg.message) return;
+    if (msg.key.fromMe) return;
+
+    const remoteJid = msg.key.remoteJid;
+    if (!remoteJid || remoteJid === "status@broadcast") return;
+
+    const messageId = msg.key.id;
+    if (messageId) {
+      if (this.seenMessageIds.has(messageId)) return;
+      this.seenMessageIds.add(messageId);
+      if (this.seenMessageIds.size > 5000) this.seenMessageIds.clear();
+    }
+
+    const tsMs = Number(msg.messageTimestamp ?? 0) * 1000;
+    if (this.connectedAtMs && tsMs > 0 && tsMs < this.connectedAtMs - 10_000) {
+      logger.debug("WhatsApp skipping backlog message", {
+        remoteJid,
+        messageId,
+        tsMs,
+      });
+      return;
+    }
+
+    const sender = msg.key.participant || remoteJid;
+    const senderName = msg.pushName || sender.split("@")[0] || "unknown";
+
+    // Track push names for reply context resolution
+    if (msg.pushName && sender) {
+      this.pushNames.set(sender, msg.pushName);
+    }
+
+    let baseText = extractText(msg.message).trim();
+    const replyContext = buildReplyContext(msg.message, this.pushNames);
+
+    // WhatsApp @-mentions embed JIDs in text (e.g. "@52669955764381").
+    // Replace the bot's JID mention with the configured userName so trigger matching works.
+    const contextInfo = getContextInfo(msg.message);
+    const mentionedJids = contextInfo?.mentionedJid ?? [];
+    const botJid = this.sock?.user?.id;
+    const botLid = this.sock?.user?.lid;
+    const isBotJid = (jid: string) =>
+      (botJid && areJidsSameUser(jid, botJid)) ||
+      (botLid && areJidsSameUser(jid, botLid));
+
+    // Replace bot's JID mention with configured userName so trigger patterns match
+    for (const jid of mentionedJids) {
+      if (isBotJid(jid)) {
+        const user = jidDecode(jid)?.user;
+        if (user) {
+          baseText = baseText.replace(
+            new RegExp(`@${user}\\b`, "g"),
+            `@${this.userName}`,
+          );
+        }
+      }
+    }
+
+    // Detect and download media if enabled
+    const attachments: MessageAttachment[] = [];
+    const mediaInfo = detectWhatsAppMedia(msg.message);
+
+    if (mediaInfo && this.mediaEnabled && this.sock && this.getGroupWorkspace) {
+      // Derive groupId the same way chat-sdk does (whatsapp:{chatJid})
+      const groupId = `whatsapp:${remoteJid}`;
+
+      try {
+        const workspace = await this.getGroupWorkspace(groupId);
+        if (workspace) {
+          const attachment = await downloadWhatsAppMedia(msg, this.sock, {
+            maxSizeBytes: this.mediaMaxSizeBytes,
+            outputDir: workspace,
+          });
+
+          if (attachment) {
+            attachments.push(attachment);
+
+            // Add media description to text if no caption
+            if (!baseText) {
+              const typeLabel =
+                mediaInfo.type === "voice" ? "voice note" : mediaInfo.type;
+              baseText = `[Sent ${typeLabel}]`;
+            }
+          }
+        }
+      } catch (error) {
+        logger.error("Failed to process media", {
+          messageId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    const text = [baseText, replyContext].filter(Boolean).join("\n\n").trim();
+    if (!text && attachments.length === 0) return;
+
+    const threadId = this.encodeThreadId({
+      chatJid: remoteJid,
+      threadJid: remoteJid,
+    });
+
+    logger.info("WhatsApp inbound", {
+      remoteJid,
+      sender,
+      isReply: Boolean(replyContext),
+      hasMedia: attachments.length > 0,
+      mediaType: mediaInfo?.type,
+      preview: text.slice(0, 120),
+    });
+
+    const _isDM = !remoteJid.endsWith("@g.us");
+
+    const incoming = new Message<proto.IWebMessageInfo>({
+      id: msg.key.id ?? `${Date.now()}`,
+      threadId,
+      text: text || "[Media message]",
+      formatted: parseMarkdown(text || "[Media message]"),
+      raw: msg,
+      isMention: true, // always true — router handles trigger matching
+      author: {
+        userId: sender,
+        userName: senderName,
+        fullName: senderName,
+        isBot: "unknown",
+        isMe: false,
+      },
+      metadata: {
+        dateSent: new Date(
+          Number(msg.messageTimestamp ?? Date.now() / 1000) * 1000,
+        ),
+        edited: false,
+        // Store attachments in metadata for downstream consumers
+        // Using spread to add custom property (not in MessageMetadata type)
+        ...({ attachments } as Record<string, unknown>),
+      },
+      attachments: [],
+    });
+
+    this.chat?.processMessage(this, threadId, incoming);
+  }
+
   private async flushOutgoingQueue(): Promise<void> {
     if (!this.sock || !this.connected || this.flushing) return;
     this.flushing = true;
@@ -508,9 +610,8 @@ export class WhatsAppBaileysAdapter
   }
 }
 
-export function createWhatsAppBaileysAdapter(options?: {
-  userName?: string;
-  authDir?: string;
-}): WhatsAppBaileysAdapter {
+export function createWhatsAppBaileysAdapter(
+  options?: WhatsAppAdapterOptions,
+): WhatsAppBaileysAdapter {
   return new WhatsAppBaileysAdapter(options);
 }

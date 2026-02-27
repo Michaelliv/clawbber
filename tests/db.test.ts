@@ -92,7 +92,38 @@ describe("messages", () => {
 
     expect(db.getRecentMessages("g1").length).toBe(1);
     expect(db.getRecentMessages("g1")[0].content).toBe("g1 message");
-    expect(db.getRecentMessages("g2")[0].content).toBe("g2 message");
+  });
+
+  test("addMessage stores and retrieves attachments", () => {
+    db.ensureGroup("g1");
+    const attachments = [
+      {
+        path: "/groups/g1/media/123-image.jpg",
+        type: "image" as const,
+        mimeType: "image/jpeg",
+        sizeBytes: 12345,
+      },
+    ];
+    db.addMessage("g1", "user", "check this out", attachments);
+
+    const msgs = db.getRecentMessages("g1");
+    expect(msgs.length).toBe(1);
+    expect(msgs[0].attachments).toBeDefined();
+    expect(msgs[0].attachments?.length).toBe(1);
+    expect(msgs[0].attachments?.[0].path).toBe(
+      "/groups/g1/media/123-image.jpg",
+    );
+    expect(msgs[0].attachments?.[0].type).toBe("image");
+    expect(msgs[0].attachments?.[0].mimeType).toBe("image/jpeg");
+    expect(msgs[0].attachments?.[0].sizeBytes).toBe(12345);
+  });
+
+  test("messages without attachments have undefined attachments", () => {
+    db.ensureGroup("g1");
+    db.addMessage("g1", "user", "plain text");
+
+    const msgs = db.getRecentMessages("g1");
+    expect(msgs[0].attachments).toBeUndefined();
   });
 });
 

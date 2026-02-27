@@ -1,13 +1,14 @@
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import type { StoredMessage } from "../types.js";
+import type { MessageAttachment, StoredMessage } from "../types.js";
 
 type Payload = {
   groupId: string;
   groupWorkspace: string;
   messages: StoredMessage[];
   prompt: string;
+  attachments?: MessageAttachment[];
 };
 
 const START = "---CLAWBBER_CONTAINER_RESULT_START---";
@@ -33,23 +34,67 @@ function buildSystemPrompt(): string {
   ].join("\n");
 }
 
+/**
+ * Format attachment information for the prompt as XML.
+ * Converts absolute paths to container-relative paths.
+ */
+function formatAttachments(
+  attachments: MessageAttachment[] | undefined,
+): string | null {
+  if (!attachments || attachments.length === 0) return null;
+
+  const entries = attachments.map((att) => {
+    // Convert host path to container path
+    const containerPath = att.path.replace(/^.*\/groups\//, "/groups/");
+
+    const attrs = [
+      `type="${att.type}"`,
+      `path="${containerPath}"`,
+      `mime="${att.mimeType}"`,
+    ];
+
+    if (att.sizeBytes) {
+      attrs.push(`size="${att.sizeBytes}"`);
+    }
+    if (att.filename) {
+      attrs.push(`filename="${att.filename}"`);
+    }
+
+    return `  <attachment ${attrs.join(" ")} />`;
+  });
+
+  return ["<attachments>", ...entries, "</attachments>"].join("\n");
+}
+
 function buildPrompt(payload: Payload): string {
+  const parts: string[] = [];
+
+  // Add ambient messages context
   const ambientEntries = payload.messages
     .filter((m) => m.role === "ambient")
     .map((m) => {
       const ts = formatContextTimestamp(m.createdAt);
-      return `<message role="group" timestamp="${ts}">\n${m.content}\n</message>`;
+      return `  <message role="group" timestamp="${ts}">\n${m.content}\n  </message>`;
     });
 
-  if (ambientEntries.length === 0) return payload.prompt;
+  if (ambientEntries.length > 0) {
+    parts.push("<ambient_messages>");
+    parts.push(...ambientEntries);
+    parts.push("</ambient_messages>");
+    parts.push("");
+  }
 
-  return [
-    "<ambient_messages>",
-    ...ambientEntries,
-    "</ambient_messages>",
-    "",
-    payload.prompt,
-  ].join("\n");
+  // Add attachments from current message
+  const attachmentsXml = formatAttachments(payload.attachments);
+  if (attachmentsXml) {
+    parts.push(attachmentsXml);
+    parts.push("");
+  }
+
+  // Add the prompt
+  parts.push(payload.prompt);
+
+  return parts.join("\n");
 }
 
 function runPi(payload: Payload): Promise<string> {

@@ -8,7 +8,7 @@ import path from "node:path";
 import type { AppConfig } from "../config.js";
 import { type Logger, logger } from "../logger.js";
 import { getApiKeyFromPiAuthFile } from "../storage/pi-auth.js";
-import type { StoredMessage } from "../types.js";
+import type { MessageAttachment, StoredMessage } from "../types.js";
 import { ContainerError } from "./container-error.js";
 
 const START = "---CLAWBBER_CONTAINER_RESULT_START---";
@@ -123,6 +123,7 @@ export class AgentContainerRunner {
     messages: StoredMessage[];
     prompt: string;
     callerId: string;
+    attachments?: MessageAttachment[];
   }): Promise<string> {
     const globalDir = path.resolve(this.config.globalDir);
     const groupsRoot = path.resolve(this.config.groupsDir);
