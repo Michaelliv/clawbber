@@ -150,7 +150,10 @@ export class ClawbberCoreRuntime {
               reason: "Container was killed (possibly out of memory).",
             };
           case "error":
-            logger.error("Container error", error);
+            logger.error(
+              "Container error",
+              error instanceof Error ? error : undefined,
+            );
             throw error;
         }
       }
@@ -212,11 +215,14 @@ export class ClawbberCoreRuntime {
         }
         return;
       }
-      logger.info(`Received ${signal}, starting graceful shutdown...`);
+      logger.info("Received signal, starting graceful shutdown", { signal });
       void this.shutdown().then(
         () => process.exit(0),
         (err) => {
-          logger.error("Shutdown failed", err);
+          logger.error(
+            "Shutdown failed",
+            err instanceof Error ? err : undefined,
+          );
           process.exit(1);
         },
       );
@@ -246,7 +252,9 @@ export class ClawbberCoreRuntime {
       logger.info("Shutdown: draining group queue");
       const dropped = this.queue.cancelAll();
       if (dropped > 0)
-        logger.info(`Shutdown: cancelled ${dropped} pending queue entries`);
+        logger.info("Shutdown: cancelled pending queue entries", {
+          count: dropped,
+        });
 
       // 3. Kill running containers
       logger.info("Shutdown: stopping running containers");
@@ -264,7 +272,10 @@ export class ClawbberCoreRuntime {
         try {
           await hook();
         } catch (err) {
-          logger.error("Shutdown hook failed", err);
+          logger.error(
+            "Shutdown hook failed",
+            err instanceof Error ? err : undefined,
+          );
         }
       }
 

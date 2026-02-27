@@ -34,15 +34,18 @@ export class TaskScheduler {
               createdBy: task.createdBy,
             });
           } catch (error) {
-            logger.error(
-              "scheduler task handler failed",
-              { taskId: task.id, groupId: task.groupId },
-              error,
-            );
+            logger.error("Scheduler task handler failed", {
+              taskId: task.id,
+              groupId: task.groupId,
+              error: error instanceof Error ? error.message : String(error),
+            });
           }
         }
       } catch (error) {
-        logger.error("scheduler error", error);
+        logger.error(
+          "Scheduler error",
+          error instanceof Error ? error : undefined,
+        );
       } finally {
         this.timer = setTimeout(tick, this.pollIntervalMs);
       }

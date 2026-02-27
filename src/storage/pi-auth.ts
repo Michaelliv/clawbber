@@ -74,14 +74,14 @@ export async function getApiKeyFromPiAuthFile(options: {
     };
 
     writeAuthFile(authPath, nextAuth);
-    logger.debug("loaded anthropic oauth token from pi auth.json", {
+    logger.debug("Loaded anthropic oauth token from pi auth.json", {
       authPath,
     });
     return result.apiKey;
   } catch (error) {
     logger.warn(
-      "failed to load anthropic oauth token from pi auth.json",
-      error,
+      "Failed to load anthropic oauth token from pi auth.json",
+      error instanceof Error ? error : undefined,
     );
     return undefined;
   }

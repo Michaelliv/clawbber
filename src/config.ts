@@ -2,6 +2,12 @@ import path from "node:path";
 import { z } from "zod";
 
 const schema = z.object({
+  // ─── Logging ────────────────────────────────────────────────────────
+  logLevel: z
+    .enum(["debug", "info", "warn", "error", "silent"])
+    .default("info"),
+  logFormat: z.enum(["text", "json"]).default("text"),
+
   // ─── AI Model ───────────────────────────────────────────────────────
   modelProvider: z.string().default("anthropic"),
   model: z.string().default("claude-sonnet-4-20250514"),
@@ -63,6 +69,10 @@ export type AppConfig = z.infer<typeof schema> & {
 
 export function loadConfig(): AppConfig {
   const base = schema.parse({
+    // Logging
+    logLevel: process.env.CLAWBBER_LOG_LEVEL,
+    logFormat: process.env.CLAWBBER_LOG_FORMAT,
+
     // AI Model
     modelProvider: process.env.CLAWBBER_MODEL_PROVIDER,
     model: process.env.CLAWBBER_MODEL,
