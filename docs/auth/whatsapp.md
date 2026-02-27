@@ -100,12 +100,12 @@ The auth script writes status files for external monitoring (useful for headless
 - `failed:515` — Stream error (usually recovers automatically)
 - `failed:unknown` — Other connection failure
 
-## QR API Endpoint
+## Auth Status API Endpoint
 
 When Clawbber is running, you can check auth status via the API:
 
 ```bash
-curl http://localhost:8787/whatsapp/qr
+curl http://localhost:8787/auth/whatsapp
 ```
 
 **Responses:**
@@ -169,5 +169,5 @@ Clawbber ignores messages that were sent before it connected to prevent processi
 
 - Auth credentials in `.clawbber/whatsapp-auth/` are sensitive — treat them like passwords
 - Anyone with access to these files can impersonate your WhatsApp account
-- The `/whatsapp/qr` endpoint is unauthenticated — only expose your API port to trusted networks
+- The `/auth/whatsapp` endpoint is unauthenticated — only expose your API port to trusted networks
 - Consider using a dedicated WhatsApp number for your bot

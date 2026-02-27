@@ -218,8 +218,8 @@ async function main() {
         );
       }
 
-      // WhatsApp QR endpoint — no auth required (for headless deployments)
-      if (url.pathname === "/whatsapp/qr" && request.method === "GET") {
+      // WhatsApp auth status endpoint — no auth required (for headless deployments)
+      if (url.pathname === "/auth/whatsapp" && request.method === "GET") {
         const whatsappAdapter = adapters.whatsapp as
           | WhatsAppBaileysAdapter
           | undefined;
