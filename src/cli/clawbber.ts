@@ -143,6 +143,22 @@ agent-browser get text body
 - Long-running tasks may time out
 - No persistent memory between conversations
 
+## Clawbber Documentation
+
+When users ask about clawbber's capabilities, configuration, or how things work, read the relevant docs:
+
+| Path | Contents |
+|------|----------|
+| /docs/clawbber/README.md | Overview, commands, triggers, permissions, tasks, config |
+| /docs/clawbber/docs/ingress.md | Adapter message flow (WhatsApp, Slack, Discord) |
+| /docs/clawbber/docs/media/ | Media handling (downloads, attachments) |
+| /docs/clawbber/docs/subagents.md | Delegating to sub-agents |
+| /docs/clawbber/docs/web-search.md | Web search capabilities |
+| /docs/clawbber/docs/auth/ | Platform authentication |
+| /docs/clawbber/docs/rate-limiting.md | Rate limiting configuration |
+
+Read these lazily — only when the user asks about a specific topic.
+
 ## Sub-agents
 
 You can delegate tasks to specialized sub-agents:
