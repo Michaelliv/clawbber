@@ -348,6 +348,25 @@
       color: var(--text);
       flex: 1;
     }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      body { padding: 8px; }
+      .container { max-width: 100%; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .header { flex-direction: column; gap: 8px; text-align: center; }
+      .header h1 { justify-content: center; }
+      .table { font-size: 11px; }
+      .table .truncate { max-width: 120px; }
+      .help-modal { width: 90%; min-width: auto; }
+    }
+
+    @media (max-width: 480px) {
+      .metrics { gap: 8px; }
+      .metric { padding: 12px 4px; }
+      .metric .value { font-size: 18px; }
+      .panel-body { padding: 8px 12px; }
+    }
   </style>
 </head>
 <body>
