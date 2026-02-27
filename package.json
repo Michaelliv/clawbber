@@ -3,7 +3,15 @@
   "version": "0.1.0",
   "description": "Personal AI assistant for chat platforms (WhatsApp, Slack, Discord)",
   "license": "MIT",
-  "keywords": ["ai", "assistant", "whatsapp", "slack", "discord", "chatbot", "pi"],
+  "keywords": [
+    "ai",
+    "assistant",
+    "whatsapp",
+    "slack",
+    "discord",
+    "chatbot",
+    "pi"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/Michaelliv/clawbber"
@@ -23,7 +31,8 @@
     "typecheck": "bunx tsc --noEmit",
     "lint": "bunx biome check src/ tests/",
     "lint:fix": "bunx biome check --fix src/ tests/",
-    "check": "bun run typecheck && bun run lint && bun test"
+    "check": "bun run typecheck && bun run lint && bun test",
+    "check:fix": "bun run typecheck && bun run lint:fix && bun test"
   },
   "dependencies": {
     "@chat-adapter/discord": "^4.14.0",
