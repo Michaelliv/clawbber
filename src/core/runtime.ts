@@ -8,6 +8,7 @@ import {
   ensurePiResourceDir,
 } from "../storage/memory.js";
 import { GroupQueue } from "./group-queue.js";
+import { RateLimiter } from "./rate-limiter.js";
 import { type RouteResult, routeInput } from "./router.js";
 import { TaskScheduler } from "./task-scheduler.js";
 
@@ -20,6 +21,7 @@ export class ClawbberCoreRuntime {
   readonly scheduler: TaskScheduler;
   readonly queue: GroupQueue;
   readonly containerRunner: AgentContainerRunner;
+  readonly rateLimiter: RateLimiter;
   private readonly shutdownHooks: ShutdownHook[] = [];
   private shuttingDown = false;
   private signalHandlersInstalled = false;
@@ -29,6 +31,10 @@ export class ClawbberCoreRuntime {
     this.queue = new GroupQueue(config.maxConcurrency);
     this.scheduler = new TaskScheduler(this.db);
     this.containerRunner = new AgentContainerRunner(config);
+    this.rateLimiter = new RateLimiter(
+      config.rateLimitPerUser,
+      config.rateLimitWindowMs,
+    );
 
     // Scaffold global (pi agent dir) and "main" (admin DM workspace)
     ensurePiResourceDir(resolveProjectPath(config.globalDir));
@@ -41,6 +47,7 @@ export class ClawbberCoreRuntime {
    */
   async initialize(): Promise<void> {
     await this.containerRunner.cleanupOrphans();
+    this.rateLimiter.startCleanup();
   }
 
   startScheduler(
@@ -81,6 +88,25 @@ export class ClawbberCoreRuntime {
     if (route.type === "command") {
       const reply = this.executeCommand(input.groupId, route.command);
       return { ...route, reply };
+    }
+
+    // Check rate limit for assistant requests (not commands, not ignored messages)
+    if (route.type === "assistant") {
+      // Check per-group override first
+      const groupLimit = this.db.getGroupConfig(input.groupId, "rate_limit");
+      const effectiveLimit = groupLimit
+        ? Number.parseInt(groupLimit, 10)
+        : this.config.rateLimitPerUser;
+
+      if (
+        effectiveLimit > 0 &&
+        !this.checkRateLimit(input.groupId, input.callerId, effectiveLimit)
+      ) {
+        return {
+          type: "denied",
+          reason: "Rate limit exceeded. Try again shortly.",
+        };
+      }
     }
 
     if (route.type !== "assistant") {
@@ -130,6 +156,18 @@ export class ClawbberCoreRuntime {
       }
       throw error;
     }
+  }
+
+  /**
+   * Check if a request is allowed under rate limiting.
+   * Uses per-group override if set, otherwise uses the default limit.
+   */
+  private checkRateLimit(
+    groupId: string,
+    userId: string,
+    effectiveLimit: number,
+  ): boolean {
+    return this.rateLimiter.isAllowed(groupId, userId, effectiveLimit);
   }
 
   private executeCommand(groupId: string, command: string): string {
@@ -230,7 +268,10 @@ export class ClawbberCoreRuntime {
         }
       }
 
-      // 6. Close database
+      // 6. Stop rate limiter cleanup
+      this.rateLimiter.stopCleanup();
+
+      // 7. Close database
       logger.info("Shutdown: closing database");
       this.db.close();
 
