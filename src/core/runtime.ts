@@ -21,6 +21,7 @@ export class ClawbberCoreRuntime {
   readonly containerRunner: AgentContainerRunner;
   private readonly shutdownHooks: ShutdownHook[] = [];
   private shuttingDown = false;
+  private signalHandlersInstalled = false;
 
   constructor(readonly config: AppConfig) {
     this.db = new Db(resolveProjectPath(config.dbPath));
@@ -137,6 +138,9 @@ export class ClawbberCoreRuntime {
   }
 
   installSignalHandlers(): void {
+    if (this.signalHandlersInstalled) return;
+    this.signalHandlersInstalled = true;
+
     let forceCount = 0;
 
     const handler = (signal: string) => {
