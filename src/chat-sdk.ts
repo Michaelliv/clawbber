@@ -1,7 +1,10 @@
-import { createDiscordAdapter } from "@chat-adapter/discord";
 import { createSlackAdapter } from "@chat-adapter/slack";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import { type Adapter, Chat, type Message, type Thread } from "chat";
+import {
+  createDiscordAdapter,
+  createDiscordMessageHandler,
+} from "./adapters/discord.js";
 import { createSlackMessageHandler } from "./adapters/slack.js";
 import { createWhatsAppBaileysAdapter } from "./adapters/whatsapp.js";
 import { loadConfig, resolveProjectPath } from "./config.js";
@@ -47,7 +50,9 @@ async function main() {
     process.env.DISCORD_PUBLIC_KEY &&
     process.env.DISCORD_APPLICATION_ID
   ) {
-    adapters.discord = createDiscordAdapter();
+    adapters.discord = createDiscordAdapter({
+      userName: config.chatSdkUserName,
+    });
   }
 
   if (config.enableWhatsApp) {
@@ -76,7 +81,14 @@ async function main() {
     config,
   });
 
-  // Default handler for WhatsApp/Discord/other adapters
+  // Discord-specific handler: channel→group mapping, pre-route typing, ambient capture
+  const handleDiscordMessage = createDiscordMessageHandler({
+    core,
+    db: core.db,
+    config,
+  });
+
+  // Default handler for WhatsApp/other adapters
   const handleMessage = async (
     thread: Thread,
     message: Message,
@@ -88,6 +100,9 @@ async function main() {
     // WhatsApp-specific logic (resolveCallerId, @g.us DM check).
     if (thread.adapter.name === "slack") {
       return handleSlackMessage(thread, message, isNew);
+    }
+    if (thread.adapter.name === "discord") {
+      return handleDiscordMessage(thread, message, isNew);
     }
 
     const callerId = resolveCallerId(message, thread);

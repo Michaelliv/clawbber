@@ -1,0 +1,191 @@
+/**
+ * Discord adapter integration layer.
+ *
+ * The low-level Discord API is handled by @chat-adapter/discord (DiscordAdapter).
+ * This module provides the clawbber-specific glue:
+ *   - Channel → group mapping (groupId = "discord:<channelId>")
+ *   - Trigger matching + routing through the core runtime
+ *   - Ambient message capture for non-triggered messages
+ *   - DM detection via @me guild convention
+ */
+
+import {
+  createDiscordAdapter as createBaseDiscordAdapter,
+  type DiscordAdapter,
+  type DiscordThreadId,
+} from "@chat-adapter/discord";
+import type { Message, Thread } from "chat";
+import type { AppConfig } from "../config.js";
+import type { ClawbberCoreRuntime } from "../core/runtime.js";
+import { loadTriggerConfig, matchTrigger } from "../core/trigger.js";
+import { logger } from "../logger.js";
+import type { Db } from "../storage/db.js";
+
+/**
+ * Derive the clawbber group ID from a Discord thread.
+ *
+ * Discord thread IDs are encoded as "discord:{guildId}:{channelId}" or
+ * "discord:{guildId}:{channelId}:{threadId}".
+ * We group by channel, so the group ID is "discord:{channelId}".
+ */
+export function discordGroupId(threadId: string): string {
+  const parts = threadId.split(":");
+  if (parts.length >= 3 && parts[0] === "discord") {
+    return `discord:${parts[2]}`;
+  }
+  // Fallback — use the full thread ID
+  return threadId;
+}
+
+/**
+ * Determine if a Discord thread is a DM.
+ * DMs have guildId === "@me".
+ */
+export function isDiscordDM(threadId: string): boolean {
+  const parts = threadId.split(":");
+  return parts.length >= 2 && parts[0] === "discord" && parts[1] === "@me";
+}
+
+/**
+ * Extract the guild ID from a Discord thread ID.
+ * Returns undefined for DMs or non-Discord threads.
+ */
+export function extractGuildId(threadId: string): string | undefined {
+  const parts = threadId.split(":");
+  if (parts.length >= 2 && parts[0] === "discord" && parts[1] !== "@me") {
+    return parts[1];
+  }
+  return undefined;
+}
+
+/**
+ * Extract the channel ID from a Discord thread ID.
+ */
+export function extractChannelId(threadId: string): string | undefined {
+  const parts = threadId.split(":");
+  if (parts.length >= 3 && parts[0] === "discord") {
+    return parts[2];
+  }
+  return undefined;
+}
+
+/**
+ * Build a platform-qualified caller ID from a Discord message.
+ */
+export function discordCallerId(message: Message): string {
+  const userId = message.author.userId || "unknown";
+  return `discord:${userId}`;
+}
+
+export interface DiscordMessageHandlerOptions {
+  core: ClawbberCoreRuntime;
+  db: Db;
+  config: AppConfig;
+}
+
+/**
+ * Create the message handler for Discord threads.
+ *
+ * Returns a function with the same signature as the generic handler in chat-sdk.ts,
+ * but with Discord-specific group mapping and ambient capture logic.
+ *
+ * The handler does a cheap pre-route trigger check so it can fire the typing
+ * indicator *before* the expensive handleRawInput call (which includes the
+ * full container run). This matches the WhatsApp handler's UX behavior.
+ */
+export function createDiscordMessageHandler(
+  opts: DiscordMessageHandlerOptions,
+) {
+  const { core, db, config } = opts;
+
+  return async (
+    thread: Thread,
+    message: Message,
+    isNew: boolean,
+  ): Promise<void> => {
+    if (message.author.isMe) return;
+
+    const text = message.text.trim();
+    if (!text) return;
+
+    const groupId = discordGroupId(thread.id);
+    const callerId = discordCallerId(message);
+    const isDM = isDiscordDM(thread.id);
+
+    logger.debug("discord inbound", {
+      groupId,
+      callerId,
+      isDM,
+      threadId: thread.id,
+      preview: text.slice(0, 120),
+    });
+
+    try {
+      // Pre-route trigger check: fire typing indicator early (before the
+      // potentially slow handleRawInput which queues a container run).
+      const defaultPatterns = config.triggerPatterns
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const triggerConfig = loadTriggerConfig(db, groupId, {
+        patterns: defaultPatterns,
+        match: config.triggerMatch,
+      });
+      const triggerResult = matchTrigger(text, triggerConfig, isDM);
+
+      if (triggerResult.matched) {
+        if (isNew) await thread.subscribe();
+        await thread.startTyping();
+      }
+
+      const result = await core.handleRawInput({
+        groupId,
+        rawText: message.text,
+        callerId,
+        authorName: message.author.userName,
+        isDM,
+        source: "chat-sdk",
+      });
+
+      if (result.type === "ignore") return;
+
+      const replyText =
+        result.type === "denied" ? result.reason : result.reply;
+      if (replyText) {
+        logger.info("discord reply", { groupId, preview: replyText.slice(0, 120) });
+        await thread.post(replyText);
+      }
+    } catch (err) {
+      logger.error("discord handler error", { groupId, error: err });
+    }
+  };
+}
+
+export type { DiscordAdapter, DiscordThreadId };
+
+/**
+ * Create a configured Discord adapter instance.
+ * Reads from standard Discord environment variables.
+ */
+export function createDiscordAdapter(options?: {
+  userName?: string;
+}): DiscordAdapter {
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+  const publicKey = process.env.DISCORD_PUBLIC_KEY;
+  const applicationId = process.env.DISCORD_APPLICATION_ID;
+
+  if (!botToken || !publicKey || !applicationId) {
+    throw new Error(
+      "Discord adapter requires DISCORD_BOT_TOKEN, DISCORD_PUBLIC_KEY, and DISCORD_APPLICATION_ID",
+    );
+  }
+
+  logger.info("creating discord adapter", { applicationId });
+
+  return createBaseDiscordAdapter({
+    botToken,
+    publicKey,
+    applicationId,
+    userName: options?.userName,
+  });
+}
