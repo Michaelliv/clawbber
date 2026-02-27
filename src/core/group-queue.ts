@@ -33,7 +33,7 @@ export class GroupQueue {
 
   cancelAll(): number {
     let total = 0;
-    for (const [groupId, queue] of this.perGroupPending) {
+    for (const [_groupId, queue] of this.perGroupPending) {
       total += queue.length;
     }
     this.perGroupPending.clear();

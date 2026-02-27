@@ -326,9 +326,7 @@ describe("createDiscordAdapter", () => {
 
     try {
       const { createDiscordAdapter } = require("../src/adapters/discord.js");
-      expect(() => createDiscordAdapter()).toThrow(
-        "Discord adapter requires",
-      );
+      expect(() => createDiscordAdapter()).toThrow("Discord adapter requires");
     } finally {
       if (saved.DISCORD_BOT_TOKEN)
         process.env.DISCORD_BOT_TOKEN = saved.DISCORD_BOT_TOKEN;
@@ -349,7 +347,7 @@ function fakeMessage(opts: {
   userId?: string;
   userName?: string;
   isMe?: boolean;
-}): any {
+}): unknown {
   return {
     text: opts.text ?? "",
     author: {
@@ -364,7 +362,7 @@ function fakeMessage(opts: {
   };
 }
 
-function fakeThread(threadId = "discord:111222333:444555666"): any {
+function fakeThread(threadId = "discord:111222333:444555666"): unknown {
   return {
     id: threadId,
     isDM: threadId.split(":")[1] === "@me",

@@ -1,7 +1,13 @@
 #!/usr/bin/env bun
 
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, writeFileSync, chmodSync, readFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
@@ -85,7 +91,9 @@ echo "Build complete: \${IMAGE_NAME}:\${TAG}"
 
 function getVersion(): string {
   try {
-    const pkg = JSON.parse(readFileSync(join(PACKAGE_ROOT, "package.json"), "utf-8"));
+    const pkg = JSON.parse(
+      readFileSync(join(PACKAGE_ROOT, "package.json"), "utf-8"),
+    );
     return pkg.version;
   } catch {
     return "0.0.0";
@@ -168,7 +176,10 @@ function initAction(): void {
 
   // Copy source files needed for container build
   console.log("\nCopying container runtime files:");
-  copySourceFile("src/agent/container-entry.ts", "src/agent/container-entry.ts");
+  copySourceFile(
+    "src/agent/container-entry.ts",
+    "src/agent/container-entry.ts",
+  );
   copySourceFile("src/cli/clawbber-ctl.ts", "src/cli/clawbber-ctl.ts");
   copySourceFile("src/types.ts", "src/types.ts");
 
@@ -180,7 +191,9 @@ function initAction(): void {
   });
 
   if (buildResult.status !== 0) {
-    console.error("\n⚠️  Container build failed. You can retry with 'clawbber build'");
+    console.error(
+      "\n⚠️  Container build failed. You can retry with 'clawbber build'",
+    );
   }
 
   console.log("\n🦞 Initialization complete!");
@@ -193,13 +206,19 @@ async function runAction(): Promise<void> {
   const envPath = join(CWD, ".env");
   if (!existsSync(envPath)) {
     console.error("Error: .env file not found in current directory.");
-    console.error("Run 'clawbber init' first, or cd into your clawbber project.");
+    console.error(
+      "Run 'clawbber init' first, or cd into your clawbber project.",
+    );
     process.exit(1);
   }
 
-  const imageCheck = spawnSync("docker", ["image", "inspect", "clawbber-agent:latest"], {
-    stdio: "pipe",
-  });
+  const imageCheck = spawnSync(
+    "docker",
+    ["image", "inspect", "clawbber-agent:latest"],
+    {
+      stdio: "pipe",
+    },
+  );
   if (imageCheck.status !== 0) {
     console.error("Error: Container image 'clawbber-agent:latest' not found.");
     console.error("Run 'clawbber build' to build it.");
@@ -253,16 +272,26 @@ function statusAction(): void {
 
   const envPath = join(CWD, ".env");
   const hasEnv = existsSync(envPath);
-  console.log(`Configuration:   ${hasEnv ? "✓ .env exists" : "✗ .env missing (run 'clawbber init')"}`);
+  console.log(
+    `Configuration:   ${hasEnv ? "✓ .env exists" : "✗ .env missing (run 'clawbber init')"}`,
+  );
 
   const hasContainerFiles = existsSync(join(CWD, "container/Dockerfile"));
-  console.log(`Container files: ${hasContainerFiles ? "✓ present" : "✗ missing (run 'clawbber init')"}`);
+  console.log(
+    `Container files: ${hasContainerFiles ? "✓ present" : "✗ missing (run 'clawbber init')"}`,
+  );
 
-  const imageCheck = spawnSync("docker", ["image", "inspect", "clawbber-agent:latest"], {
-    stdio: "pipe",
-  });
+  const imageCheck = spawnSync(
+    "docker",
+    ["image", "inspect", "clawbber-agent:latest"],
+    {
+      stdio: "pipe",
+    },
+  );
   const hasImage = imageCheck.status === 0;
-  console.log(`Container image: ${hasImage ? "✓ clawbber-agent:latest" : "✗ not built (run 'clawbber build')"}`);
+  console.log(
+    `Container image: ${hasImage ? "✓ clawbber-agent:latest" : "✗ not built (run 'clawbber build')"}`,
+  );
 
   if (hasEnv) {
     console.log("\nConfigured adapters:");
@@ -273,15 +302,24 @@ function statusAction(): void {
     const hasDiscord = /^[^#]*DISCORD_BOT_TOKEN=\S+/m.test(envContent);
 
     console.log(`  WhatsApp: ${hasWhatsApp ? "✓ enabled" : "○ disabled"}`);
-    console.log(`  Slack:    ${hasSlack ? "✓ configured" : "○ not configured"}`);
-    console.log(`  Discord:  ${hasDiscord ? "✓ configured" : "○ not configured"}`);
+    console.log(
+      `  Slack:    ${hasSlack ? "✓ configured" : "○ not configured"}`,
+    );
+    console.log(
+      `  Discord:  ${hasDiscord ? "✓ configured" : "○ not configured"}`,
+    );
 
     const portMatch = envContent.match(/CLAWBBER_CHATSDK_PORT\s*=\s*(\d+)/);
     const port = portMatch ? portMatch[1] : "3000";
 
-    const portCheck = spawnSync("lsof", ["-i", `:${port}`, "-t"], { stdio: "pipe" });
-    const isRunning = portCheck.status === 0 && portCheck.stdout.toString().trim().length > 0;
-    console.log(`\nStatus: ${isRunning ? `🟢 running (port ${port})` : "⚪ not running"}`);
+    const portCheck = spawnSync("lsof", ["-i", `:${port}`, "-t"], {
+      stdio: "pipe",
+    });
+    const isRunning =
+      portCheck.status === 0 && portCheck.stdout.toString().trim().length > 0;
+    console.log(
+      `\nStatus: ${isRunning ? `🟢 running (port ${port})` : "⚪ not running"}`,
+    );
   }
 }
 

@@ -1,3 +1,4 @@
+import { ContainerError } from "../agent/container-error.js";
 import { AgentContainerRunner } from "../agent/container-runner.js";
 import { type AppConfig, resolveProjectPath } from "../config.js";
 import { logger } from "../logger.js";
@@ -32,6 +33,14 @@ export class ClawbberCoreRuntime {
     // Scaffold global (pi agent dir) and "main" (admin DM workspace)
     ensurePiResourceDir(resolveProjectPath(config.globalDir));
     ensureGroupWorkspace(resolveProjectPath(config.groupsDir), "main");
+  }
+
+  /**
+   * Initialize the runtime — must be called before accepting work.
+   * Cleans up any orphaned containers from previous runs.
+   */
+  async initialize(): Promise<void> {
+    await this.containerRunner.cleanupOrphans();
   }
 
   startScheduler(
@@ -103,8 +112,18 @@ export class ClawbberCoreRuntime {
       );
       return { ...route, reply };
     } catch (error) {
-      if (error instanceof Error && error.message.includes("CLAWBBER_ABORTED")) {
-        return { type: "denied", reason: "Stopped current run." };
+      if (error instanceof ContainerError) {
+        switch (error.reason) {
+          case "aborted":
+            return { type: "denied", reason: "Stopped current run." };
+          case "timeout":
+            return { type: "denied", reason: "Container timed out." };
+          case "oom":
+            return { type: "denied", reason: "Container ran out of memory." };
+          case "error":
+            logger.error("Container error", error);
+            throw error;
+        }
       }
       throw error;
     }
@@ -185,7 +204,8 @@ export class ClawbberCoreRuntime {
       // 2. Drain queue — cancel pending, wait for active
       logger.info("Shutdown: draining group queue");
       const dropped = this.queue.cancelAll();
-      if (dropped > 0) logger.info(`Shutdown: cancelled ${dropped} pending queue entries`);
+      if (dropped > 0)
+        logger.info(`Shutdown: cancelled ${dropped} pending queue entries`);
 
       // 3. Kill running containers
       logger.info("Shutdown: stopping running containers");

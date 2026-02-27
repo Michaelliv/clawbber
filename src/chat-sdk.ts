@@ -118,11 +118,10 @@ async function main() {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-    const triggerConfig = loadTriggerConfig(
-      core.db,
-      thread.id,
-      { patterns: defaultPatterns, match: config.triggerMatch },
-    );
+    const triggerConfig = loadTriggerConfig(core.db, thread.id, {
+      patterns: defaultPatterns,
+      match: config.triggerMatch,
+    });
     const triggerResult = matchTrigger(text, triggerConfig, isDM);
 
     // Only start typing if trigger matched (or DM)
