@@ -249,6 +249,36 @@ async function main() {
         }
       }
 
+      // Dashboard activity endpoint — public, read-only
+      if (url.pathname === "/dashboard/activity" && request.method === "GET") {
+        const groups = core.db.listGroups();
+        const activity: Array<{
+          group: string;
+          role: string;
+          preview: string;
+          time: number;
+        }> = [];
+        for (const g of groups.slice(0, 5)) {
+          const msgs = core.db.getRecentMessages(g.id, 3);
+          for (const m of msgs) {
+            activity.push({
+              group: g.id.split(":")[0],
+              role: m.role,
+              preview: m.content.slice(0, 60),
+              time: m.createdAt,
+            });
+          }
+        }
+        activity.sort((a, b) => b.time - a.time);
+        return new Response(
+          JSON.stringify({ activity: activity.slice(0, 10) }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        );
+      }
+
       // Dashboard data endpoint — public, read-only
       if (url.pathname === "/dashboard/data" && request.method === "GET") {
         const groups = core.db

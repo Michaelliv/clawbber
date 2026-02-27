@@ -193,6 +193,21 @@
       text-align: center;
     }
 
+    .activity-item {
+      display: flex;
+      gap: 8px;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-item .time { color: var(--text-muted); min-width: 50px; }
+    .activity-item .role { min-width: 60px; }
+    .activity-item .role.user { color: var(--accent); }
+    .activity-item .role.assistant { color: var(--green); }
+    .activity-item .role.ambient { color: var(--text-muted); }
+    .activity-item .preview { color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
     .metrics {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -333,6 +348,13 @@
     <div class="panel">
       <div class="panel-header">Adapters</div>
       <div class="panel-body" id="adapters">
+        <div class="empty">Loading...</div>
+      </div>
+    </div>
+
+    <div class="panel" id="activity-panel">
+      <div class="panel-header">Recent Activity</div>
+      <div class="panel-body" id="activity">
         <div class="empty">Loading...</div>
       </div>
     </div>
@@ -511,6 +533,21 @@
           </div>`;
         }).join('');
         adaptersEl.innerHTML = adapterRows || '<div class="empty">No adapters configured</div>';
+
+        // Update activity
+        const activityRes = await fetch('/dashboard/activity').then(r => r.json()).catch(() => ({ activity: [] }));
+        const activityEl = document.getElementById('activity');
+        if (activityRes.activity?.length > 0) {
+          activityEl.innerHTML = activityRes.activity.map(a => `
+            <div class="activity-item">
+              <span class="time">${formatRelativeTime(a.time)}</span>
+              <span class="role ${a.role}">${a.role}</span>
+              <span class="preview">${escapeHtml(a.preview)}</span>
+            </div>
+          `).join('');
+        } else {
+          activityEl.innerHTML = '<div class="empty">No recent activity</div>';
+        }
 
         // Update groups
         const groupsEl = document.getElementById('groups');
