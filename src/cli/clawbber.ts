@@ -58,8 +58,21 @@ CLAWBBER_ENABLE_WHATSAPP=false
 const DOCKERFILE_TEMPLATE = `# Clawbber Agent Container
 FROM oven/bun:1.3
 
-# Install pi CLI globally
-RUN bun add -g @mariozechner/pi-coding-agent
+# Install Chromium dependencies (from agent-browser install --with-deps)
+RUN apt-get update && apt-get install -y --no-install-recommends \\
+    libxcb-shm0 libx11-xcb1 libx11-6 libxcb1 libxext6 libxrandr2 \\
+    libxcomposite1 libxdamage1 libxfixes3 libxi6 \\
+    libpangocairo-1.0-0 libpango-1.0-0 libatk1.0-0 libcairo-gobject2 \\
+    libcairo2 libgdk-pixbuf-2.0-0 libxrender1 libasound2 libfreetype6 \\
+    libfontconfig1 libdbus-1-3 libnss3 libnspr4 libatk-bridge2.0-0 \\
+    libdrm2 libxkbcommon0 libatspi2.0-0 libcups2 libxshmfence1 libgbm1 \\
+    && rm -rf /var/lib/apt/lists/*
+
+# Install pi CLI and agent-browser
+RUN bun add -g @mariozechner/pi-coding-agent agent-browser
+
+# Install Chromium browser
+RUN bunx playwright install chromium
 
 WORKDIR /app
 
@@ -88,6 +101,45 @@ docker build -f container/Dockerfile -t "\${IMAGE_NAME}:\${TAG}" .
 
 echo ""
 echo "Build complete: \${IMAGE_NAME}:\${TAG}"
+`;
+
+const AGENTS_MD_TEMPLATE = `# Clawbber Agent Instructions
+
+You are a helpful AI assistant running inside a chat platform (WhatsApp, Slack, or Discord).
+
+## Guidelines
+
+1. **Be concise** — Chat messages should be readable on mobile
+2. **Use markdown sparingly** — Not all chat platforms render it well
+3. **Cite sources** — When searching the web, mention where information came from
+4. **Ask for clarification** — If a request is ambiguous, ask before acting
+
+## Web Search
+
+Use \`agent-browser\` with Brave Search. **Always include the user-agent to avoid CAPTCHAs:**
+
+\`\`\`bash
+agent-browser close 2>/dev/null
+agent-browser --user-agent "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \\
+  open "https://search.brave.com/search?q=your+query+here"
+agent-browser get text body
+\`\`\`
+
+To fetch content from a URL:
+
+\`\`\`bash
+agent-browser open "https://example.com"
+agent-browser wait --load networkidle
+agent-browser get text body
+\`\`\`
+
+**Note:** Google, DuckDuckGo, and Bing block automated access. Use Brave or Startpage.
+
+## Limitations
+
+- Running in a container with limited resources
+- Long-running tasks may time out
+- No persistent memory between conversations
 `;
 
 function getVersion(): string {
@@ -154,6 +206,15 @@ function initAction(): void {
       mkdirSync(fullPath, { recursive: true });
       console.log(`  ✓ ${dir}/`);
     }
+  }
+
+  // Create AGENTS.md for the agent
+  const agentsMdPath = join(CWD, ".clawbber/global/AGENTS.md");
+  if (!existsSync(agentsMdPath)) {
+    writeFileSync(agentsMdPath, AGENTS_MD_TEMPLATE);
+    console.log("  ✓ .clawbber/global/AGENTS.md");
+  } else {
+    console.log("  • .clawbber/global/AGENTS.md (already exists)");
   }
 
   // Create container directory and files
