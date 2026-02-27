@@ -1,19 +1,33 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   createSlackMessageHandler,
   isSlackDM,
   slackCallerId,
   slackGroupId,
 } from "../src/adapters/slack.js";
+import { type AppConfig, loadConfig } from "../src/config.js";
 import { seededGroups } from "../src/core/permissions.js";
 import { ClawbberCoreRuntime } from "../src/core/runtime.js";
+import { Db } from "../src/storage/db.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
+let tmpDir: string;
+let db: Db;
+
 beforeEach(() => {
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawbber-slack-test-"));
+  db = new Db(path.join(tmpDir, "state.db"));
   seededGroups.clear();
+});
+
+afterEach(() => {
+  fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
 // ---------------------------------------------------------------------------
@@ -55,8 +69,8 @@ describe("isSlackDM", () => {
     expect(isSlackDM("slack:C1234567890:ts")).toBe(false);
   });
 
-  test("returns false for group channels (G prefix)", () => {
-    expect(isSlackDM("slack:G1234567890:ts")).toBe(false);
+  test("returns true for group DMs / MPDMs (G prefix)", () => {
+    expect(isSlackDM("slack:G1234567890:ts")).toBe(true);
   });
 
   test("returns false for unknown format", () => {
@@ -195,6 +209,30 @@ describe("createSlackMessageHandler", () => {
     expect(thread.startTyping).toHaveBeenCalled();
   });
 
+  test("fires typing indicator before handleRawInput (early typing)", async () => {
+    const { handler, thread, core } = setup();
+    const callOrder: string[] = [];
+
+    thread.startTyping = mock(async () => {
+      callOrder.push("startTyping");
+    });
+    core.handleRawInput = mock(async () => {
+      callOrder.push("handleRawInput");
+      return {
+        type: "assistant" as const,
+        prompt: "hello",
+        callerId: "slack:U123",
+        role: "member",
+        reply: "Hi!",
+      };
+    });
+
+    const msg = fakeMessage({ text: "@Pi hello", userId: "U123" });
+    await handler(thread, msg, true);
+
+    expect(callOrder).toEqual(["startTyping", "handleRawInput"]);
+  });
+
   test("catches and logs errors from handleRawInput", async () => {
     const { handler, thread, core } = setup();
     core.handleRawInput = mock(async () => {
@@ -259,12 +297,24 @@ function fakeThread(threadId = "slack:C999:1234567890.123456"): any {
 }
 
 function setup() {
+  const config: AppConfig = {
+    ...loadConfig(),
+    admins: "",
+    triggerPatterns: "@Pi,Pi",
+    triggerMatch: "mention",
+    dataDir: tmpDir,
+    dbPath: path.join(tmpDir, "state.db"),
+    globalDir: path.join(tmpDir, "global"),
+    groupsDir: path.join(tmpDir, "groups"),
+    whatsappAuthDir: path.join(tmpDir, "wa-auth"),
+  };
+
   // Partial mock of ClawbberCoreRuntime — we only need handleRawInput
   const core = {
     handleRawInput: mock(async () => ({ type: "ignore" as const })),
   } as unknown as ClawbberCoreRuntime;
 
-  const handler = createSlackMessageHandler({ core });
+  const handler = createSlackMessageHandler({ core, db, config });
   const thread = fakeThread();
 
   return { handler, thread, core };

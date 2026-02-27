@@ -69,8 +69,12 @@ async function main() {
     state: createMemoryState(),
   });
 
-  // Slack-specific handler: channel→group mapping, ambient capture
-  const handleSlackMessage = createSlackMessageHandler({ core });
+  // Slack-specific handler: channel→group mapping, pre-route typing, ambient capture
+  const handleSlackMessage = createSlackMessageHandler({
+    core,
+    db: core.db,
+    config,
+  });
 
   // Default handler for WhatsApp/Discord/other adapters
   const handleMessage = async (
@@ -80,7 +84,8 @@ async function main() {
   ) => {
     if (message.author.isMe) return;
 
-    // Delegate to platform-specific handlers
+    // Delegate to platform-specific handlers early — before any
+    // WhatsApp-specific logic (resolveCallerId, @g.us DM check).
     if (thread.adapter.name === "slack") {
       return handleSlackMessage(thread, message, isNew);
     }
