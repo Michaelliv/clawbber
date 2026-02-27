@@ -21,6 +21,26 @@ export class AgentContainerRunner {
     return this.runningByGroup.has(groupId);
   }
 
+  /**
+   * Send SIGTERM to all running containers, escalating to SIGKILL after 2.5s.
+   * Note: runningByGroup entries are cleaned up by each process's 'close' handler.
+   * During shutdown the process may exit before those fire, but that's fine —
+   * Docker cleans up --rm containers regardless.
+   */
+  killAll(): void {
+    for (const [groupId, proc] of this.runningByGroup) {
+      this.abortedGroups.add(groupId);
+      proc.kill("SIGTERM");
+      setTimeout(() => {
+        if (!proc.killed) proc.kill("SIGKILL");
+      }, 2500);
+    }
+  }
+
+  get activeCount(): number {
+    return this.runningByGroup.size;
+  }
+
   abort(groupId: string): boolean {
     const proc = this.runningByGroup.get(groupId);
     if (!proc) return false;

@@ -399,6 +399,10 @@ export class Db {
       .run(groupId, key, value, updatedBy, now, now);
   }
 
+  close(): void {
+    this.db.close();
+  }
+
   listGroupConfig(groupId: string): GroupConfigEntry[] {
     return this.db
       .query(

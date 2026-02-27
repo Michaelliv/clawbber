@@ -235,6 +235,28 @@ async function main() {
     },
   });
 
+  // Register shutdown hooks for adapters and server
+  core.onShutdown(async () => {
+    logger.info("Shutdown: closing chat adapters");
+    for (const [name, adapter] of Object.entries(adapters)) {
+      try {
+        if ("shutdown" in adapter && typeof adapter.shutdown === "function") {
+          await (adapter as { shutdown: () => Promise<void> }).shutdown();
+          logger.info(`Shutdown: ${name} adapter disconnected`);
+        }
+      } catch (err) {
+        logger.error(`Shutdown: failed to disconnect ${name} adapter`, err);
+      }
+    }
+  });
+
+  core.onShutdown(async () => {
+    logger.info("Shutdown: stopping HTTP server");
+    server.stop(true);
+  });
+
+  core.installSignalHandlers();
+
   logger.info(`Chat SDK server listening on http://localhost:${server.port}`);
   logger.info(`Agent runtime: container (${config.agentContainerImage})`);
   logger.info(`Enabled adapters: ${Object.keys(adapters).join(", ")}`);
