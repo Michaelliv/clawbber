@@ -24,6 +24,7 @@ Mercury is a personal AI assistant that lives where you chat. It connects to Wha
 - [Adding to Groups](#adding-to-groups)
 - [Workspaces](#workspaces)
 - [Sessions](#sessions)
+- [Memory](#memory)
 - [Triggers](#triggers)
 - [Media](#media)
 - [Commands](#commands)
@@ -188,9 +189,12 @@ Each group/thread gets its own workspace directory:
 │       ├── skills/
 │       └── prompts/
 ├── groups/
-│   ├── <group-id>/            # Per-group workspace
+│   ├── <group-id>/            # Per-group workspace (Obsidian vault)
 │   │   ├── AGENTS.md          # Group-specific instructions
 │   │   ├── .mercury.session.jsonl  # pi session file
+│   │   ├── .obsidian/         # Obsidian vault marker
+│   │   ├── entities/          # Memory: entity pages
+│   │   ├── daily/             # Memory: daily notes
 │   │   ├── media/             # Downloaded media files
 │   │   └── .pi/
 │   │       ├── extensions/
@@ -222,6 +226,45 @@ Sessions are tree-structured (see [pi session docs](https://github.com/badlogic/
 - Survives restarts
 
 **Ambient messages**: Group chatter between your messages is captured and injected as context, so the assistant knows what was discussed.
+
+---
+
+## Memory
+
+Each group workspace is an Obsidian-compatible vault. The agent uses [napkin](https://github.com/michaelliv/napkin-ai) to read, write, and search memory.
+
+```
+.mercury/groups/<group-id>/
+├── .obsidian/          # Makes it a valid Obsidian vault
+├── entities/           # Entity pages (people, projects, things)
+├── daily/              # Daily conversation logs
+└── AGENTS.md           # Persistent instructions
+```
+
+The agent writes memory as markdown files with `[[wikilinks]]`:
+
+```markdown
+---
+type: person
+birthday: April 15
+---
+
+# Sarah
+
+[[Michael]]'s wife. Planning a surprise party at [[Dizengoff Italian Place]].
+```
+
+**User interaction:**
+
+| You say | What happens |
+|---------|--------------|
+| "Remember that Sarah's birthday is April 15" | Agent writes to `entities/Sarah.md` |
+| "What do you know about Sarah?" | Agent reads and summarizes the file |
+| "Forget the project" | Agent deletes the entity |
+
+Memory persists across sessions. You can also open the workspace in Obsidian and browse/edit directly.
+
+See [docs/memory.md](docs/memory.md) for details.
 
 ---
 
