@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const PI_SUBDIRS = [".pi", ".pi/extensions", ".pi/skills", ".pi/prompts"];
+const VAULT_DIRS = [".obsidian", "entities", "daily"];
 
 /**
  * Ensure a pi resource directory exists with standard structure.
@@ -21,7 +22,18 @@ export function ensurePiResourceDir(dir: string): void {
 }
 
 /**
- * Ensure a per-group workspace exists with the pi resource structure.
+ * Ensure vault structure exists in a workspace directory.
+ * Creates .obsidian/, entities/, daily/ directories for napkin compatibility.
+ */
+export function ensureVaultStructure(dir: string): void {
+  for (const sub of VAULT_DIRS) {
+    fs.mkdirSync(path.join(dir, sub), { recursive: true });
+  }
+}
+
+/**
+ * Ensure a per-group workspace exists with the pi resource structure
+ * and Obsidian-compatible vault structure.
  */
 export function ensureGroupWorkspace(
   groupsDir: string,
@@ -31,6 +43,7 @@ export function ensureGroupWorkspace(
   const dir = path.join(groupsDir, safeGroup);
 
   ensurePiResourceDir(dir);
+  ensureVaultStructure(dir);
 
   return dir;
 }

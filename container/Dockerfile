@@ -3,8 +3,9 @@
 
 FROM oven/bun:1.3
 
-# Install pi CLI globally at build time
+# Install pi CLI and napkin-ai globally at build time
 RUN bun add -g @mariozechner/pi-coding-agent
+RUN bun add -g napkin-ai
 
 WORKDIR /app
 
