@@ -260,6 +260,8 @@ Chat commands for control (require trigger in groups, work directly in DMs):
 
 Example: `@Clawbber stop`
 
+On process shutdown (`SIGTERM`/`SIGINT`), clawbber runs a full teardown sequence — stopping the scheduler, draining the queue, killing containers, disconnecting adapters, and closing the database. See [docs/graceful-shutdown.md](docs/graceful-shutdown.md) for details.
+
 ---
 
 ## Scheduled Tasks
