@@ -126,10 +126,12 @@ export function createDiscordMessageHandler(
 
       if (result.type === "ignore") return;
 
-      const replyText =
-        result.type === "denied" ? result.reason : result.reply;
+      const replyText = result.type === "denied" ? result.reason : result.reply;
       if (replyText) {
-        logger.info("discord reply", { groupId, preview: replyText.slice(0, 120) });
+        logger.info("discord reply", {
+          groupId,
+          preview: replyText.slice(0, 120),
+        });
         await thread.post(replyText);
       }
     } catch (err) {

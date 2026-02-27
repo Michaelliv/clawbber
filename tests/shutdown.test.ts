@@ -2,15 +2,15 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import type { AppConfig } from "../src/config.js";
 import { GroupQueue } from "../src/core/group-queue.js";
 import { ClawbberCoreRuntime } from "../src/core/runtime.js";
-import type { AppConfig } from "../src/config.js";
 
 describe("GroupQueue shutdown", () => {
   test("cancelAll cancels all pending work across groups", () => {
     const q = new GroupQueue(1);
     // Fill concurrency so further enqueues are pending
-    const blocker = q.enqueue("g1", () => new Promise(() => {})); // never resolves
+    q.enqueue("g1", () => new Promise(() => {})); // never resolves
 
     // These will queue as pending
     q.enqueue("g2", async () => "a");
@@ -162,8 +162,8 @@ describe("ClawbberCoreRuntime.shutdown (real runtime)", () => {
 
   test("shutdown cancels pending queue entries", async () => {
     // Fill concurrency
-    const blocker1 = core.queue.enqueue("g1", () => new Promise(() => {}));
-    const blocker2 = core.queue.enqueue("g2", () => new Promise(() => {}));
+    core.queue.enqueue("g1", () => new Promise(() => {}));
+    core.queue.enqueue("g2", () => new Promise(() => {}));
 
     // These should be pending
     core.queue.enqueue("g3", async () => "a");

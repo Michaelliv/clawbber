@@ -21,11 +21,14 @@ describe("loadConfig", () => {
     expect(config.dbPath).toBe(path.join(".clawbber", "state.db"));
     expect(config.globalDir).toBe(path.join(".clawbber", "global"));
     expect(config.groupsDir).toBe(path.join(".clawbber", "groups"));
-    expect(config.whatsappAuthDir).toBe(path.join(".clawbber", "whatsapp-auth"));
+    expect(config.whatsappAuthDir).toBe(
+      path.join(".clawbber", "whatsapp-auth"),
+    );
     expect(config.triggerPatterns).toBe("@Pi,Pi");
     expect(config.triggerMatch).toBe("mention");
     expect(config.maxConcurrency).toBe(2);
     expect(config.chatSdkPort).toBe(8787);
+    expect(config.containerTimeoutMs).toBe(5 * 60 * 1000); // 5 minutes default
   });
 
   test("derived paths use dataDir", () => {
@@ -48,6 +51,12 @@ describe("loadConfig", () => {
     expect(config.triggerMatch).toBe("prefix");
     expect(config.admins).toBe("user1,user2");
     expect(config.maxConcurrency).toBe(4);
+  });
+
+  test("containerTimeoutMs can be overridden", () => {
+    process.env.CLAWBBER_CONTAINER_TIMEOUT_MS = "120000"; // 2 minutes
+    const config = loadConfig();
+    expect(config.containerTimeoutMs).toBe(120000);
   });
 });
 

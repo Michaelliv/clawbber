@@ -1,12 +1,23 @@
-import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
+import {
+  type ChildProcessWithoutNullStreams,
+  execSync,
+  spawn,
+} from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import type { AppConfig } from "../config.js";
+import { logger } from "../logger.js";
 import { getApiKeyFromPiAuthFile } from "../storage/pi-auth.js";
 import type { StoredMessage } from "../types.js";
+import { ContainerError } from "./container-error.js";
 
 const START = "---CLAWBBER_CONTAINER_RESULT_START---";
 const END = "---CLAWBBER_CONTAINER_RESULT_END---";
+
+const CONTAINER_LABEL = "clawbber.managed=true";
+
+/** Exit code 137 = SIGKILL (128 + 9), typically from OOM killer */
+const OOM_EXIT_CODE = 137;
 
 export class AgentContainerRunner {
   private readonly runningByGroup = new Map<
@@ -14,11 +25,53 @@ export class AgentContainerRunner {
     ChildProcessWithoutNullStreams
   >();
   private readonly abortedGroups = new Set<string>();
+  private readonly timedOutGroups = new Set<string>();
+  private containerCounter = 0;
 
   constructor(private readonly config: AppConfig) {}
 
   isRunning(groupId: string): boolean {
     return this.runningByGroup.has(groupId);
+  }
+
+  /**
+   * Clean up any orphaned containers from previous runs.
+   * Should be called on startup before accepting new work.
+   */
+  async cleanupOrphans(): Promise<number> {
+    try {
+      // Find all containers with our label (running or stopped)
+      const result = execSync(
+        `docker ps -a --filter "label=${CONTAINER_LABEL}" --format "{{.ID}}"`,
+        { encoding: "utf8", timeout: 10_000 },
+      ).trim();
+
+      if (!result) return 0;
+
+      const containerIds = result.split("\n").filter(Boolean);
+      if (containerIds.length === 0) return 0;
+
+      logger.info(
+        `Found ${containerIds.length} orphaned container(s), cleaning up...`,
+      );
+
+      // Force remove all orphaned containers
+      execSync(`docker rm -f ${containerIds.join(" ")}`, {
+        encoding: "utf8",
+        timeout: 30_000,
+      });
+
+      logger.info(`Cleaned up ${containerIds.length} orphaned container(s)`);
+      return containerIds.length;
+    } catch (error) {
+      // If docker command fails (e.g., docker not installed), log and continue
+      if (error instanceof Error && error.message.includes("ENOENT")) {
+        logger.warn("Docker not found, skipping orphan cleanup");
+      } else {
+        logger.warn("Failed to cleanup orphaned containers", error);
+      }
+      return 0;
+    }
   }
 
   /**
@@ -53,6 +106,12 @@ export class AgentContainerRunner {
     return true;
   }
 
+  private generateContainerName(): string {
+    const id = ++this.containerCounter;
+    const timestamp = Date.now();
+    return `clawbber-${timestamp}-${id}`;
+  }
+
   async reply(input: {
     groupId: string;
     groupWorkspace: string;
@@ -60,7 +119,6 @@ export class AgentContainerRunner {
     prompt: string;
     callerId: string;
   }): Promise<string> {
-    const projectDir = process.cwd();
     const globalDir = path.resolve(this.config.globalDir);
     const groupsRoot = path.resolve(this.config.groupsDir);
 
@@ -107,10 +165,16 @@ export class AgentContainerRunner {
       },
     ].filter((x): x is { key: string; value: string } => Boolean(x.value));
 
+    const containerName = this.generateContainerName();
+
     const args = [
       "run",
       "--rm",
       "-i",
+      "--name",
+      containerName,
+      "--label",
+      CONTAINER_LABEL,
       "-v",
       `${groupsRoot}:/groups`,
       "-v",
@@ -137,6 +201,33 @@ export class AgentContainerRunner {
 
       let stdout = "";
       let stderr = "";
+      let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+
+      // Set up timeout
+      timeoutTimer = setTimeout(() => {
+        if (this.runningByGroup.has(input.groupId)) {
+          this.timedOutGroups.add(input.groupId);
+          logger.warn(
+            `Container timeout for group ${input.groupId}, killing...`,
+          );
+
+          // Force kill the container by name (more reliable than SIGTERM to docker run)
+          try {
+            execSync(`docker kill ${containerName}`, { timeout: 5000 });
+          } catch {
+            // Container may have already exited
+            proc.kill("SIGKILL");
+          }
+        }
+      }, this.config.containerTimeoutMs);
+
+      const cleanup = () => {
+        if (timeoutTimer) {
+          clearTimeout(timeoutTimer);
+          timeoutTimer = null;
+        }
+        this.runningByGroup.delete(input.groupId);
+      };
 
       proc.stdout.on("data", (chunk: Buffer) => {
         stdout += chunk.toString("utf8");
@@ -147,23 +238,34 @@ export class AgentContainerRunner {
       });
 
       proc.on("error", (error) => {
-        this.runningByGroup.delete(input.groupId);
+        cleanup();
         reject(error);
       });
 
       proc.on("close", (code) => {
-        this.runningByGroup.delete(input.groupId);
+        cleanup();
+
+        // Check timeout first (before abort check since timeout sets its own state)
+        if (this.timedOutGroups.has(input.groupId)) {
+          this.timedOutGroups.delete(input.groupId);
+          reject(ContainerError.timeout(input.groupId));
+          return;
+        }
 
         if (this.abortedGroups.has(input.groupId)) {
           this.abortedGroups.delete(input.groupId);
-          reject(new Error("CLAWBBER_ABORTED"));
+          reject(ContainerError.aborted(input.groupId));
           return;
         }
 
         if (code !== 0) {
-          reject(
-            new Error(`Container agent failed (${code}): ${stderr || stdout}`),
-          );
+          // Check for OOM kill (exit code 137 = 128 + SIGKILL)
+          if (code === OOM_EXIT_CODE) {
+            reject(ContainerError.oom(input.groupId, code));
+            return;
+          }
+
+          reject(ContainerError.error(code ?? 1, stderr || stdout));
           return;
         }
 

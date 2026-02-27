@@ -54,7 +54,10 @@ function buildPrompt(payload: Payload): string {
 
 function runPi(payload: Payload): Promise<string> {
   return new Promise((resolve, reject) => {
-    const sessionFile = path.join(payload.groupWorkspace, ".clawbber.session.jsonl");
+    const sessionFile = path.join(
+      payload.groupWorkspace,
+      ".clawbber.session.jsonl",
+    );
 
     const args = [
       "--print",

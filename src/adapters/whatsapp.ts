@@ -113,7 +113,8 @@ export class WhatsAppBaileysAdapter
   constructor(options?: { userName?: string; authDir?: string }) {
     this.userName = options?.userName ?? "clawbber";
     this.authDir =
-      options?.authDir ?? path.join(process.cwd(), ".clawbber", "whatsapp-auth");
+      options?.authDir ??
+      path.join(process.cwd(), ".clawbber", "whatsapp-auth");
   }
 
   get botUserId(): string | undefined {
@@ -266,7 +267,7 @@ export class WhatsAppBaileysAdapter
           preview: text.slice(0, 120),
         });
 
-        const isDM = !remoteJid.endsWith("@g.us");
+        const _isDM = !remoteJid.endsWith("@g.us");
 
         const incoming = new Message<proto.IWebMessageInfo>({
           id: msg.key.id ?? `${Date.now()}`,

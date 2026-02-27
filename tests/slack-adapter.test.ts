@@ -10,7 +10,7 @@ import {
 } from "../src/adapters/slack.js";
 import { type AppConfig, loadConfig } from "../src/config.js";
 import { seededGroups } from "../src/core/permissions.js";
-import { ClawbberCoreRuntime } from "../src/core/runtime.js";
+import type { ClawbberCoreRuntime } from "../src/core/runtime.js";
 import { Db } from "../src/storage/db.js";
 
 // ---------------------------------------------------------------------------
@@ -270,7 +270,7 @@ function fakeMessage(opts: {
   userId?: string;
   userName?: string;
   isMe?: boolean;
-}): any {
+}): unknown {
   return {
     text: opts.text ?? "",
     author: {
@@ -285,7 +285,7 @@ function fakeMessage(opts: {
   };
 }
 
-function fakeThread(threadId = "slack:C999:1234567890.123456"): any {
+function fakeThread(threadId = "slack:C999:1234567890.123456"): unknown {
   return {
     id: threadId,
     isDM: /^[DG]/.test(threadId.split(":")[1] ?? ""),
