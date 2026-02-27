@@ -223,6 +223,9 @@
       font-size: 24px;
       font-weight: bold;
       color: var(--accent);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .metric .label {
@@ -345,6 +348,11 @@
       </div>
     </div>
 
+    <div class="panel" id="active-panel" style="display:none">
+      <div class="panel-header">Active Runs</div>
+      <div class="panel-body" id="active-runs"></div>
+    </div>
+
     <div class="panel">
       <div class="panel-header">Adapters</div>
       <div class="panel-body" id="adapters">
@@ -418,6 +426,22 @@
 
   <script>
     const API_BASE = '';
+
+    const history = { adapters: [], groups: [], queue: [], containers: [] };
+    const MAX_HISTORY = 20;
+
+    function pushHistory(key, val) {
+      history[key].push(val);
+      if (history[key].length > MAX_HISTORY) history[key].shift();
+    }
+
+    function sparkline(data) {
+      if (data.length < 2) return '';
+      const max = Math.max(...data, 1);
+      const w = 50, h = 12;
+      const pts = data.map((v, i) => `${(i/(data.length-1))*w},${h-(v/max)*h}`).join(' ');
+      return `<svg width="${w}" height="${h}" style="opacity:0.4;margin-top:4px"><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.5"/></svg>`;
+    }
 
     function toggleHelp() {
       const modal = document.getElementById('help-modal');
@@ -518,10 +542,20 @@
 
         // Update metrics
         const adapterCount = Object.keys(health.adapters).length;
-        document.getElementById('m-adapters').textContent = adapterCount;
-        document.getElementById('m-groups').textContent = dashboard.groups?.length ?? '—';
-        document.getElementById('m-queue').textContent = health.queue.active + health.queue.pending;
-        document.getElementById('m-containers').textContent = health.containers.active;
+        pushHistory('adapters', adapterCount);
+        document.getElementById('m-adapters').innerHTML = adapterCount + sparkline(history.adapters);
+        
+        const groupCount = dashboard.groups?.length ?? 0;
+        pushHistory('groups', groupCount);
+        document.getElementById('m-groups').innerHTML = groupCount + sparkline(history.groups);
+        
+        const queueCount = health.queue.active + health.queue.pending;
+        pushHistory('queue', queueCount);
+        document.getElementById('m-queue').innerHTML = queueCount + sparkline(history.queue);
+        
+        const containerCount = health.containers.active;
+        pushHistory('containers', containerCount);
+        document.getElementById('m-containers').innerHTML = containerCount + sparkline(history.containers);
 
         // Update adapters
         const adaptersEl = document.getElementById('adapters');
