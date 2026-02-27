@@ -11,6 +11,7 @@ import {
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
+import { authenticate } from "./whatsapp-auth.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = join(__dirname, "../..");
@@ -350,5 +351,48 @@ program
   .command("status")
   .description("Show current status and configuration")
   .action(statusAction);
+
+// Auth subcommand
+const authCommand = program
+  .command("auth")
+  .description("Authenticate with chat platforms");
+
+authCommand
+  .command("whatsapp")
+  .description("Authenticate with WhatsApp via QR code or pairing code")
+  .option("--pairing-code", "Use pairing code instead of QR code")
+  .option(
+    "--phone <number>",
+    "Phone number for pairing code (e.g., 14155551234)",
+  )
+  .action(async (options: { pairingCode?: boolean; phone?: string }) => {
+    const envPath = join(CWD, ".env");
+    let dataDir = ".clawbber";
+
+    if (existsSync(envPath)) {
+      const envVars = loadEnvFile(envPath);
+      if (envVars.CLAWBBER_DATA_DIR) {
+        dataDir = envVars.CLAWBBER_DATA_DIR;
+      }
+    }
+
+    const authDir =
+      process.env.CLAWBBER_WHATSAPP_AUTH_DIR ||
+      join(CWD, dataDir, "whatsapp-auth");
+    const statusDir = join(CWD, dataDir);
+
+    try {
+      await authenticate({
+        authDir,
+        statusDir,
+        usePairingCode: options.pairingCode,
+        phoneNumber: options.phone,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("Authentication failed:", message);
+      process.exit(1);
+    }
+  });
 
 program.parse();
