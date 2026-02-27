@@ -94,6 +94,11 @@ function postableToText(message: AdapterPostableMessage): string {
   return "";
 }
 
+export type WhatsAppQrStatus =
+  | { status: "authenticated" }
+  | { status: "waiting"; qr: string }
+  | { status: "disconnected" };
+
 export class WhatsAppBaileysAdapter
   implements Adapter<WhatsAppThreadId, proto.IWebMessageInfo>
 {
@@ -109,12 +114,26 @@ export class WhatsAppBaileysAdapter
   private connectedAtMs = 0;
   private readonly seenMessageIds = new Set<string>();
   private readonly pushNames = new Map<string, string>();
+  private currentQr: string | null = null;
 
   constructor(options?: { userName?: string; authDir?: string }) {
     this.userName = options?.userName ?? "clawbber";
     this.authDir =
       options?.authDir ??
       path.join(process.cwd(), ".clawbber", "whatsapp-auth");
+  }
+
+  /**
+   * Get current QR status for API endpoint
+   */
+  getQrStatus(): WhatsAppQrStatus {
+    if (this.connected) {
+      return { status: "authenticated" };
+    }
+    if (this.currentQr) {
+      return { status: "waiting", qr: this.currentQr };
+    }
+    return { status: "disconnected" };
   }
 
   get botUserId(): string | undefined {
@@ -161,9 +180,17 @@ export class WhatsAppBaileysAdapter
     sock.ev.on("creds.update", saveCreds);
 
     sock.ev.on("connection.update", (update) => {
-      const { connection, lastDisconnect } = update;
+      const { connection, lastDisconnect, qr } = update;
+
+      // Track QR code for API endpoint
+      if (qr) {
+        this.currentQr = qr;
+        logger.info("whatsapp qr code generated");
+      }
+
       if (connection === "open") {
         this.connected = true;
+        this.currentQr = null; // Clear QR once connected
         this.connectedAtMs = Date.now();
         this.seenMessageIds.clear();
         logger.info("WhatsApp connection open");
@@ -173,6 +200,7 @@ export class WhatsAppBaileysAdapter
 
       if (connection === "close") {
         this.connected = false;
+        this.currentQr = null;
         const reason = (
           lastDisconnect?.error as { output?: { statusCode?: number } }
         )?.output?.statusCode;

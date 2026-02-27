@@ -6,7 +6,10 @@ import {
   createDiscordMessageHandler,
 } from "./adapters/discord.js";
 import { createSlackMessageHandler } from "./adapters/slack.js";
-import { createWhatsAppBaileysAdapter } from "./adapters/whatsapp.js";
+import {
+  createWhatsAppBaileysAdapter,
+  type WhatsAppBaileysAdapter,
+} from "./adapters/whatsapp.js";
 import { loadConfig, resolveProjectPath } from "./config.js";
 import { handleApiRequest } from "./core/api.js";
 import { ClawbberCoreRuntime } from "./core/runtime.js";
@@ -229,6 +232,24 @@ async function main() {
             headers: { "content-type": "application/json" },
           },
         );
+      }
+
+      // WhatsApp auth status endpoint — no auth required (for headless deployments)
+      if (url.pathname === "/auth/whatsapp" && request.method === "GET") {
+        const whatsappAdapter = adapters.whatsapp as
+          | WhatsAppBaileysAdapter
+          | undefined;
+        if (!whatsappAdapter) {
+          return new Response(
+            JSON.stringify({ error: "WhatsApp adapter not enabled" }),
+            { status: 400, headers: { "content-type": "application/json" } },
+          );
+        }
+        const status = whatsappAdapter.getQrStatus();
+        return new Response(JSON.stringify(status), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
       }
 
       // Internal API — used by clawbber-ctl from inside containers
