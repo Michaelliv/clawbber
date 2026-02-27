@@ -4,7 +4,8 @@ import {
   spawn,
 } from "node:child_process";
 import fs from "node:fs";
-import path from "node:path";
+import path, { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { AppConfig } from "../config.js";
 import { type Logger, logger } from "../logger.js";
 import { getApiKeyFromPiAuthFile } from "../storage/pi-auth.js";
@@ -15,6 +16,9 @@ const START = "---CLAWBBER_CONTAINER_RESULT_START---";
 const END = "---CLAWBBER_CONTAINER_RESULT_END---";
 
 const CONTAINER_LABEL = "clawbber.managed=true";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PACKAGE_ROOT = path.join(__dirname, "../..");
 
 /** Exit code 137 = SIGKILL (128 + 9), typically from OOM killer */
 const OOM_EXIT_CODE = 137;
@@ -173,6 +177,10 @@ export class AgentContainerRunner {
 
     const containerName = this.generateContainerName();
 
+    // Resolve docs paths for self-documenting agent
+    const docsDir = path.resolve(PACKAGE_ROOT, "docs");
+    const readmePath = path.resolve(PACKAGE_ROOT, "README.md");
+
     const args = [
       "run",
       "--rm",
@@ -185,6 +193,10 @@ export class AgentContainerRunner {
       `${groupsRoot}:/groups`,
       "-v",
       `${globalDir}:/home/node/.pi/agent`,
+      "-v",
+      `${readmePath}:/docs/clawbber/README.md:ro`,
+      "-v",
+      `${docsDir}:/docs/clawbber/docs:ro`,
     ];
 
     for (const { key, value } of envPairs) {
