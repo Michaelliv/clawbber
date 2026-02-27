@@ -283,11 +283,23 @@ async function main() {
       if (url.pathname === "/dashboard/data" && request.method === "GET") {
         const groups = core.db
           .listGroups()
-          .map((g) => ({
-            id: g.id,
-            title: g.title,
-            lastActivity: g.updatedAt,
-          }))
+          .map((g) => {
+            // Parse group ID to get platform and readable ID
+            const parts = g.id.split(":");
+            const platform = parts[0];
+            // For WhatsApp, show last 8 chars of ID
+            // For Slack/Discord, might have channel names
+            let shortId = parts.slice(1).join(":");
+            if (shortId.length > 20) shortId = `...${shortId.slice(-15)}`;
+
+            return {
+              id: g.id,
+              platform,
+              shortId,
+              title: g.title !== g.id ? g.title : null,
+              lastActivity: g.updatedAt,
+            };
+          })
           .sort((a, b) => b.lastActivity - a.lastActivity);
 
         const tasks = core.db.listTasks();
