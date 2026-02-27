@@ -264,6 +264,22 @@
       color: var(--yellow);
     }
 
+    .auto-refresh {
+      color: var(--green);
+      cursor: pointer;
+      font-size: 11px;
+      margin-left: 8px;
+      transition: color 0.2s ease;
+    }
+
+    .auto-refresh:hover {
+      opacity: 0.8;
+    }
+
+    .auto-refresh.paused {
+      color: var(--text-muted);
+    }
+
     .help-hint {
       color: var(--text-muted);
       font-size: 11px;
@@ -341,6 +357,7 @@
       <div>
         <span class="uptime" id="uptime">—</span>
         <span class="refresh-indicator" id="refresh">●</span>
+        <span class="auto-refresh" id="auto-refresh" onclick="toggleAutoRefresh()" title="Toggle auto-refresh">●</span>
         <span class="help-hint" onclick="toggleHelp()">?</span>
       </div>
     </div>
@@ -434,6 +451,10 @@
       <span class="desc">Refresh now</span>
     </div>
     <div class="shortcut">
+      <span class="key">p</span>
+      <span class="desc">Pause/resume auto-refresh</span>
+    </div>
+    <div class="shortcut">
       <span class="key">?</span>
       <span class="desc">Toggle this help</span>
     </div>
@@ -462,6 +483,23 @@
       return `<svg width="${w}" height="${h}" style="opacity:0.4;margin-top:4px"><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.5"/></svg>`;
     }
 
+    let autoRefreshEnabled = true;
+    let refreshInterval = null;
+
+    function toggleAutoRefresh() {
+      autoRefreshEnabled = !autoRefreshEnabled;
+      const el = document.getElementById('auto-refresh');
+      el.classList.toggle('paused', !autoRefreshEnabled);
+      el.title = autoRefreshEnabled ? 'Auto-refresh on (click to pause)' : 'Auto-refresh paused (click to resume)';
+      
+      if (autoRefreshEnabled && !refreshInterval) {
+        refreshInterval = setInterval(fetchData, 5000);
+      } else if (!autoRefreshEnabled && refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+      }
+    }
+
     function toggleHelp() {
       const modal = document.getElementById('help-modal');
       const overlay = document.getElementById('help-overlay');
@@ -482,6 +520,11 @@
       if (e.key === 'r' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         fetchData();
+      }
+      // p - pause/resume auto-refresh
+      if (e.key === 'p') {
+        e.preventDefault();
+        toggleAutoRefresh();
       }
       // ? - show help
       if (e.key === '?') {
@@ -664,7 +707,7 @@
     fetchData();
 
     // Poll every 5 seconds
-    setInterval(fetchData, 5000);
+    refreshInterval = setInterval(fetchData, 5000);
   </script>
 </body>
 </html>
