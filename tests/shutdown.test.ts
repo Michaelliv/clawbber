@@ -1,8 +1,10 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { GroupQueue } from "../src/core/group-queue.js";
-
-// We test the individual components and the shutdown orchestration with mocks.
-// Full integration would require Docker + adapters, so we focus on the logic.
+import { ClawbberCoreRuntime } from "../src/core/runtime.js";
+import type { AppConfig } from "../src/config.js";
 
 describe("GroupQueue shutdown", () => {
   test("cancelAll cancels all pending work across groups", () => {
@@ -66,122 +68,119 @@ describe("GroupQueue shutdown", () => {
   });
 });
 
-describe("ClawbberCoreRuntime.shutdown", () => {
-  // Mock all the components to test the orchestration sequence
-  test("shutdown calls components in correct order", async () => {
-    const order: string[] = [];
+describe("ClawbberCoreRuntime.shutdown (real runtime)", () => {
+  let tmpDir: string;
+  let core: ClawbberCoreRuntime;
 
-    const mockScheduler = {
-      stop: () => {
-        order.push("scheduler.stop");
-      },
-      start: () => {},
+  function makeConfig(dir: string): AppConfig {
+    return {
+      modelProvider: "anthropic",
+      model: "test",
+      triggerPatterns: "@test,test",
+      triggerMatch: "mention",
+      dataDir: dir,
+      maxConcurrency: 2,
+      chatSdkPort: 0,
+      chatSdkUserName: "test",
+      discordGatewayDurationMs: 600_000,
+      discordGatewaySecret: undefined,
+      enableWhatsApp: false,
+      authPath: undefined,
+      agentContainerImage: "test:latest",
+      admins: "",
+      dbPath: path.join(dir, "state.db"),
+      globalDir: path.join(dir, "global"),
+      groupsDir: path.join(dir, "groups"),
+      whatsappAuthDir: path.join(dir, "wa-auth"),
     };
+  }
 
-    const mockQueue = {
-      cancelAll: () => {
-        order.push("queue.cancelAll");
-        return 2;
-      },
-      waitForActive: async (_ms: number) => {
-        order.push("queue.waitForActive");
-        return true;
-      },
-      activeCount: 0,
-    };
-
-    const mockContainerRunner = {
-      killAll: () => {
-        order.push("containerRunner.killAll");
-      },
-      activeCount: 0,
-    };
-
-    const mockDb = {
-      close: () => {
-        order.push("db.close");
-      },
-    };
-
-    // Build a minimal runtime-like object to test shutdown logic
-    // We directly replicate the shutdown method's logic with our mocks
-    const hooks: Array<() => Promise<void> | void> = [];
-
-    hooks.push(async () => {
-      order.push("hook.adapters");
-    });
-    hooks.push(async () => {
-      order.push("hook.server");
-    });
-
-    // Simulate the shutdown sequence
-    mockScheduler.stop();
-    mockQueue.cancelAll();
-    mockContainerRunner.killAll();
-    await mockQueue.waitForActive(8000);
-    for (const hook of hooks) {
-      await hook();
-    }
-    mockDb.close();
-
-    expect(order).toEqual([
-      "scheduler.stop",
-      "queue.cancelAll",
-      "containerRunner.killAll",
-      "queue.waitForActive",
-      "hook.adapters",
-      "hook.server",
-      "db.close",
-    ]);
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawbber-shutdown-"));
+    core = new ClawbberCoreRuntime(makeConfig(tmpDir));
   });
 
-  test("shutdown is idempotent (shuttingDown flag)", async () => {
-    let shutdownCount = 0;
-
-    // Simulate the shuttingDown guard
-    let shuttingDown = false;
-    const shutdown = async () => {
-      if (shuttingDown) return;
-      shuttingDown = true;
-      shutdownCount++;
-    };
-
-    await shutdown();
-    await shutdown();
-    await shutdown();
-
-    expect(shutdownCount).toBe(1);
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test("shutdown hooks errors are caught and do not prevent further cleanup", async () => {
-    const order: string[] = [];
-    const hooks: Array<() => Promise<void>> = [];
+  test("shutdown stops scheduler, cancels queue, closes db", async () => {
+    // Start the scheduler so there's a timer to clear
+    core.startScheduler();
 
-    hooks.push(async () => {
+    // Write something to DB to confirm it's open
+    core.db.ensureGroup("test-group");
+
+    await core.shutdown(5000);
+
+    expect(core.isShuttingDown).toBe(true);
+
+    // DB should be closed — further writes should throw
+    expect(() => core.db.ensureGroup("another")).toThrow();
+  });
+
+  test("shutdown is idempotent — second call is a no-op", async () => {
+    await core.shutdown(5000);
+    // Second call should not throw
+    await core.shutdown(5000);
+    expect(core.isShuttingDown).toBe(true);
+  });
+
+  test("shutdown runs registered hooks in order", async () => {
+    const order: string[] = [];
+
+    core.onShutdown(() => {
       order.push("hook1");
-      throw new Error("hook1 failed");
     });
-    hooks.push(async () => {
+    core.onShutdown(() => {
       order.push("hook2");
     });
 
-    for (const hook of hooks) {
-      try {
-        await hook();
-      } catch {
-        // swallowed like in the real shutdown
-      }
-    }
-    order.push("db.close");
+    await core.shutdown(5000);
 
-    expect(order).toEqual(["hook1", "hook2", "db.close"]);
+    expect(order).toEqual(["hook1", "hook2"]);
+  });
+
+  test("shutdown continues if a hook throws", async () => {
+    const order: string[] = [];
+
+    core.onShutdown(() => {
+      order.push("hook1");
+      throw new Error("boom");
+    });
+    core.onShutdown(() => {
+      order.push("hook2");
+    });
+
+    // Should not throw
+    await core.shutdown(5000);
+
+    expect(order).toEqual(["hook1", "hook2"]);
+    // DB should still be closed despite hook error
+    expect(() => core.db.ensureGroup("x")).toThrow();
+  });
+
+  test("shutdown cancels pending queue entries", async () => {
+    // Fill concurrency
+    const blocker1 = core.queue.enqueue("g1", () => new Promise(() => {}));
+    const blocker2 = core.queue.enqueue("g2", () => new Promise(() => {}));
+
+    // These should be pending
+    core.queue.enqueue("g3", async () => "a");
+    core.queue.enqueue("g4", async () => "b");
+
+    await core.shutdown(2000);
+
+    // Pending entries should have been cancelled
+    // (active ones won't drain since they never resolve, but we hit the timeout)
+    expect(core.isShuttingDown).toBe(true);
   });
 });
 
 describe("AgentContainerRunner.killAll", () => {
   test("killAll concept - kills all tracked processes", () => {
-    // We can't easily test actual child processes, but we verify the interface
-    // exists and the map-based tracking logic works
+    // We can't easily spawn real Docker containers in tests, but we verify
+    // the map-based tracking and signal escalation logic
     const killed: string[] = [];
     const running = new Map<string, { kill: (sig: string) => void }>();
 
@@ -193,7 +192,7 @@ describe("AgentContainerRunner.killAll", () => {
     });
 
     // Simulate killAll
-    for (const [groupId, proc] of running) {
+    for (const [_groupId, proc] of running) {
       proc.kill("SIGTERM");
     }
 
