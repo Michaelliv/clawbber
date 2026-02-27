@@ -7,6 +7,7 @@ import {
   ensureGroupWorkspace,
   ensurePiResourceDir,
 } from "../storage/memory.js";
+import type { MessageAttachment } from "../types.js";
 import { GroupQueue } from "./group-queue.js";
 import { RateLimiter } from "./rate-limiter.js";
 import { type RouteResult, routeInput } from "./router.js";
@@ -75,6 +76,7 @@ export class ClawbberCoreRuntime {
     authorName?: string;
     isDM: boolean;
     source: Exclude<InputSource, "scheduler">;
+    attachments?: MessageAttachment[];
   }): Promise<RouteResult & { reply?: string }> {
     const route = routeInput({
       rawText: input.rawText,
@@ -135,6 +137,7 @@ export class ClawbberCoreRuntime {
         route.prompt,
         input.source,
         input.callerId,
+        input.attachments,
       );
       return { ...route, reply };
     } catch (error) {
@@ -297,9 +300,10 @@ export class ClawbberCoreRuntime {
     prompt: string,
     _source: InputSource,
     callerId: string,
+    attachments?: MessageAttachment[],
   ): Promise<string> {
     this.db.ensureGroup(groupId);
-    this.db.addMessage(groupId, "user", prompt);
+    this.db.addMessage(groupId, "user", prompt, attachments);
 
     return this.queue.enqueue(groupId, async () => {
       const workspace = ensureGroupWorkspace(
@@ -314,6 +318,7 @@ export class ClawbberCoreRuntime {
         messages: history,
         prompt,
         callerId,
+        attachments,
       });
 
       this.db.addMessage(groupId, "assistant", reply);

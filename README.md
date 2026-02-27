@@ -25,6 +25,7 @@ Clawbber is a personal AI assistant that lives where you chat. It connects to Wh
 - [Workspaces](#workspaces)
 - [Sessions](#sessions)
 - [Triggers](#triggers)
+- [Media](#media)
 - [Commands](#commands)
 - [Scheduled Tasks](#scheduled-tasks)
 - [Permissions](#permissions)
@@ -190,6 +191,7 @@ Each group/thread gets its own workspace directory:
 │   ├── <group-id>/            # Per-group workspace
 │   │   ├── AGENTS.md          # Group-specific instructions
 │   │   ├── .clawbber.session.jsonl  # pi session file
+│   │   ├── media/             # Downloaded media files
 │   │   └── .pi/
 │   │       ├── extensions/
 │   │       ├── skills/
@@ -246,6 +248,54 @@ Or per-group via `clawbber-ctl`:
 clawbber-ctl config set trigger_match always
 clawbber-ctl config set trigger_patterns "@Bot,Bot"
 ```
+
+---
+
+## Media
+
+Clawbber downloads media attachments from chat messages and passes them to pi.
+
+### Supported Types
+
+| Type | Description | pi Support |
+|------|-------------|------------|
+| `image` | Photos, stickers | ✅ Can view |
+| `video` | Videos | ❌ Cannot play |
+| `voice` | Voice notes | ❌ Cannot play (needs transcription) |
+| `audio` | Audio files | ❌ Cannot play |
+| `document` | PDFs, docs, etc. | ⚠️ Text files only |
+
+### Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLAWBBER_MEDIA_ENABLED` | `true` | Enable media downloads |
+| `CLAWBBER_MEDIA_MAX_SIZE_MB` | `10` | Max file size to download |
+
+### Storage
+
+Media is saved to the group workspace:
+
+```
+.clawbber/groups/<group-id>/media/
+├── 1709012345-image.jpg
+├── 1709012400-voice.ogg
+└── 1709012500-report.pdf
+```
+
+### Prompt Format
+
+Attachments are passed to pi as XML:
+
+```xml
+<attachments>
+  <attachment type="image" path="/groups/xxx/media/123.jpg" mime="image/jpeg" size="12345" />
+</attachments>
+
+@clawbber what's in this image?
+```
+
+See [docs/media/overview.md](docs/media/overview.md) for architecture details.
 
 ---
 
@@ -490,6 +540,13 @@ clawbber status       # Show status and configuration
 | `CLAWBBER_TRIGGER_MATCH` | `mention` | `mention`, `prefix`, `always` |
 | `CLAWBBER_TRIGGER_PATTERNS` | `@Clawbber,Clawbber` | Comma-separated |
 | `CLAWBBER_ADMINS` | — | Comma-separated admin user IDs |
+
+### Media
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLAWBBER_MEDIA_ENABLED` | `true` | Enable media downloads |
+| `CLAWBBER_MEDIA_MAX_SIZE_MB` | `10` | Max file size (MB) |
 
 ### WhatsApp
 

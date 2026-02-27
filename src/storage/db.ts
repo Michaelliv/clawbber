@@ -5,6 +5,7 @@ import type {
   Group,
   GroupConfigEntry,
   GroupRole,
+  MessageAttachment,
   ScheduledTask,
   StoredMessage,
 } from "../types.js";
@@ -20,6 +21,7 @@ type MessageRow = {
   groupId: string;
   role: StoredMessage["role"];
   content: string;
+  attachments: string | null;
   createdAt: number;
   updatedAt: number;
 };
@@ -97,6 +99,23 @@ export class Db {
         PRIMARY KEY (group_id, key)
       );
     `);
+
+    // Migration: add attachments column to messages table
+    this.addColumnIfNotExists("messages", "attachments", "TEXT");
+  }
+
+  private addColumnIfNotExists(
+    table: string,
+    column: string,
+    type: string,
+  ): void {
+    const columns = this.db.query(`PRAGMA table_info(${table})`).all() as {
+      name: string;
+    }[];
+    const exists = columns.some((c) => c.name === column);
+    if (!exists) {
+      this.db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+    }
   }
 
   ensureGroup(groupId: string): Group {
@@ -134,13 +153,18 @@ export class Db {
     groupId: string,
     role: StoredMessage["role"],
     content: string,
+    attachments?: MessageAttachment[],
   ): void {
     const now = Date.now();
+    const attachmentsJson =
+      attachments && attachments.length > 0
+        ? JSON.stringify(attachments)
+        : null;
     this.db
       .query(
-        "INSERT INTO messages(group_id, role, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO messages(group_id, role, content, attachments, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
       )
-      .run(groupId, role, content, now, now);
+      .run(groupId, role, content, attachmentsJson, now, now);
   }
 
   clearMessages(groupId: string): void {
@@ -177,19 +201,38 @@ export class Db {
     return minMessageId;
   }
 
+  private parseMessageRow(row: MessageRow): StoredMessage {
+    let attachments: MessageAttachment[] | undefined;
+    if (row.attachments) {
+      try {
+        attachments = JSON.parse(row.attachments) as MessageAttachment[];
+      } catch {
+        attachments = undefined;
+      }
+    }
+    return {
+      id: row.id,
+      groupId: row.groupId,
+      role: row.role,
+      content: row.content,
+      attachments,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
+
   getRecentMessages(groupId: string, limit = 40): StoredMessage[] {
     const boundary = this.getSessionBoundary(groupId);
-    return (
-      this.db
-        .query(
-          `SELECT id, group_id as groupId, role, content, created_at as createdAt, updated_at as updatedAt
+    const rows = this.db
+      .query(
+        `SELECT id, group_id as groupId, role, content, attachments, created_at as createdAt, updated_at as updatedAt
          FROM messages
          WHERE group_id = ? AND id > ?
          ORDER BY id DESC
          LIMIT ?`,
-        )
-        .all(groupId, boundary, limit) as MessageRow[]
-    ).reverse();
+      )
+      .all(groupId, boundary, limit) as MessageRow[];
+    return rows.reverse().map((row) => this.parseMessageRow(row));
   }
 
   getMessagesSinceLastUserTrigger(
@@ -222,15 +265,16 @@ export class Db {
 
     const afterId = previousUser?.id ?? boundary;
 
-    return this.db
+    const rows = this.db
       .query(
-        `SELECT id, group_id as groupId, role, content, created_at as createdAt, updated_at as updatedAt
+        `SELECT id, group_id as groupId, role, content, attachments, created_at as createdAt, updated_at as updatedAt
          FROM messages
          WHERE group_id = ? AND id > ?
          ORDER BY id ASC
          LIMIT ?`,
       )
-      .all(groupId, afterId, limit) as StoredMessage[];
+      .all(groupId, afterId, limit) as MessageRow[];
+    return rows.map((row) => this.parseMessageRow(row));
   }
 
   createTask(

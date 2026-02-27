@@ -15,6 +15,7 @@ import { handleApiRequest } from "./core/api.js";
 import { ClawbberCoreRuntime } from "./core/runtime.js";
 import { loadTriggerConfig, matchTrigger } from "./core/trigger.js";
 import { configureLogger, logger } from "./logger.js";
+import { ensureGroupWorkspace } from "./storage/memory.js";
 
 const startTime = Date.now();
 
@@ -72,6 +73,14 @@ async function main() {
     adapters.whatsapp = createWhatsAppBaileysAdapter({
       userName: config.chatSdkUserName,
       authDir: resolveProjectPath(config.whatsappAuthDir),
+      mediaEnabled: config.mediaEnabled,
+      mediaMaxSizeBytes: config.mediaMaxSizeMb * 1024 * 1024,
+      getGroupWorkspace: (groupId: string) => {
+        return ensureGroupWorkspace(
+          resolveProjectPath(config.groupsDir),
+          groupId,
+        );
+      },
     });
   }
 
@@ -125,7 +134,14 @@ async function main() {
 
     // Quick trigger check before starting typing indicator
     const text = message.text.trim();
-    if (!text) return;
+
+    // Extract attachments from message metadata (populated by WhatsApp adapter)
+    const attachments =
+      (message.metadata as { attachments?: unknown })?.attachments ?? [];
+
+    // Allow messages with only attachments (no text)
+    if (!text && (!Array.isArray(attachments) || attachments.length === 0))
+      return;
 
     const defaultPatterns = config.triggerPatterns
       .split(",")
@@ -150,6 +166,7 @@ async function main() {
       authorName: message.author.userName,
       isDM,
       source: "chat-sdk",
+      attachments: Array.isArray(attachments) ? attachments : [],
     });
 
     if (result.type === "ignore") return;

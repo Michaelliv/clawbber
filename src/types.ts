@@ -1,10 +1,35 @@
 export type MessageRole = "user" | "assistant" | "tool" | "ambient";
 
+/**
+ * Media type classification.
+ * Generic across platforms — each adapter maps its native types to these.
+ */
+export type MediaType = "image" | "video" | "audio" | "voice" | "document";
+
+/**
+ * Attachment metadata for messages.
+ * Platform-agnostic — adapters populate these fields from platform-specific data.
+ */
+export interface MessageAttachment {
+  /** Local file path (relative to group workspace) */
+  path: string;
+  /** Media type classification */
+  type: MediaType;
+  /** MIME type (e.g., "image/jpeg", "audio/ogg") */
+  mimeType: string;
+  /** Original filename if available */
+  filename?: string;
+  /** File size in bytes */
+  sizeBytes?: number;
+}
+
 export interface StoredMessage {
   id: number;
   groupId: string;
   role: MessageRole;
   content: string;
+  /** Attachments (images, voice notes, documents, etc.) */
+  attachments?: MessageAttachment[];
   createdAt: number;
   updatedAt: number;
 }
