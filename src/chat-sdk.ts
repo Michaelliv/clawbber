@@ -12,7 +12,7 @@ import {
 } from "./adapters/whatsapp.js";
 import { loadConfig, resolveProjectPath } from "./config.js";
 import { handleApiRequest } from "./core/api.js";
-import { BearClawCoreRuntime } from "./core/runtime.js";
+import { MercuryCoreRuntime } from "./core/runtime.js";
 import { loadTriggerConfig, matchTrigger } from "./core/trigger.js";
 import { configureLogger, logger } from "./logger.js";
 import { ensureGroupWorkspace } from "./storage/memory.js";
@@ -50,7 +50,7 @@ async function main() {
     format: config.logFormat,
   });
 
-  const core = new BearClawCoreRuntime(config);
+  const core = new MercuryCoreRuntime(config);
   await core.initialize();
 
   const adapters: Record<string, Adapter> = {};
@@ -86,7 +86,7 @@ async function main() {
 
   if (Object.keys(adapters).length === 0) {
     throw new Error(
-      "No adapters enabled. Configure Slack/Discord env or set BEARCLAW_ENABLE_WHATSAPP=true",
+      "No adapters enabled. Configure Slack/Discord env or set MERCURY_ENABLE_WHATSAPP=true",
     );
   }
 
@@ -269,7 +269,7 @@ async function main() {
         });
       }
 
-      // Internal API — used by bearclaw-ctl from inside containers
+      // Internal API — used by mercury-ctl from inside containers
       if (url.pathname.startsWith("/api/")) {
         return handleApiRequest(request, url, apiCtx);
       }

@@ -10,7 +10,7 @@ import {
 } from "../src/adapters/discord.js";
 import { type AppConfig, loadConfig } from "../src/config.js";
 import { seededGroups } from "../src/core/permissions.js";
-import type { BearClawCoreRuntime } from "../src/core/runtime.js";
+import type { MercuryCoreRuntime } from "../src/core/runtime.js";
 import { Db } from "../src/storage/db.js";
 
 // ---------------------------------------------------------------------------
@@ -21,7 +21,7 @@ let tmpDir: string;
 let db: Db;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "bearclaw-discord-test-"));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mercury-discord-test-"));
   db = new Db(path.join(tmpDir, "state.db"));
   seededGroups.clear();
 });
@@ -386,10 +386,10 @@ function setup() {
     whatsappAuthDir: path.join(tmpDir, "wa-auth"),
   };
 
-  // Partial mock of BearClawCoreRuntime — we only need handleRawInput
+  // Partial mock of MercuryCoreRuntime — we only need handleRawInput
   const core = {
     handleRawInput: mock(async () => ({ type: "ignore" as const })),
-  } as unknown as BearClawCoreRuntime;
+  } as unknown as MercuryCoreRuntime;
 
   const handler = createDiscordMessageHandler({ core, db, config });
   const thread = fakeThread();

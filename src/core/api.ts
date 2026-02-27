@@ -60,8 +60,8 @@ function error(message: string, status: number): Response {
 function parseCallerHeaders(
   request: Request,
 ): { callerId: string; groupId: string } | null {
-  const callerId = request.headers.get("x-bearclaw-caller");
-  const groupId = request.headers.get("x-bearclaw-group");
+  const callerId = request.headers.get("x-mercury-caller");
+  const groupId = request.headers.get("x-mercury-group");
   if (!callerId || !groupId) return null;
   return { callerId, groupId };
 }
@@ -87,7 +87,7 @@ export function handleApiRequest(
 
   const caller = parseCallerHeaders(request);
   if (!caller) {
-    return error("Missing X-BearClaw-Caller or X-BearClaw-Group headers", 400);
+    return error("Missing X-Mercury-Caller or X-Mercury-Group headers", 400);
   }
 
   const { callerId, groupId } = caller;

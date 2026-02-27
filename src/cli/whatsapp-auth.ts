@@ -7,8 +7,8 @@
  * Displays QR code, waits for scan, saves credentials, then exits.
  *
  * Usage:
- *   bearclaw auth whatsapp                             # QR code mode
- *   bearclaw auth whatsapp --pairing-code --phone 14155551234  # Pairing code mode
+ *   mercury auth whatsapp                             # QR code mode
+ *   mercury auth whatsapp --pairing-code --phone 14155551234  # Pairing code mode
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -175,7 +175,7 @@ async function connectSocket(
       clearQrData(statusDir);
       console.log("\n✓ Successfully authenticated with WhatsApp!");
       console.log(`  Credentials saved to ${authDir}/`);
-      console.log("  You can now start bearclaw with 'bearclaw run'.\n");
+      console.log("  You can now start mercury with 'mercury run'.\n");
 
       // Give it a moment to save credentials, then exit
       setTimeout(() => process.exit(0), 1000);
@@ -227,11 +227,11 @@ if (import.meta.main) {
     (_, i, arr) => arr[i - 1] === "--status-dir",
   );
 
-  const dataDir = process.env.BEARCLAW_DATA_DIR || ".bearclaw";
+  const dataDir = process.env.MERCURY_DATA_DIR || ".mercury";
   const authDir =
     authDirIndex >= 0
       ? args[authDirIndex]
-      : process.env.BEARCLAW_WHATSAPP_AUTH_DIR ||
+      : process.env.MERCURY_WHATSAPP_AUTH_DIR ||
         path.join(dataDir, "whatsapp-auth");
   const statusDir = statusDirIndex >= 0 ? args[statusDirIndex] : dataDir;
 

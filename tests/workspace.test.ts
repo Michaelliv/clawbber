@@ -10,7 +10,7 @@ import {
 let tmpDir: string;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "bearclaw-test-"));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mercury-test-"));
 });
 
 afterEach(() => {
@@ -101,7 +101,7 @@ describe("ensureGroupWorkspace", () => {
 
 describe("full workspace structure", () => {
   test("scaffolds global + groups + main correctly", () => {
-    const dataDir = path.join(tmpDir, ".bearclaw");
+    const dataDir = path.join(tmpDir, ".mercury");
     const globalDir = path.join(dataDir, "global");
     const groupsDir = path.join(dataDir, "groups");
 

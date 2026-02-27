@@ -2,7 +2,7 @@
  * Discord adapter integration layer.
  *
  * The low-level Discord API is handled by @chat-adapter/discord (DiscordAdapter).
- * This module provides the bearclaw-specific glue:
+ * This module provides the mercury-specific glue:
  *   - Channel → group mapping (groupId = "discord:<channelId>")
  *   - Trigger matching + routing through the core runtime
  *   - Ambient message capture for non-triggered messages
@@ -16,13 +16,13 @@ import {
 } from "@chat-adapter/discord";
 import type { Message, Thread } from "chat";
 import type { AppConfig } from "../config.js";
-import type { BearClawCoreRuntime } from "../core/runtime.js";
+import type { MercuryCoreRuntime } from "../core/runtime.js";
 import { loadTriggerConfig, matchTrigger } from "../core/trigger.js";
 import { logger } from "../logger.js";
 import type { Db } from "../storage/db.js";
 
 /**
- * Derive the bearclaw group ID from a Discord thread.
+ * Derive the mercury group ID from a Discord thread.
  *
  * Discord thread IDs are encoded as "discord:{guildId}:{channelId}" or
  * "discord:{guildId}:{channelId}:{threadId}".
@@ -55,7 +55,7 @@ export function discordCallerId(message: Message): string {
 }
 
 export interface DiscordMessageHandlerOptions {
-  core: BearClawCoreRuntime;
+  core: MercuryCoreRuntime;
   db: Db;
   config: AppConfig;
 }

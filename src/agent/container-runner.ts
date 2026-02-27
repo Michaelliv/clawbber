@@ -12,10 +12,10 @@ import { getApiKeyFromPiAuthFile } from "../storage/pi-auth.js";
 import type { MessageAttachment, StoredMessage } from "../types.js";
 import { ContainerError } from "./container-error.js";
 
-const START = "---BEARCLAW_CONTAINER_RESULT_START---";
-const END = "---BEARCLAW_CONTAINER_RESULT_END---";
+const START = "---MERCURY_CONTAINER_RESULT_START---";
+const END = "---MERCURY_CONTAINER_RESULT_END---";
 
-const CONTAINER_LABEL = "bearclaw.managed=true";
+const CONTAINER_LABEL = "mercury.managed=true";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.join(__dirname, "../..");
@@ -118,7 +118,7 @@ export class AgentContainerRunner {
   private generateContainerName(): string {
     const id = ++this.containerCounter;
     const timestamp = Date.now();
-    return `bearclaw-${timestamp}-${id}`;
+    return `mercury-${timestamp}-${id}`;
   }
 
   async reply(input: {
@@ -157,20 +157,20 @@ export class AgentContainerRunner {
 
     const envPairs = [
       {
-        key: "BEARCLAW_MODEL_PROVIDER",
-        value: process.env.BEARCLAW_MODEL_PROVIDER,
+        key: "MERCURY_MODEL_PROVIDER",
+        value: process.env.MERCURY_MODEL_PROVIDER,
       },
-      { key: "BEARCLAW_MODEL", value: process.env.BEARCLAW_MODEL },
-      { key: "BEARCLAW_LOG_LEVEL", value: process.env.BEARCLAW_LOG_LEVEL }, // used by pi CLI inside container
+      { key: "MERCURY_MODEL", value: process.env.MERCURY_MODEL },
+      { key: "MERCURY_LOG_LEVEL", value: process.env.MERCURY_LOG_LEVEL }, // used by pi CLI inside container
       { key: "ANTHROPIC_API_KEY", value: authEnv.ANTHROPIC_API_KEY },
       { key: "ANTHROPIC_OAUTH_TOKEN", value: authEnv.ANTHROPIC_OAUTH_TOKEN },
       { key: "OPENAI_API_KEY", value: authEnv.OPENAI_API_KEY },
       { key: "HOME", value: "/home/node" },
       { key: "PI_CODING_AGENT_DIR", value: "/home/node/.pi/agent" },
-      { key: "BEARCLAW_CALLER_ID", value: input.callerId },
-      { key: "BEARCLAW_GROUP_ID", value: input.groupId },
+      { key: "MERCURY_CALLER_ID", value: input.callerId },
+      { key: "MERCURY_GROUP_ID", value: input.groupId },
       {
-        key: "BEARCLAW_API_URL",
+        key: "MERCURY_API_URL",
         value: `http://host.docker.internal:${this.config.chatSdkPort}`,
       },
     ].filter((x): x is { key: string; value: string } => Boolean(x.value));
@@ -194,9 +194,9 @@ export class AgentContainerRunner {
       "-v",
       `${globalDir}:/home/node/.pi/agent`,
       "-v",
-      `${readmePath}:/docs/bearclaw/README.md:ro`,
+      `${readmePath}:/docs/mercury/README.md:ro`,
       "-v",
-      `${docsDir}:/docs/bearclaw/docs:ro`,
+      `${docsDir}:/docs/mercury/docs:ro`,
     ];
 
     for (const { key, value } of envPairs) {

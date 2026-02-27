@@ -11,8 +11,8 @@ type Payload = {
   attachments?: MessageAttachment[];
 };
 
-const START = "---BEARCLAW_CONTAINER_RESULT_START---";
-const END = "---BEARCLAW_CONTAINER_RESULT_END---";
+const START = "---MERCURY_CONTAINER_RESULT_START---";
+const END = "---MERCURY_CONTAINER_RESULT_END---";
 
 function formatContextTimestamp(ms: number): string {
   return new Date(ms).toLocaleString("en-GB", {
@@ -29,7 +29,7 @@ function formatContextTimestamp(ms: number): string {
 
 function buildSystemPrompt(): string {
   return [
-    "You are BearClaw, a concise personal AI assistant.",
+    "You are Mercury, a concise personal AI assistant.",
     "Prioritize practical outputs and explicit assumptions.",
   ].join("\n");
 }
@@ -101,7 +101,7 @@ function runPi(payload: Payload): Promise<string> {
   return new Promise((resolve, reject) => {
     const sessionFile = path.join(
       payload.groupWorkspace,
-      ".bearclaw.session.jsonl",
+      ".mercury.session.jsonl",
     );
 
     const args = [
@@ -109,9 +109,9 @@ function runPi(payload: Payload): Promise<string> {
       "--session",
       sessionFile,
       "--provider",
-      process.env.BEARCLAW_MODEL_PROVIDER || "anthropic",
+      process.env.MERCURY_MODEL_PROVIDER || "anthropic",
       "--model",
-      process.env.BEARCLAW_MODEL || "claude-sonnet-4-20250514",
+      process.env.MERCURY_MODEL || "claude-sonnet-4-20250514",
       "--append-system-prompt",
       buildSystemPrompt(),
       buildPrompt(payload),

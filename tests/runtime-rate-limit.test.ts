@@ -2,16 +2,16 @@ import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { BearClawCoreRuntime } from "../src/core/runtime.js";
+import { MercuryCoreRuntime } from "../src/core/runtime.js";
 
 describe("Runtime rate limiting", () => {
   let tempDir: string;
-  let runtime: BearClawCoreRuntime;
+  let runtime: MercuryCoreRuntime;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "bearclaw-rate-test-"));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "mercury-rate-test-"));
 
-    runtime = new BearClawCoreRuntime({
+    runtime = new MercuryCoreRuntime({
       modelProvider: "anthropic",
       model: "claude-sonnet-4-20250514",
       triggerPatterns: "@Pi,Pi",
@@ -24,7 +24,7 @@ describe("Runtime rate limiting", () => {
       rateLimitPerUser: 3, // 3 requests per window
       rateLimitWindowMs: 60000,
       chatSdkPort: 8787,
-      chatSdkUserName: "bearclaw",
+      chatSdkUserName: "mercury",
       discordGatewayDurationMs: 600000,
       discordGatewaySecret: undefined,
       enableWhatsApp: false,

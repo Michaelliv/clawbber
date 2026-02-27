@@ -1,6 +1,6 @@
 # WhatsApp Authentication
 
-BearClaw connects to WhatsApp using the [Baileys](https://github.com/WhiskeySockets/Baileys) library, which implements the WhatsApp Web protocol. This means you need to link your WhatsApp account just like you would link WhatsApp Web.
+Mercury connects to WhatsApp using the [Baileys](https://github.com/WhiskeySockets/Baileys) library, which implements the WhatsApp Web protocol. This means you need to link your WhatsApp account just like you would link WhatsApp Web.
 
 ## Initial Setup
 
@@ -9,13 +9,13 @@ BearClaw connects to WhatsApp using the [Baileys](https://github.com/WhiskeySock
 The simplest way to authenticate:
 
 ```bash
-bearclaw auth whatsapp
+mercury auth whatsapp
 ```
 
 This will:
 1. Display a QR code in your terminal
 2. Wait for you to scan it with WhatsApp
-3. Save credentials to `.bearclaw/whatsapp-auth/`
+3. Save credentials to `.mercury/whatsapp-auth/`
 4. Exit when authentication is complete
 
 **To scan:**
@@ -28,7 +28,7 @@ This will:
 If you can't scan QR codes (e.g., running on a remote server), use pairing code mode:
 
 ```bash
-bearclaw auth whatsapp --pairing-code --phone 14155551234
+mercury auth whatsapp --pairing-code --phone 14155551234
 ```
 
 Replace `14155551234` with your phone number (country code + number, no `+` or spaces).
@@ -48,7 +48,7 @@ This will:
 
 ### Session Duration
 
-WhatsApp linked device sessions typically last **~14-20 days** before requiring re-authentication. This is controlled by WhatsApp, not BearClaw.
+WhatsApp linked device sessions typically last **~14-20 days** before requiring re-authentication. This is controlled by WhatsApp, not Mercury.
 
 Signs your session has expired:
 - WhatsApp stops receiving messages
@@ -59,25 +59,25 @@ Signs your session has expired:
 
 If your session expires:
 
-1. **Stop BearClaw** (if running):
+1. **Stop Mercury** (if running):
    ```bash
-   # Ctrl+C in the terminal running bearclaw, or
+   # Ctrl+C in the terminal running mercury, or
    pkill -f "bun.*chat-sdk"
    ```
 
 2. **Delete old credentials**:
    ```bash
-   rm -rf .bearclaw/whatsapp-auth/
+   rm -rf .mercury/whatsapp-auth/
    ```
 
 3. **Re-authenticate**:
    ```bash
-   bearclaw auth whatsapp
+   mercury auth whatsapp
    ```
 
-4. **Restart BearClaw**:
+4. **Restart Mercury**:
    ```bash
-   bearclaw run
+   mercury run
    ```
 
 ## Status Files
@@ -86,8 +86,8 @@ The auth script writes status files for external monitoring (useful for headless
 
 | File | Description |
 |------|-------------|
-| `.bearclaw/whatsapp-status.txt` | Current status (`authenticated`, `waiting_qr`, `pairing_code:XXXX`, `failed:reason`) |
-| `.bearclaw/whatsapp-qr.txt` | Raw QR data for external rendering (deleted after successful auth) |
+| `.mercury/whatsapp-status.txt` | Current status (`authenticated`, `waiting_qr`, `pairing_code:XXXX`, `failed:reason`) |
+| `.mercury/whatsapp-qr.txt` | Raw QR data for external rendering (deleted after successful auth) |
 
 ### Status Values
 
@@ -102,7 +102,7 @@ The auth script writes status files for external monitoring (useful for headless
 
 ## Auth Status API Endpoint
 
-When BearClaw is running, you can check auth status via the API:
+When Mercury is running, you can check auth status via the API:
 
 ```bash
 curl http://localhost:8787/auth/whatsapp
@@ -129,8 +129,8 @@ This endpoint requires no authentication, making it suitable for headless monito
 
 If you see this but WhatsApp isn't working:
 ```bash
-rm -rf .bearclaw/whatsapp-auth/
-bearclaw auth whatsapp
+rm -rf .mercury/whatsapp-auth/
+mercury auth whatsapp
 ```
 
 ### QR code times out too quickly
@@ -143,31 +143,31 @@ WhatsApp QR codes expire after ~20 seconds. If you're having trouble:
 
 This is usually transient and the auth script will automatically reconnect. If it persists:
 ```bash
-rm -rf .bearclaw/whatsapp-auth/
-bearclaw auth whatsapp
+rm -rf .mercury/whatsapp-auth/
+mercury auth whatsapp
 ```
 
-### WhatsApp shows "Linked Device" but BearClaw doesn't receive messages
+### WhatsApp shows "Linked Device" but Mercury doesn't receive messages
 
-1. Check that `BEARCLAW_ENABLE_WHATSAPP=true` is set in `.env`
+1. Check that `MERCURY_ENABLE_WHATSAPP=true` is set in `.env`
 2. Check logs for connection errors
 3. Try re-authenticating
 
 ### Messages from before startup appear
 
-BearClaw ignores messages that were sent before it connected to prevent processing old backlog. This is intentional.
+Mercury ignores messages that were sent before it connected to prevent processing old backlog. This is intentional.
 
 ## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BEARCLAW_ENABLE_WHATSAPP` | `false` | Enable WhatsApp adapter |
-| `BEARCLAW_WHATSAPP_AUTH_DIR` | `.bearclaw/whatsapp-auth` | Directory for auth credentials |
-| `BEARCLAW_DATA_DIR` | `.bearclaw` | Base data directory (auth dir is relative to this) |
+| `MERCURY_ENABLE_WHATSAPP` | `false` | Enable WhatsApp adapter |
+| `MERCURY_WHATSAPP_AUTH_DIR` | `.mercury/whatsapp-auth` | Directory for auth credentials |
+| `MERCURY_DATA_DIR` | `.mercury` | Base data directory (auth dir is relative to this) |
 
 ## Security Notes
 
-- Auth credentials in `.bearclaw/whatsapp-auth/` are sensitive — treat them like passwords
+- Auth credentials in `.mercury/whatsapp-auth/` are sensitive — treat them like passwords
 - Anyone with access to these files can impersonate your WhatsApp account
 - The `/auth/whatsapp` endpoint is unauthenticated — only expose your API port to trusted networks
 - Consider using a dedicated WhatsApp number for your bot

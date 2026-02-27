@@ -1,21 +1,21 @@
 #!/usr/bin/env bun
 
-const API_URL = process.env.BEARCLAW_API_URL;
-const CALLER_ID = process.env.BEARCLAW_CALLER_ID;
-const GROUP_ID = process.env.BEARCLAW_GROUP_ID;
+const API_URL = process.env.MERCURY_API_URL;
+const CALLER_ID = process.env.MERCURY_CALLER_ID;
+const GROUP_ID = process.env.MERCURY_GROUP_ID;
 
 function fatal(msg: string): never {
   process.stderr.write(`error: ${msg}\n`);
   process.exit(1);
 }
 
-if (!API_URL) fatal("BEARCLAW_API_URL not set");
-if (!CALLER_ID) fatal("BEARCLAW_CALLER_ID not set");
-if (!GROUP_ID) fatal("BEARCLAW_GROUP_ID not set");
+if (!API_URL) fatal("MERCURY_API_URL not set");
+if (!CALLER_ID) fatal("MERCURY_CALLER_ID not set");
+if (!GROUP_ID) fatal("MERCURY_GROUP_ID not set");
 
 const headers: Record<string, string> = {
-  "x-bearclaw-caller": CALLER_ID,
-  "x-bearclaw-group": GROUP_ID,
+  "x-mercury-caller": CALLER_ID,
+  "x-mercury-group": GROUP_ID,
   "content-type": "application/json",
 };
 
@@ -46,29 +46,29 @@ function print(data: unknown): void {
 }
 
 function usage(): never {
-  process.stderr.write(`bearclaw-ctl — manage bearclaw from inside the agent container
+  process.stderr.write(`mercury-ctl — manage mercury from inside the agent container
 
 Usage:
-  bearclaw-ctl whoami
-  bearclaw-ctl tasks list
-  bearclaw-ctl tasks create --cron <expr> --prompt <text>
-  bearclaw-ctl tasks pause <id>
-  bearclaw-ctl tasks resume <id>
-  bearclaw-ctl tasks delete <id>
-  bearclaw-ctl config get [key]
-  bearclaw-ctl config set <key> <value>
-  bearclaw-ctl roles list
-  bearclaw-ctl roles grant <platform-user-id> [--role <role>]
-  bearclaw-ctl roles revoke <platform-user-id>
-  bearclaw-ctl permissions show [--role <role>]
-  bearclaw-ctl permissions set <role> <perm1,perm2,...>
-  bearclaw-ctl stop
-  bearclaw-ctl compact
+  mercury-ctl whoami
+  mercury-ctl tasks list
+  mercury-ctl tasks create --cron <expr> --prompt <text>
+  mercury-ctl tasks pause <id>
+  mercury-ctl tasks resume <id>
+  mercury-ctl tasks delete <id>
+  mercury-ctl config get [key]
+  mercury-ctl config set <key> <value>
+  mercury-ctl roles list
+  mercury-ctl roles grant <platform-user-id> [--role <role>]
+  mercury-ctl roles revoke <platform-user-id>
+  mercury-ctl permissions show [--role <role>]
+  mercury-ctl permissions set <role> <perm1,perm2,...>
+  mercury-ctl stop
+  mercury-ctl compact
 
 Environment:
-  BEARCLAW_API_URL       Host API base URL
-  BEARCLAW_CALLER_ID     Platform user ID of the caller
-  BEARCLAW_GROUP_ID      Current group ID
+  MERCURY_API_URL       Host API base URL
+  MERCURY_CALLER_ID     Platform user ID of the caller
+  MERCURY_GROUP_ID      Current group ID
 `);
   process.exit(1);
 }

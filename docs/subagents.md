@@ -1,6 +1,6 @@
 # Subagents
 
-BearClaw supports delegating tasks to specialized sub-agents using pi's subagent extension. Each sub-agent runs in its own isolated context window, keeping the main conversation clean.
+Mercury supports delegating tasks to specialized sub-agents using pi's subagent extension. Each sub-agent runs in its own isolated context window, keeping the main conversation clean.
 
 ## How It Works
 
@@ -75,10 +75,10 @@ Sequential execution where each agent receives the previous output via `{previou
 
 ## File Locations
 
-After `bearclaw init`, subagent files are scaffolded to:
+After `mercury init`, subagent files are scaffolded to:
 
 ```
-.bearclaw/global/
+.mercury/global/
 ├── extensions/subagent/
 │   ├── index.ts      # Subagent tool implementation
 │   └── agents.ts     # Agent discovery logic
@@ -89,7 +89,7 @@ After `bearclaw init`, subagent files are scaffolded to:
 
 ## Adding Custom Agents
 
-Create a new `.md` file in `.bearclaw/global/agents/`:
+Create a new `.md` file in `.mercury/global/agents/`:
 
 ```markdown
 ---
@@ -127,7 +127,7 @@ The body after the frontmatter becomes the agent's system prompt.
 
 Agents are discovered from:
 1. **User agents**: `~/.pi/agent/agents/` (default scope)
-2. **Project agents**: `.bearclaw/global/agents/` (requires `agentScope: "both"`)
+2. **Project agents**: `.mercury/global/agents/` (requires `agentScope: "both"`)
 
 Project agents require user confirmation before running (security measure for repo-controlled code).
 
@@ -156,11 +156,11 @@ The subagent tool accepts these parameters:
 In the chat, users can request subagent work naturally:
 
 ```
-@BearClaw Use explore to find how authentication works in this codebase
+@Mercury Use explore to find how authentication works in this codebase
 
-@BearClaw Run a chain: explore finds the database models, then worker adds a new "status" field to the User model
+@Mercury Run a chain: explore finds the database models, then worker adds a new "status" field to the User model
 
-@BearClaw Run 2 workers in parallel: one fixes the bug in router.ts, one adds a test for it
+@Mercury Run 2 workers in parallel: one fixes the bug in router.ts, one adds a test for it
 ```
 
 The main agent interprets these requests and invokes the subagent tool accordingly.

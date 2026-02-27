@@ -17,7 +17,7 @@ const schema = z.object({
   triggerMatch: z.string().default("mention"),
 
   // ─── Storage ────────────────────────────────────────────────────────
-  dataDir: z.string().default(".bearclaw"),
+  dataDir: z.string().default(".mercury"),
   authPath: z.string().optional(),
 
   // ─── Container / Agent ──────────────────────────────────────────────
@@ -41,7 +41,7 @@ const schema = z.object({
 
   // ─── Chat SDK Server ────────────────────────────────────────────────
   chatSdkPort: z.coerce.number().int().min(1).max(65535).default(8787),
-  chatSdkUserName: z.string().default("bearclaw"),
+  chatSdkUserName: z.string().default("mercury"),
 
   // ─── Discord ────────────────────────────────────────────────────────
   discordGatewayDurationMs: z.coerce
@@ -74,47 +74,47 @@ export type AppConfig = z.infer<typeof schema> & {
 export function loadConfig(): AppConfig {
   const base = schema.parse({
     // Logging
-    logLevel: process.env.BEARCLAW_LOG_LEVEL,
-    logFormat: process.env.BEARCLAW_LOG_FORMAT,
+    logLevel: process.env.MERCURY_LOG_LEVEL,
+    logFormat: process.env.MERCURY_LOG_FORMAT,
 
     // AI Model
-    modelProvider: process.env.BEARCLAW_MODEL_PROVIDER,
-    model: process.env.BEARCLAW_MODEL,
+    modelProvider: process.env.MERCURY_MODEL_PROVIDER,
+    model: process.env.MERCURY_MODEL,
 
     // Trigger Behavior
-    triggerPatterns: process.env.BEARCLAW_TRIGGER_PATTERNS,
-    triggerMatch: process.env.BEARCLAW_TRIGGER_MATCH,
+    triggerPatterns: process.env.MERCURY_TRIGGER_PATTERNS,
+    triggerMatch: process.env.MERCURY_TRIGGER_MATCH,
 
     // Storage
-    dataDir: process.env.BEARCLAW_DATA_DIR,
-    authPath: process.env.BEARCLAW_AUTH_PATH,
+    dataDir: process.env.MERCURY_DATA_DIR,
+    authPath: process.env.MERCURY_AUTH_PATH,
 
     // Container / Agent
-    agentContainerImage: process.env.BEARCLAW_AGENT_CONTAINER_IMAGE,
-    containerTimeoutMs: process.env.BEARCLAW_CONTAINER_TIMEOUT_MS,
-    maxConcurrency: process.env.BEARCLAW_MAX_CONCURRENCY,
+    agentContainerImage: process.env.MERCURY_AGENT_CONTAINER_IMAGE,
+    containerTimeoutMs: process.env.MERCURY_CONTAINER_TIMEOUT_MS,
+    maxConcurrency: process.env.MERCURY_MAX_CONCURRENCY,
 
     // Rate Limiting
-    rateLimitPerUser: process.env.BEARCLAW_RATE_LIMIT_PER_USER,
-    rateLimitWindowMs: process.env.BEARCLAW_RATE_LIMIT_WINDOW_MS,
+    rateLimitPerUser: process.env.MERCURY_RATE_LIMIT_PER_USER,
+    rateLimitWindowMs: process.env.MERCURY_RATE_LIMIT_WINDOW_MS,
 
     // Chat SDK Server
-    chatSdkPort: process.env.BEARCLAW_CHATSDK_PORT,
-    chatSdkUserName: process.env.BEARCLAW_CHATSDK_USERNAME,
+    chatSdkPort: process.env.MERCURY_CHATSDK_PORT,
+    chatSdkUserName: process.env.MERCURY_CHATSDK_USERNAME,
 
     // Discord
-    discordGatewayDurationMs: process.env.BEARCLAW_DISCORD_GATEWAY_DURATION_MS,
-    discordGatewaySecret: process.env.BEARCLAW_DISCORD_GATEWAY_SECRET,
+    discordGatewayDurationMs: process.env.MERCURY_DISCORD_GATEWAY_DURATION_MS,
+    discordGatewaySecret: process.env.MERCURY_DISCORD_GATEWAY_SECRET,
 
     // WhatsApp
-    enableWhatsApp: process.env.BEARCLAW_ENABLE_WHATSAPP,
+    enableWhatsApp: process.env.MERCURY_ENABLE_WHATSAPP,
 
     // Media Handling
-    mediaEnabled: process.env.BEARCLAW_MEDIA_ENABLED,
-    mediaMaxSizeMb: process.env.BEARCLAW_MEDIA_MAX_SIZE_MB,
+    mediaEnabled: process.env.MERCURY_MEDIA_ENABLED,
+    mediaMaxSizeMb: process.env.MERCURY_MEDIA_MAX_SIZE_MB,
 
     // Permissions
-    admins: process.env.BEARCLAW_ADMINS,
+    admins: process.env.MERCURY_ADMINS,
   });
 
   const dataDir = base.dataDir;
@@ -125,7 +125,7 @@ export function loadConfig(): AppConfig {
     globalDir: path.join(dataDir, "global"),
     groupsDir: path.join(dataDir, "groups"),
     whatsappAuthDir:
-      process.env.BEARCLAW_WHATSAPP_AUTH_DIR ??
+      process.env.MERCURY_WHATSAPP_AUTH_DIR ??
       path.join(dataDir, "whatsapp-auth"),
   };
 }

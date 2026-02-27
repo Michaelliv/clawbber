@@ -172,10 +172,9 @@ export class WhatsAppBaileysAdapter
   private readonly getGroupWorkspace?: MediaDownloadCallback;
 
   constructor(options?: WhatsAppAdapterOptions) {
-    this.userName = options?.userName ?? "bearclaw";
+    this.userName = options?.userName ?? "mercury";
     this.authDir =
-      options?.authDir ??
-      path.join(process.cwd(), ".bearclaw", "whatsapp-auth");
+      options?.authDir ?? path.join(process.cwd(), ".mercury", "whatsapp-auth");
 
     // Media config
     this.mediaEnabled = options?.mediaEnabled ?? true;

@@ -1,6 +1,6 @@
 # Web Search
 
-BearClaw agents can search the web and fetch content from URLs using `agent-browser`, a headless browser CLI. No API keys required.
+Mercury agents can search the web and fetch content from URLs using `agent-browser`, a headless browser CLI. No API keys required.
 
 ## How It Works
 
@@ -28,7 +28,7 @@ User asks a question requiring current information
 | Serper API | Fast, cheap | $0.001/search, requires key |
 | Google/Bing direct | — | Blocked with CAPTCHAs |
 
-BearClaw uses browser-based search by default for zero-config operation.
+Mercury uses browser-based search by default for zero-config operation.
 
 ## Search Engines
 
@@ -81,7 +81,7 @@ This adds ~300MB to the container image.
 
 ## Agent Instructions
 
-The agent receives these instructions via `.bearclaw/global/AGENTS.md`:
+The agent receives these instructions via `.mercury/global/AGENTS.md`:
 
 ```markdown
 ## Web Search

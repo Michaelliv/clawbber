@@ -17,7 +17,7 @@ export type InputSource = "cli" | "scheduler" | "chat-sdk";
 
 export type ShutdownHook = () => Promise<void> | void;
 
-export class BearClawCoreRuntime {
+export class MercuryCoreRuntime {
   readonly db: Db;
   readonly scheduler: TaskScheduler;
   readonly queue: GroupQueue;

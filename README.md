@@ -1,15 +1,15 @@
-# 🐻🦞 BearClaw
+# 🪽 Mercury
 
 <p align="center">
-  <em>There are many claws, but this one is mine.</em>
+  <em>Swift messenger of the gods — personal AI assistant for chat platforms</em>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Michaelliv/bearclaw"><img alt="GitHub" src="https://img.shields.io/badge/github-bearclaw-181717?style=flat-square&logo=github" /></a>
-  <a href="https://www.npmjs.com/package/bearclaw"><img alt="npm" src="https://img.shields.io/npm/v/bearclaw?style=flat-square&logo=npm" /></a>
+  <a href="https://github.com/Michaelliv/mercury"><img alt="GitHub" src="https://img.shields.io/badge/github-mercury-181717?style=flat-square&logo=github" /></a>
+  <a href="https://www.npmjs.com/package/@miclivs/mercury"><img alt="npm" src="https://img.shields.io/npm/v/@miclivs/mercury?style=flat-square&logo=npm" /></a>
 </p>
 
-BearClaw is a personal AI assistant that lives where you chat. It connects to WhatsApp, Slack, and Discord, runs agents inside containers for isolation, and uses [pi](https://pi.dev) as the runtime — giving you persistent sessions, skills, extensions, and the full coding agent toolkit.
+Mercury is a personal AI assistant that lives where you chat. It connects to WhatsApp, Slack, and Discord, runs agents inside containers for isolation, and uses [pi](https://pi.dev) as the runtime — giving you persistent sessions, skills, extensions, and the full coding agent toolkit.
 
 ---
 
@@ -39,9 +39,9 @@ BearClaw is a personal AI assistant that lives where you chat. It connects to Wh
 ## Quick Start
 
 ```bash
-npm install -g bearclaw
+npm install -g mercury
 mkdir my-assistant && cd my-assistant
-bearclaw init
+mercury init
 ```
 
 Edit `.env` with your model credentials:
@@ -53,13 +53,13 @@ ANTHROPIC_API_KEY=sk-ant-...
 Enable an ingress (e.g., WhatsApp):
 
 ```bash
-BEARCLAW_ENABLE_WHATSAPP=true
+MERCURY_ENABLE_WHATSAPP=true
 ```
 
 Run:
 
 ```bash
-bearclaw run
+mercury run
 ```
 
 Scan the QR code with WhatsApp, then message yourself or a group where the bot is present.
@@ -121,8 +121,8 @@ Enable any combination of chat platforms.
 Uses [Baileys](https://github.com/WhiskeySockets/Baileys) for WhatsApp Web socket connection.
 
 ```bash
-BEARCLAW_ENABLE_WHATSAPP=true
-BEARCLAW_WHATSAPP_AUTH_DIR=/path/to/auth  # optional, defaults to .bearclaw/whatsapp-auth
+MERCURY_ENABLE_WHATSAPP=true
+MERCURY_WHATSAPP_AUTH_DIR=/path/to/auth  # optional, defaults to .mercury/whatsapp-auth
 ```
 
 On first run, scan the QR code displayed in the terminal.
@@ -130,7 +130,7 @@ On first run, scan the QR code displayed in the terminal.
 **Reuse existing auth** (e.g., from nanoclaw):
 
 ```bash
-BEARCLAW_WHATSAPP_AUTH_DIR=/path/to/nanoclaw/store/auth
+MERCURY_WHATSAPP_AUTH_DIR=/path/to/nanoclaw/store/auth
 ```
 
 ### Slack
@@ -158,7 +158,7 @@ Optional gateway trigger: `GET /discord/gateway`
 
 ## Adding to Groups
 
-BearClaw automatically sets up when it receives its first message from a new group — no manual configuration needed.
+Mercury automatically sets up when it receives its first message from a new group — no manual configuration needed.
 
 | Platform | How to add |
 |----------|------------|
@@ -166,9 +166,9 @@ BearClaw automatically sets up when it receives its first message from a new gro
 | **Slack** | Invite the bot to a channel (`/invite @botname`) |
 | **Discord** | Add bot to server via OAuth URL, it sees channels it has access to |
 
-On first triggered message (e.g., `@BearClaw hello`):
+On first triggered message (e.g., `@Mercury hello`):
 1. Group record created in database
-2. Workspace directory created at `.bearclaw/groups/<group-id>/`
+2. Workspace directory created at `.mercury/groups/<group-id>/`
 3. Session file initialized
 4. Bot starts responding
 
@@ -179,7 +179,7 @@ On first triggered message (e.g., `@BearClaw hello`):
 Each group/thread gets its own workspace directory:
 
 ```
-.bearclaw/
+.mercury/
 ├── global/                    # Shared across all groups
 │   ├── AGENTS.md              # Global instructions
 │   ├── auth.json              # pi OAuth tokens
@@ -190,7 +190,7 @@ Each group/thread gets its own workspace directory:
 ├── groups/
 │   ├── <group-id>/            # Per-group workspace
 │   │   ├── AGENTS.md          # Group-specific instructions
-│   │   ├── .bearclaw.session.jsonl  # pi session file
+│   │   ├── .mercury.session.jsonl  # pi session file
 │   │   ├── media/             # Downloaded media files
 │   │   └── .pi/
 │   │       ├── extensions/
@@ -209,10 +209,10 @@ Workspaces are mounted into the container, so:
 
 ## Sessions
 
-BearClaw uses native pi session persistence. Each group has a session file at:
+Mercury uses native pi session persistence. Each group has a session file at:
 
 ```
-.bearclaw/groups/<group-id>/.bearclaw.session.jsonl
+.mercury/groups/<group-id>/.mercury.session.jsonl
 ```
 
 Sessions are tree-structured (see [pi session docs](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent/docs/session.md)):
@@ -238,22 +238,22 @@ Control when the assistant responds.
 Configure globally:
 
 ```bash
-BEARCLAW_TRIGGER_MATCH=mention
-BEARCLAW_TRIGGER_PATTERNS=@BearClaw,BearClaw
+MERCURY_TRIGGER_MATCH=mention
+MERCURY_TRIGGER_PATTERNS=@Mercury,Mercury
 ```
 
-Or per-group via `bearclaw-ctl`:
+Or per-group via `mercury-ctl`:
 
 ```bash
-bearclaw-ctl config set trigger_match always
-bearclaw-ctl config set trigger_patterns "@Bot,Bot"
+mercury-ctl config set trigger_match always
+mercury-ctl config set trigger_patterns "@Bot,Bot"
 ```
 
 ---
 
 ## Media
 
-BearClaw downloads media attachments from chat messages and passes them to pi.
+Mercury downloads media attachments from chat messages and passes them to pi.
 
 ### Supported Types
 
@@ -269,15 +269,15 @@ BearClaw downloads media attachments from chat messages and passes them to pi.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BEARCLAW_MEDIA_ENABLED` | `true` | Enable media downloads |
-| `BEARCLAW_MEDIA_MAX_SIZE_MB` | `10` | Max file size to download |
+| `MERCURY_MEDIA_ENABLED` | `true` | Enable media downloads |
+| `MERCURY_MEDIA_MAX_SIZE_MB` | `10` | Max file size to download |
 
 ### Storage
 
 Media is saved to the group workspace:
 
 ```
-.bearclaw/groups/<group-id>/media/
+.mercury/groups/<group-id>/media/
 ├── 1709012345-image.jpg
 ├── 1709012400-voice.ogg
 └── 1709012500-report.pdf
@@ -292,7 +292,7 @@ Attachments are passed to pi as XML:
   <attachment type="image" path="/groups/xxx/media/123.jpg" mime="image/jpeg" size="12345" />
 </attachments>
 
-@bearclaw what's in this image?
+@mercury what's in this image?
 ```
 
 See [docs/media/overview.md](docs/media/overview.md) for architecture details.
@@ -308,9 +308,9 @@ Chat commands for control (require trigger in groups, work directly in DMs):
 | `stop` | Abort current run and clear queue |
 | `compact` | Set session boundary (fresh context) |
 
-Example: `@BearClaw stop`
+Example: `@Mercury stop`
 
-On process shutdown (`SIGTERM`/`SIGINT`), bearclaw runs a full teardown sequence — stopping the scheduler, draining the queue, killing containers, disconnecting adapters, and closing the database. See [docs/graceful-shutdown.md](docs/graceful-shutdown.md) for details.
+On process shutdown (`SIGTERM`/`SIGINT`), mercury runs a full teardown sequence — stopping the scheduler, draining the queue, killing containers, disconnecting adapters, and closing the database. See [docs/graceful-shutdown.md](docs/graceful-shutdown.md) for details.
 
 ---
 
@@ -319,12 +319,12 @@ On process shutdown (`SIGTERM`/`SIGINT`), bearclaw runs a full teardown sequence
 Create recurring tasks with cron expressions:
 
 ```bash
-# Inside container via bearclaw-ctl
-bearclaw-ctl tasks create --cron "0 9 * * *" --prompt "Good morning! What's on my calendar today?"
-bearclaw-ctl tasks list
-bearclaw-ctl tasks pause <id>
-bearclaw-ctl tasks resume <id>
-bearclaw-ctl tasks delete <id>
+# Inside container via mercury-ctl
+mercury-ctl tasks create --cron "0 9 * * *" --prompt "Good morning! What's on my calendar today?"
+mercury-ctl tasks list
+mercury-ctl tasks pause <id>
+mercury-ctl tasks resume <id>
+mercury-ctl tasks delete <id>
 ```
 
 Tasks run in the context of the current group with the creator's permissions.
@@ -369,35 +369,35 @@ Custom roles can be created by assigning permissions to any role name.
 
 ```bash
 # List all roles in the current group
-bearclaw-ctl roles list
+mercury-ctl roles list
 
 # Grant admin role to a user
-bearclaw-ctl roles grant 1234567890@s.whatsapp.net --role admin
+mercury-ctl roles grant 1234567890@s.whatsapp.net --role admin
 
 # Grant a custom role
-bearclaw-ctl roles grant 1234567890@s.whatsapp.net --role moderator
+mercury-ctl roles grant 1234567890@s.whatsapp.net --role moderator
 
 # Revoke role (user becomes member)
-bearclaw-ctl roles revoke 1234567890@s.whatsapp.net
+mercury-ctl roles revoke 1234567890@s.whatsapp.net
 ```
 
 ### Managing Permissions
 
 ```bash
 # Show permissions for all roles
-bearclaw-ctl permissions show
+mercury-ctl permissions show
 
 # Show permissions for a specific role
-bearclaw-ctl permissions show --role member
+mercury-ctl permissions show --role member
 
 # Give members ability to stop the agent
-bearclaw-ctl permissions set member prompt,stop
+mercury-ctl permissions set member prompt,stop
 
 # Create a moderator role with task management
-bearclaw-ctl permissions set moderator prompt,stop,tasks.list,tasks.pause,tasks.resume
+mercury-ctl permissions set moderator prompt,stop,tasks.list,tasks.pause,tasks.resume
 
 # Give a role full task control
-bearclaw-ctl permissions set taskmaster prompt,tasks.list,tasks.create,tasks.pause,tasks.resume,tasks.delete
+mercury-ctl permissions set taskmaster prompt,tasks.list,tasks.create,tasks.pause,tasks.resume,tasks.delete
 ```
 
 ### Seeding Admins
@@ -405,7 +405,7 @@ bearclaw-ctl permissions set taskmaster prompt,tasks.list,tasks.create,tasks.pau
 Pre-configure admin users via environment variable. They'll be granted admin on first interaction:
 
 ```bash
-BEARCLAW_ADMINS=1234567890@s.whatsapp.net,0987654321@s.whatsapp.net
+MERCURY_ADMINS=1234567890@s.whatsapp.net,0987654321@s.whatsapp.net
 ```
 
 ### Permission Inheritance
@@ -425,8 +425,8 @@ Set in `.env` or environment. See [Environment Variables](#environment-variables
 ### Per-group (database)
 
 ```bash
-bearclaw-ctl config set <key> <value>
-bearclaw-ctl config get [key]
+mercury-ctl config set <key> <value>
+mercury-ctl config get [key]
 ```
 
 Available keys:
@@ -451,54 +451,54 @@ The agent runs inside a Docker container with:
 ./container/build.sh
 ```
 
-**Image name:** `bearclaw-agent:latest` (override with `BEARCLAW_AGENT_CONTAINER_IMAGE`)
+**Image name:** `mercury-agent:latest` (override with `MERCURY_AGENT_CONTAINER_IMAGE`)
 
 **What's mounted:**
 
 | Host | Container |
 |------|-----------|
-| `BEARCLAW_PI_AGENT_DIR` | `/home/node/.pi/agent` |
-| `BEARCLAW_GROUPS_DIR` | `/groups` |
+| `MERCURY_PI_AGENT_DIR` | `/home/node/.pi/agent` |
+| `MERCURY_GROUPS_DIR` | `/groups` |
 
 ---
 
 ## CLI Reference
 
-### bearclaw-ctl
+### mercury-ctl
 
-Management CLI available inside the agent container. This is how the AI agent manages tasks, permissions, and configuration — you don't run this directly, but the agent uses it to control bearclaw from within.
+Management CLI available inside the agent container. This is how the AI agent manages tasks, permissions, and configuration — you don't run this directly, but the agent uses it to control mercury from within.
 
 ```bash
-bearclaw-ctl whoami                              # Show caller/group info
-bearclaw-ctl stop                                # Abort current run
-bearclaw-ctl compact                             # Reset session boundary
+mercury-ctl whoami                              # Show caller/group info
+mercury-ctl stop                                # Abort current run
+mercury-ctl compact                             # Reset session boundary
 
-bearclaw-ctl tasks list                          # List scheduled tasks
-bearclaw-ctl tasks create --cron <expr> --prompt <text>
-bearclaw-ctl tasks pause <id>
-bearclaw-ctl tasks resume <id>
-bearclaw-ctl tasks delete <id>
+mercury-ctl tasks list                          # List scheduled tasks
+mercury-ctl tasks create --cron <expr> --prompt <text>
+mercury-ctl tasks pause <id>
+mercury-ctl tasks resume <id>
+mercury-ctl tasks delete <id>
 
-bearclaw-ctl roles list                          # List roles in group
-bearclaw-ctl roles grant <user-id> [--role <role>]
-bearclaw-ctl roles revoke <user-id>
+mercury-ctl roles list                          # List roles in group
+mercury-ctl roles grant <user-id> [--role <role>]
+mercury-ctl roles revoke <user-id>
 
-bearclaw-ctl permissions show [--role <role>]    # Show permissions
-bearclaw-ctl permissions set <role> <perm1,perm2,...>
+mercury-ctl permissions show [--role <role>]    # Show permissions
+mercury-ctl permissions set <role> <perm1,perm2,...>
 
-bearclaw-ctl config get [key]                    # Get group config
-bearclaw-ctl config set <key> <value>            # Set group config
+mercury-ctl config get [key]                    # Get group config
+mercury-ctl config set <key> <value>            # Set group config
 ```
 
-### bearclaw
+### mercury
 
 Main CLI for managing your assistant.
 
 ```bash
-bearclaw init         # Initialize project in current directory
-bearclaw run          # Start chat adapters
-bearclaw build        # Rebuild container image
-bearclaw status       # Show status and configuration
+mercury init         # Initialize project in current directory
+mercury run          # Start chat adapters
+mercury build        # Rebuild container image
+mercury status       # Show status and configuration
 ```
 
 ---
@@ -509,51 +509,51 @@ bearclaw status       # Show status and configuration
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BEARCLAW_DATA_DIR` | `.bearclaw` | Data directory |
-| `BEARCLAW_MAX_CONCURRENCY` | `3` | Max concurrent agent runs |
-| `BEARCLAW_CHATSDK_PORT` | `3000` | API server port |
-| `BEARCLAW_CHATSDK_USERNAME` | `bearclaw` | Bot display name |
-| `BEARCLAW_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error`, `silent` |
+| `MERCURY_DATA_DIR` | `.mercury` | Data directory |
+| `MERCURY_MAX_CONCURRENCY` | `3` | Max concurrent agent runs |
+| `MERCURY_CHATSDK_PORT` | `3000` | API server port |
+| `MERCURY_CHATSDK_USERNAME` | `mercury` | Bot display name |
+| `MERCURY_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error`, `silent` |
 
 ### Model
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BEARCLAW_MODEL_PROVIDER` | `anthropic` | Model provider |
-| `BEARCLAW_MODEL` | `claude-sonnet-4-20250514` | Model ID |
+| `MERCURY_MODEL_PROVIDER` | `anthropic` | Model provider |
+| `MERCURY_MODEL` | `claude-sonnet-4-20250514` | Model ID |
 | `ANTHROPIC_API_KEY` | — | Anthropic API key |
 | `OPENAI_API_KEY` | — | OpenAI API key |
-| `BEARCLAW_AUTH_PATH` | — | Path to pi auth.json for OAuth |
+| `MERCURY_AUTH_PATH` | — | Path to pi auth.json for OAuth |
 
 ### Container
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BEARCLAW_AGENT_CONTAINER_IMAGE` | `bearclaw-agent:latest` | Docker image |
-| `BEARCLAW_PI_AGENT_DIR` | `.bearclaw/global` | Mounted as `/home/node/.pi/agent` |
-| `BEARCLAW_GROUPS_DIR` | `.bearclaw/groups` | Mounted as `/groups` |
+| `MERCURY_AGENT_CONTAINER_IMAGE` | `mercury-agent:latest` | Docker image |
+| `MERCURY_PI_AGENT_DIR` | `.mercury/global` | Mounted as `/home/node/.pi/agent` |
+| `MERCURY_GROUPS_DIR` | `.mercury/groups` | Mounted as `/groups` |
 
 ### Triggers
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BEARCLAW_TRIGGER_MATCH` | `mention` | `mention`, `prefix`, `always` |
-| `BEARCLAW_TRIGGER_PATTERNS` | `@BearClaw,BearClaw` | Comma-separated |
-| `BEARCLAW_ADMINS` | — | Comma-separated admin user IDs |
+| `MERCURY_TRIGGER_MATCH` | `mention` | `mention`, `prefix`, `always` |
+| `MERCURY_TRIGGER_PATTERNS` | `@Mercury,Mercury` | Comma-separated |
+| `MERCURY_ADMINS` | — | Comma-separated admin user IDs |
 
 ### Media
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BEARCLAW_MEDIA_ENABLED` | `true` | Enable media downloads |
-| `BEARCLAW_MEDIA_MAX_SIZE_MB` | `10` | Max file size (MB) |
+| `MERCURY_MEDIA_ENABLED` | `true` | Enable media downloads |
+| `MERCURY_MEDIA_MAX_SIZE_MB` | `10` | Max file size (MB) |
 
 ### WhatsApp
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BEARCLAW_ENABLE_WHATSAPP` | `false` | Enable WhatsApp adapter |
-| `BEARCLAW_WHATSAPP_AUTH_DIR` | `.bearclaw/whatsapp-auth` | Auth storage path |
+| `MERCURY_ENABLE_WHATSAPP` | `false` | Enable WhatsApp adapter |
+| `MERCURY_WHATSAPP_AUTH_DIR` | `.mercury/whatsapp-auth` | Auth storage path |
 
 ### Slack
 
@@ -569,8 +569,8 @@ bearclaw status       # Show status and configuration
 | `DISCORD_BOT_TOKEN` | Discord bot token |
 | `DISCORD_PUBLIC_KEY` | Discord public key |
 | `DISCORD_APPLICATION_ID` | Discord application ID |
-| `BEARCLAW_DISCORD_GATEWAY_SECRET` | Optional gateway auth |
-| `BEARCLAW_DISCORD_GATEWAY_DURATION_MS` | Gateway duration |
+| `MERCURY_DISCORD_GATEWAY_SECRET` | Optional gateway auth |
+| `MERCURY_DISCORD_GATEWAY_DURATION_MS` | Gateway duration |
 
 ---
 
@@ -581,5 +581,5 @@ MIT
 ---
 
 <p align="center">
-  <em>There are many claws, but this one is mine.</em> 🐻
+  <em>There are many claws, but this one is mine.</em> 🪽
 </p>

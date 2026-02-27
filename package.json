@@ -1,5 +1,5 @@
 {
-  "name": "bear-claw",
+  "name": "@miclivs/mercury",
   "version": "0.1.7",
   "description": "Personal AI assistant for chat platforms (WhatsApp, Slack, Discord)",
   "license": "MIT",
@@ -14,12 +14,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Michaelliv/bearclaw"
+    "url": "https://github.com/Michaelliv/mercury"
   },
   "type": "module",
   "bin": {
-    "bearclaw": "./src/cli/bearclaw.ts",
-    "bearclaw-ctl": "./src/cli/bearclaw-ctl.ts"
+    "mercury": "./src/cli/mercury.ts",
+    "mercury-ctl": "./src/cli/mercury-ctl.ts"
   },
   "files": [
     "src",
