@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mercury</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg-secondary: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --green: #3fb950;
+      --yellow: #d29922;
+      --red: #f85149;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+      font-size: 13px;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .header {
+      border: 1px solid var(--border);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 14px;
+      font-weight: normal;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header h1 .wing {
+      font-size: 16px;
+    }
+
+    .header .uptime {
+      color: var(--text-muted);
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .panel-header {
+      background: var(--bg-secondary);
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .panel-body {
+      padding: 12px 16px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .row:last-child {
+      border-bottom: none;
+    }
+
+    .row .label {
+      color: var(--text-muted);
+    }
+
+    .row .value {
+      text-align: right;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+
+    .status.connected::before {
+      background: var(--green);
+    }
+
+    .status.disconnected::before {
+      background: var(--red);
+    }
+
+    .status.active::before {
+      background: var(--yellow);
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .badge {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+
+    .badge.green {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .table th {
+      text-align: left;
+      color: var(--text-muted);
+      font-weight: normal;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table td {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table .mono {
+      font-family: inherit;
+      color: var(--accent);
+    }
+
+    .table .muted {
+      color: var(--text-muted);
+    }
+
+    .table .truncate {
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .empty {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 16px 0;
+      text-align: center;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .metric {
+      text-align: center;
+      padding: 16px 8px;
+    }
+
+    .metric .value {
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--accent);
+    }
+
+    .metric .label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 16px;
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .refresh-indicator {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .refresh-indicator.loading {
+      color: var(--yellow);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1><span class="wing">🪽</span> MERCURY</h1>
+      <div>
+        <span class="uptime" id="uptime">—</span>
+        <span class="refresh-indicator" id="refresh">●</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">Status</div>
+      <div class="panel-body metrics" id="metrics">
+        <div class="metric">
+          <div class="value" id="m-adapters">—</div>
+          <div class="label">Adapters</div>
+        </div>
+        <div class="metric">
+          <div class="value" id="m-groups">—</div>
+          <div class="label">Groups</div>
+        </div>
+        <div class="metric">
+          <div class="value" id="m-queue">—</div>
+          <div class="label">Queue</div>
+        </div>
+        <div class="metric">
+          <div class="value" id="m-containers">—</div>
+          <div class="label">Active</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">Adapters</div>
+      <div class="panel-body" id="adapters">
+        <div class="empty">Loading...</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">Recent Groups</div>
+      <div class="panel-body">
+        <table class="table" id="groups-table">
+          <thead>
+            <tr>
+              <th>Group</th>
+              <th>Last Activity</th>
+            </tr>
+          </thead>
+          <tbody id="groups">
+            <tr><td colspan="2" class="empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">Scheduled Tasks</div>
+      <div class="panel-body">
+        <table class="table" id="tasks-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Schedule</th>
+              <th>Prompt</th>
+              <th>Next Run</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tasks">
+            <tr><td colspan="5" class="empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="footer">
+      <em>There are many claws, but this one is mine.</em>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '';
+
+    function formatUptime(seconds) {
+      const d = Math.floor(seconds / 86400);
+      const h = Math.floor((seconds % 86400) / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      
+      if (d > 0) return `${d}d ${h}h ${m}m`;
+      if (h > 0) return `${h}h ${m}m ${s}s`;
+      if (m > 0) return `${m}m ${s}s`;
+      return `${s}s`;
+    }
+
+    function formatRelativeTime(timestamp) {
+      const now = Date.now();
+      const diff = now - timestamp;
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+
+      if (days > 0) return `${days}d ago`;
+      if (hours > 0) return `${hours}h ago`;
+      if (minutes > 0) return `${minutes}m ago`;
+      return 'just now';
+    }
+
+    function formatFutureTime(timestamp) {
+      const now = Date.now();
+      const diff = timestamp - now;
+      if (diff < 0) return 'now';
+      
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+
+      if (days > 0) return `in ${days}d`;
+      if (hours > 0) return `in ${hours}h ${minutes % 60}m`;
+      if (minutes > 0) return `in ${minutes}m`;
+      return `in ${seconds}s`;
+    }
+
+    function truncate(str, len = 40) {
+      if (!str) return '—';
+      return str.length > len ? str.slice(0, len) + '...' : str;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    async function fetchData() {
+      const refresh = document.getElementById('refresh');
+      refresh.classList.add('loading');
+      
+      try {
+        const [health, dashboard] = await Promise.all([
+          fetch(`${API_BASE}/health`).then(r => r.json()),
+          fetch(`${API_BASE}/dashboard/data`).then(r => r.json()).catch(() => ({ groups: [], tasks: [] }))
+        ]);
+
+        // Update uptime
+        document.getElementById('uptime').textContent = `up ${formatUptime(health.uptime)}`;
+
+        // Update metrics
+        const adapterCount = Object.keys(health.adapters).length;
+        document.getElementById('m-adapters').textContent = adapterCount;
+        document.getElementById('m-groups').textContent = dashboard.groups?.length ?? '—';
+        document.getElementById('m-queue').textContent = health.queue.active + health.queue.pending;
+        document.getElementById('m-containers').textContent = health.containers.active;
+
+        // Update adapters
+        const adaptersEl = document.getElementById('adapters');
+        const adapterRows = Object.entries(health.adapters).map(([name, connected]) => {
+          const status = connected ? 'connected' : 'disconnected';
+          return `<div class="row">
+            <span class="label">${name}</span>
+            <span class="status ${status}">${status}</span>
+          </div>`;
+        }).join('');
+        adaptersEl.innerHTML = adapterRows || '<div class="empty">No adapters configured</div>';
+
+        // Update groups
+        const groupsEl = document.getElementById('groups');
+        if (dashboard.groups && dashboard.groups.length > 0) {
+          const groupRows = dashboard.groups.slice(0, 10).map(g => {
+            const platform = g.id.split(':')[0];
+            const shortId = g.id.split(':').slice(1).join(':');
+            return `<tr>
+              <td><span class="badge">${platform}</span> <span class="mono truncate">${escapeHtml(truncate(shortId, 30))}</span></td>
+              <td class="muted">${formatRelativeTime(g.lastActivity)}</td>
+            </tr>`;
+          }).join('');
+          groupsEl.innerHTML = groupRows;
+        } else {
+          groupsEl.innerHTML = '<tr><td colspan="2" class="empty">No groups yet</td></tr>';
+        }
+
+        // Update tasks
+        const tasksEl = document.getElementById('tasks');
+        if (dashboard.tasks && dashboard.tasks.length > 0) {
+          const taskRows = dashboard.tasks.map(t => {
+            const status = t.active ? 'active' : 'paused';
+            const statusClass = t.active ? 'green' : '';
+            return `<tr>
+              <td class="mono">#${t.id}</td>
+              <td class="mono">${escapeHtml(t.cron)}</td>
+              <td class="truncate">${escapeHtml(truncate(t.prompt, 30))}</td>
+              <td class="muted">${formatFutureTime(t.nextRunAt)}</td>
+              <td><span class="badge ${statusClass}">${status}</span></td>
+            </tr>`;
+          }).join('');
+          tasksEl.innerHTML = taskRows;
+        } else {
+          tasksEl.innerHTML = '<tr><td colspan="5" class="empty">No scheduled tasks</td></tr>';
+        }
+
+      } catch (err) {
+        console.error('Failed to fetch data:', err);
+      } finally {
+        refresh.classList.remove('loading');
+      }
+    }
+
+    // Initial fetch
+    fetchData();
+
+    // Poll every 5 seconds
+    setInterval(fetchData, 5000);
+  </script>
+</body>
+</html>
