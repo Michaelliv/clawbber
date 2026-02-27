@@ -132,6 +132,25 @@
       50% { opacity: 0.4; }
     }
 
+    .connection-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-left: 8px;
+      background: var(--green);
+      transition: background 0.3s ease;
+    }
+
+    .connection-status.error {
+      background: var(--red);
+    }
+
+    .connection-status.loading {
+      background: var(--yellow);
+      animation: pulse 1s ease-in-out infinite;
+    }
+
     .badge {
       background: var(--bg-secondary);
       border: 1px solid var(--border);
@@ -318,7 +337,7 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1><span class="wing">🪽</span> MERCURY</h1>
+      <h1><span class="wing">🪽</span> MERCURY <span class="connection-status" id="conn-status"></span></h1>
       <div>
         <span class="uptime" id="uptime">—</span>
         <span class="refresh-indicator" id="refresh">●</span>
@@ -529,7 +548,9 @@
 
     async function fetchData() {
       const refresh = document.getElementById('refresh');
+      const connStatus = document.getElementById('conn-status');
       refresh.classList.add('loading');
+      connStatus.className = 'connection-status loading';
       
       try {
         const [health, dashboard] = await Promise.all([
@@ -600,10 +621,9 @@
         const groupsEl = document.getElementById('groups');
         if (dashboard.groups && dashboard.groups.length > 0) {
           const groupRows = dashboard.groups.slice(0, 10).map(g => {
-            const platform = g.id.split(':')[0];
-            const shortId = g.id.split(':').slice(1).join(':');
+            const name = g.title || g.shortId;
             return `<tr>
-              <td><span class="badge">${platform}</span> <span class="mono truncate">${escapeHtml(truncate(shortId, 30))}</span></td>
+              <td><span class="badge">${g.platform}</span> <span class="mono truncate" title="${escapeHtml(g.id)}">${escapeHtml(name)}</span></td>
               <td class="muted">${formatRelativeTime(g.lastActivity)}</td>
             </tr>`;
           }).join('');
@@ -631,8 +651,10 @@
           tasksEl.innerHTML = '<tr><td colspan="5" class="empty">No scheduled tasks</td></tr>';
         }
 
+        connStatus.className = 'connection-status';
       } catch (err) {
         console.error('Failed to fetch data:', err);
+        connStatus.className = 'connection-status error';
       } finally {
         refresh.classList.remove('loading');
       }
