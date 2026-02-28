@@ -78,3 +78,16 @@ export interface TriggerConfig {
   patterns: string[]; // e.g. ["@Mick", "Mick"]
   caseSensitive: boolean;
 }
+
+/**
+ * Abstraction for sending messages to groups.
+ * Implemented by chat-sdk, used by runtime for scheduled task replies.
+ */
+export interface MessageSender {
+  /**
+   * Send a text message to a group.
+   * @param groupId - The group identifier (encodes platform, e.g., "whatsapp:123@lid:456@lid")
+   * @param text - The message text to send
+   */
+  send(groupId: string, text: string): Promise<void>;
+}

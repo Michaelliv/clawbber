@@ -7,7 +7,7 @@ import {
   ensureGroupWorkspace,
   ensurePiResourceDir,
 } from "../storage/memory.js";
-import type { MessageAttachment } from "../types.js";
+import type { MessageAttachment, MessageSender } from "../types.js";
 import { GroupQueue } from "./group-queue.js";
 import { RateLimiter } from "./rate-limiter.js";
 import { type RouteResult, routeInput } from "./router.js";
@@ -51,9 +51,7 @@ export class MercuryCoreRuntime {
     this.rateLimiter.startCleanup();
   }
 
-  startScheduler(
-    onScheduledReply?: (groupId: string, reply: string) => Promise<void>,
-  ): void {
+  startScheduler(sender?: MessageSender): void {
     this.scheduler.start(async (task) => {
       const reply = await this.executePrompt(
         task.groupId,
@@ -61,7 +59,7 @@ export class MercuryCoreRuntime {
         "scheduler",
         task.createdBy,
       );
-      if (onScheduledReply) await onScheduledReply(task.groupId, reply);
+      if (sender) await sender.send(task.groupId, reply);
     });
   }
 

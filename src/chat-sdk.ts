@@ -204,7 +204,23 @@ async function main() {
     );
   });
 
-  core.startScheduler();
+  // Message sender for scheduled task replies
+  const messageSender: import("./types.js").MessageSender = {
+    async send(groupId, text) {
+      const [platform] = groupId.split(":");
+      const adapter = adapters[platform];
+      if (!adapter) {
+        logger.warn("Message dropped — no adapter for platform", {
+          groupId,
+          platform,
+        });
+        return;
+      }
+      await adapter.postMessage(groupId, text);
+    },
+  };
+
+  core.startScheduler(messageSender);
   await bot.initialize();
 
   const webhooks = bot.webhooks as Record<string, WebhookHandler>;

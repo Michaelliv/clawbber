@@ -71,7 +71,7 @@ export class TaskScheduler {
     if (!this.handler) return false;
     const task = this.db.getTask(taskId);
     if (!task || !task.active) return false;
-    
+
     await this.handler({
       id: task.id,
       groupId: task.groupId,
