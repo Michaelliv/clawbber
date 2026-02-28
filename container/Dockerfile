@@ -1,7 +1,7 @@
 # Mercury Agent Container
 FROM oven/bun:1.3
 
-# Install Chromium dependencies (from agent-browser install --with-deps)
+# Install Chromium dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libxcb-shm0 libx11-xcb1 libx11-6 libxcb1 libxext6 libxrandr2 \
     libxcomposite1 libxdamage1 libxfixes3 libxi6 \
@@ -11,20 +11,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libdrm2 libxkbcommon0 libatspi2.0-0 libcups2 libxshmfence1 libgbm1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pi CLI, agent-browser, and napkin
+# Install CLIs
 RUN bun add -g @mariozechner/pi-coding-agent agent-browser napkin-ai
 
-# Install Chromium browser
-RUN bunx playwright install chromium
+# Set HOME to /home/node for playwright (container-runner uses this)
+ENV HOME=/home/node
+RUN mkdir -p /home/node/.cache && bunx playwright install chromium
 
 WORKDIR /app
 
-# Copy container runtime files
 COPY src/agent/container-entry.ts /app/src/agent/container-entry.ts
 COPY src/cli/mercury-ctl.ts /app/src/cli/mercury-ctl.ts
 COPY src/types.ts /app/src/types.ts
 
-# Make mercury-ctl available as a command
 RUN echo '#!/bin/sh\nbun run /app/src/cli/mercury-ctl.ts "$@"' > /usr/local/bin/mercury-ctl && \
     chmod +x /usr/local/bin/mercury-ctl
 
