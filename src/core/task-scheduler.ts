@@ -11,6 +11,7 @@ type TaskHandler = (task: {
 
 export class TaskScheduler {
   private timer: NodeJS.Timeout | null = null;
+  private handler: TaskHandler | null = null;
 
   constructor(
     private readonly db: Db,
@@ -19,6 +20,7 @@ export class TaskScheduler {
 
   start(handler: TaskHandler) {
     if (this.timer) return;
+    this.handler = handler;
 
     const tick = async () => {
       try {
@@ -63,5 +65,19 @@ export class TaskScheduler {
   computeNextRun(cron: string, from = new Date()): number {
     const interval = CronExpressionParser.parse(cron, { currentDate: from });
     return interval.next().getTime();
+  }
+
+  async triggerTask(taskId: number): Promise<boolean> {
+    if (!this.handler) return false;
+    const task = this.db.getTask(taskId);
+    if (!task || !task.active) return false;
+    
+    await this.handler({
+      id: task.id,
+      groupId: task.groupId,
+      prompt: task.prompt,
+      createdBy: task.createdBy,
+    });
+    return true;
   }
 }

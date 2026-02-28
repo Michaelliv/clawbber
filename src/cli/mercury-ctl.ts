@@ -54,6 +54,7 @@ Usage:
   mercury-ctl tasks create --cron <expr> --prompt <text>
   mercury-ctl tasks pause <id>
   mercury-ctl tasks resume <id>
+  mercury-ctl tasks run <id>
   mercury-ctl tasks delete <id>
   mercury-ctl config get [key]
   mercury-ctl config set <key> <value>
@@ -120,6 +121,11 @@ async function main() {
         case "resume": {
           const id = requireArg(args, 2, "task id");
           print(await api("POST", `/api/tasks/${id}/resume`));
+          break;
+        }
+        case "run": {
+          const id = requireArg(args, 2, "task id");
+          print(await api("POST", `/api/tasks/${id}/run`));
           break;
         }
         case "delete": {

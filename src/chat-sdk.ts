@@ -223,6 +223,7 @@ async function main() {
     config,
     containerRunner: core.containerRunner,
     queue: core.queue,
+    scheduler: core.scheduler,
   };
 
   const server = Bun.serve({
