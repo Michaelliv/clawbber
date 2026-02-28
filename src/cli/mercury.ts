@@ -70,8 +70,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \\
     libdrm2 libxkbcommon0 libatspi2.0-0 libcups2 libxshmfence1 libgbm1 \\
     && rm -rf /var/lib/apt/lists/*
 
-# Install pi CLI and agent-browser
-RUN bun add -g @mariozechner/pi-coding-agent agent-browser
+# Install pi CLI, agent-browser, and napkin
+RUN bun add -g @mariozechner/pi-coding-agent agent-browser napkin-ai
 
 # Install Chromium browser
 RUN bunx playwright install chromium
