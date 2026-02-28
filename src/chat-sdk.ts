@@ -305,10 +305,32 @@ async function main() {
         const tasks = core.db.listTasks();
         const activeGroups = core.containerRunner.getActiveGroups();
 
-        return new Response(JSON.stringify({ groups, tasks, activeGroups }), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        });
+        // Collect roles across all groups
+        const roles: Array<{
+          groupId: string;
+          platform: string;
+          userId: string;
+          role: string;
+        }> = [];
+        for (const g of groups) {
+          const groupRoles = core.db.listRoles(g.id);
+          for (const r of groupRoles) {
+            roles.push({
+              groupId: g.id,
+              platform: g.platform,
+              userId: r.platformUserId,
+              role: r.role,
+            });
+          }
+        }
+
+        return new Response(
+          JSON.stringify({ groups, tasks, activeGroups, roles }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        );
       }
 
       // Health check endpoint — no auth required

@@ -459,6 +459,23 @@
       </div>
     </div>
 
+    <div class="panel">
+      <div class="panel-header">Permissions</div>
+      <div class="panel-body">
+        <table class="table" id="roles-table">
+          <thead>
+            <tr>
+              <th>Platform</th>
+              <th>User</th>
+              <th>Role</th>
+            </tr>
+          </thead>
+          <tbody id="roles">
+            <tr><td colspan="3" class="empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
   </div>
 
@@ -711,6 +728,23 @@
           tasksEl.innerHTML = taskRows;
         } else {
           tasksEl.innerHTML = '<tr><td colspan="5" class="empty">No scheduled tasks</td></tr>';
+        }
+
+        // Update roles
+        const rolesEl = document.getElementById('roles');
+        if (dashboard.roles && dashboard.roles.length > 0) {
+          const roleRows = dashboard.roles.map(r => {
+            const roleClass = r.role === 'admin' ? 'green' : '';
+            const shortUserId = r.userId.length > 20 ? '...' + r.userId.slice(-15) : r.userId;
+            return `<tr>
+              <td><span class="badge">${r.platform}</span></td>
+              <td class="mono truncate" title="${escapeHtml(r.userId)}">${escapeHtml(shortUserId)}</td>
+              <td><span class="badge ${roleClass}">${r.role}</span></td>
+            </tr>`;
+          }).join('');
+          rolesEl.innerHTML = roleRows;
+        } else {
+          rolesEl.innerHTML = '<tr><td colspan="3" class="empty">No roles assigned</td></tr>';
         }
 
         connStatus.className = 'connection-status';
