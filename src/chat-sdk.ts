@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createSlackAdapter } from "@chat-adapter/slack";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import { type Adapter, Chat, type Message, type Thread } from "chat";
@@ -10,13 +13,11 @@ import {
   createWhatsAppBaileysAdapter,
   type WhatsAppBaileysAdapter,
 } from "./adapters/whatsapp.js";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { loadConfig, resolveProjectPath } from "./config.js";
 import { handleApiRequest } from "./core/api.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
 import { MercuryCoreRuntime } from "./core/runtime.js";
 import { loadTriggerConfig, matchTrigger } from "./core/trigger.js";
 import { configureLogger, logger } from "./logger.js";
@@ -203,7 +204,23 @@ async function main() {
     );
   });
 
-  core.startScheduler();
+  // Message sender for scheduled task replies
+  const messageSender: import("./types.js").MessageSender = {
+    async send(groupId, text) {
+      const [platform] = groupId.split(":");
+      const adapter = adapters[platform];
+      if (!adapter) {
+        logger.warn("Message dropped — no adapter for platform", {
+          groupId,
+          platform,
+        });
+        return;
+      }
+      await adapter.postMessage(groupId, text);
+    },
+  };
+
+  core.startScheduler(messageSender);
   await bot.initialize();
 
   const webhooks = bot.webhooks as Record<string, WebhookHandler>;
@@ -222,6 +239,7 @@ async function main() {
     config,
     containerRunner: core.containerRunner,
     queue: core.queue,
+    scheduler: core.scheduler,
   };
 
   const server = Bun.serve({
@@ -230,9 +248,15 @@ async function main() {
       const url = new URL(request.url);
 
       // Dashboard — serve static HTML
-      if ((url.pathname === "/" || url.pathname === "/dashboard") && request.method === "GET") {
+      if (
+        (url.pathname === "/" || url.pathname === "/dashboard") &&
+        request.method === "GET"
+      ) {
         try {
-          const html = readFileSync(join(__dirname, "dashboard/index.html"), "utf8");
+          const html = readFileSync(
+            join(__dirname, "dashboard/index.html"),
+            "utf8",
+          );
           return new Response(html, {
             status: 200,
             headers: { "content-type": "text/html; charset=utf-8" },
@@ -242,20 +266,88 @@ async function main() {
         }
       }
 
+      // Dashboard activity endpoint — public, read-only
+      if (url.pathname === "/dashboard/activity" && request.method === "GET") {
+        const groups = core.db.listGroups();
+        const activity: Array<{
+          group: string;
+          role: string;
+          preview: string;
+          time: number;
+        }> = [];
+        for (const g of groups.slice(0, 5)) {
+          const msgs = core.db.getRecentMessages(g.id, 3);
+          for (const m of msgs) {
+            activity.push({
+              group: g.id.split(":")[0],
+              role: m.role,
+              preview: m.content.slice(0, 60),
+              time: m.createdAt,
+            });
+          }
+        }
+        activity.sort((a, b) => b.time - a.time);
+        return new Response(
+          JSON.stringify({ activity: activity.slice(0, 10) }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        );
+      }
+
       // Dashboard data endpoint — public, read-only
       if (url.pathname === "/dashboard/data" && request.method === "GET") {
-        const groups = core.db.listGroups().map(g => ({
-          id: g.id,
-          title: g.title,
-          lastActivity: g.updatedAt,
-        })).sort((a, b) => b.lastActivity - a.lastActivity);
+        const groups = core.db
+          .listGroups()
+          .map((g) => {
+            // Parse group ID to get platform and readable ID
+            const parts = g.id.split(":");
+            const platform = parts[0];
+            // For WhatsApp, show last 8 chars of ID
+            // For Slack/Discord, might have channel names
+            let shortId = parts.slice(1).join(":");
+            if (shortId.length > 20) shortId = `...${shortId.slice(-15)}`;
+
+            return {
+              id: g.id,
+              platform,
+              shortId,
+              title: g.title !== g.id ? g.title : null,
+              lastActivity: g.updatedAt,
+            };
+          })
+          .sort((a, b) => b.lastActivity - a.lastActivity);
 
         const tasks = core.db.listTasks();
+        const activeGroups = core.containerRunner.getActiveGroups();
 
-        return new Response(JSON.stringify({ groups, tasks }), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        });
+        // Collect roles across all groups
+        const roles: Array<{
+          groupId: string;
+          platform: string;
+          userId: string;
+          role: string;
+        }> = [];
+        for (const g of groups) {
+          const groupRoles = core.db.listRoles(g.id);
+          for (const r of groupRoles) {
+            roles.push({
+              groupId: g.id,
+              platform: g.platform,
+              userId: r.platformUserId,
+              role: r.role,
+            });
+          }
+        }
+
+        return new Response(
+          JSON.stringify({ groups, tasks, activeGroups, roles }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        );
       }
 
       // Health check endpoint — no auth required

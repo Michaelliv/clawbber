@@ -1,6 +1,7 @@
 import { CronExpressionParser } from "cron-parser";
 import type { AgentContainerRunner } from "../agent/container-runner.js";
 import type { AppConfig } from "../config.js";
+import { logger } from "../logger.js";
 import type { Db } from "../storage/db.js";
 import type { GroupQueue } from "./group-queue.js";
 import {
@@ -10,12 +11,14 @@ import {
   type Permission,
   resolveRole,
 } from "./permissions.js";
+import type { TaskScheduler } from "./task-scheduler.js";
 
 interface ApiContext {
   db: Db;
   config: AppConfig;
   containerRunner: AgentContainerRunner;
   queue: GroupQueue;
+  scheduler: TaskScheduler;
 }
 
 interface TaskCreateBody {
@@ -168,6 +171,20 @@ export function handleApiRequest(
         return error("Task not found", 404);
       ctx.db.setTaskActive(taskId, true);
       return json({ id: taskId, active: true });
+    }
+
+    if (action === "run" && request.method === "POST") {
+      const denied = check(ctx.db, groupId, role, "tasks.create");
+      if (denied) return denied;
+      const task = ctx.db.getTask(taskId);
+      if (!task || task.groupId !== groupId)
+        return error("Task not found", 404);
+      if (!task.active) return error("Task is paused", 400);
+      // Trigger async - don't wait for completion
+      ctx.scheduler.triggerTask(taskId).catch((err) => {
+        logger.error("Task trigger failed", { taskId, error: String(err) });
+      });
+      return json({ id: taskId, triggered: true });
     }
 
     if (!action && request.method === "DELETE") {

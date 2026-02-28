@@ -132,6 +132,25 @@
       50% { opacity: 0.4; }
     }
 
+    .connection-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-left: 8px;
+      background: var(--green);
+      transition: background 0.3s ease;
+    }
+
+    .connection-status.error {
+      background: var(--red);
+    }
+
+    .connection-status.loading {
+      background: var(--yellow);
+      animation: pulse 1s ease-in-out infinite;
+    }
+
     .badge {
       background: var(--bg-secondary);
       border: 1px solid var(--border);
@@ -193,6 +212,21 @@
       text-align: center;
     }
 
+    .activity-item {
+      display: flex;
+      gap: 8px;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-item .time { color: var(--text-muted); min-width: 50px; }
+    .activity-item .role { min-width: 60px; }
+    .activity-item .role.user { color: var(--accent); }
+    .activity-item .role.assistant { color: var(--green); }
+    .activity-item .role.ambient { color: var(--text-muted); }
+    .activity-item .preview { color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
     .metrics {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -208,6 +242,9 @@
       font-size: 24px;
       font-weight: bold;
       color: var(--accent);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .metric .label {
@@ -226,15 +263,121 @@
     .refresh-indicator.loading {
       color: var(--yellow);
     }
+
+    .auto-refresh {
+      color: var(--green);
+      cursor: pointer;
+      font-size: 11px;
+      margin-left: 8px;
+      transition: color 0.2s ease;
+    }
+
+    .auto-refresh:hover {
+      opacity: 0.8;
+    }
+
+    .auto-refresh.paused {
+      color: var(--text-muted);
+    }
+
+    .help-hint {
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-left: 12px;
+      cursor: help;
+    }
+
+    .help-hint:hover {
+      color: var(--accent);
+    }
+
+    .help-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 99;
+      display: none;
+    }
+
+    .help-overlay.visible {
+      display: block;
+    }
+
+    .help-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      padding: 16px 24px;
+      z-index: 100;
+      display: none;
+      min-width: 320px;
+    }
+
+    .help-modal.visible {
+      display: block;
+    }
+
+    .help-modal h2 {
+      font-size: 11px;
+      font-weight: normal;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .help-modal .shortcut {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      gap: 24px;
+    }
+
+    .help-modal .key {
+      font-weight: bold;
+      color: var(--accent);
+      min-width: 60px;
+    }
+
+    .help-modal .desc {
+      color: var(--text);
+      flex: 1;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      body { padding: 8px; }
+      .container { max-width: 100%; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .header { flex-direction: column; gap: 8px; text-align: center; }
+      .header h1 { justify-content: center; }
+      .table { font-size: 11px; }
+      .table .truncate { max-width: 120px; }
+      .help-modal { width: 90%; min-width: auto; }
+    }
+
+    @media (max-width: 480px) {
+      .metrics { gap: 8px; }
+      .metric { padding: 12px 4px; }
+      .metric .value { font-size: 18px; }
+      .panel-body { padding: 8px 12px; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1><span class="wing">🪽</span> MERCURY</h1>
+      <h1><span class="wing">🪽</span> MERCURY <span class="connection-status" id="conn-status"></span></h1>
       <div>
         <span class="uptime" id="uptime">—</span>
         <span class="refresh-indicator" id="refresh">●</span>
+        <span class="auto-refresh" id="auto-refresh" onclick="toggleAutoRefresh()" title="Toggle auto-refresh">●</span>
+        <span class="help-hint" onclick="toggleHelp()">?</span>
       </div>
     </div>
 
@@ -260,9 +403,21 @@
       </div>
     </div>
 
+    <div class="panel" id="active-panel" style="display:none">
+      <div class="panel-header">Active Runs</div>
+      <div class="panel-body" id="active-runs"></div>
+    </div>
+
     <div class="panel">
       <div class="panel-header">Adapters</div>
       <div class="panel-body" id="adapters">
+        <div class="empty">Loading...</div>
+      </div>
+    </div>
+
+    <div class="panel" id="activity-panel">
+      <div class="panel-header">Recent Activity</div>
+      <div class="panel-body" id="activity">
         <div class="empty">Loading...</div>
       </div>
     </div>
@@ -304,11 +459,119 @@
       </div>
     </div>
 
+    <div class="panel">
+      <div class="panel-header">Permissions</div>
+      <div class="panel-body">
+        <table class="table" id="roles-table">
+          <thead>
+            <tr>
+              <th>Platform</th>
+              <th>User</th>
+              <th>Role</th>
+            </tr>
+          </thead>
+          <tbody id="roles">
+            <tr><td colspan="3" class="empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
+  </div>
+
+  <div class="help-overlay" id="help-overlay" onclick="closeHelp()"></div>
+  <div class="help-modal" id="help-modal">
+    <h2>Keyboard Shortcuts</h2>
+    <div class="shortcut">
+      <span class="key">r</span>
+      <span class="desc">Refresh now</span>
+    </div>
+    <div class="shortcut">
+      <span class="key">p</span>
+      <span class="desc">Pause/resume auto-refresh</span>
+    </div>
+    <div class="shortcut">
+      <span class="key">?</span>
+      <span class="desc">Toggle this help</span>
+    </div>
+    <div class="shortcut">
+      <span class="key">Esc</span>
+      <span class="desc">Close</span>
+    </div>
   </div>
 
   <script>
     const API_BASE = '';
+
+    const history = { adapters: [], groups: [], queue: [], containers: [] };
+    const MAX_HISTORY = 20;
+
+    function pushHistory(key, val) {
+      history[key].push(val);
+      if (history[key].length > MAX_HISTORY) history[key].shift();
+    }
+
+    function sparkline(data) {
+      if (data.length < 2) return '';
+      const max = Math.max(...data, 1);
+      const w = 50, h = 12;
+      const pts = data.map((v, i) => `${(i/(data.length-1))*w},${h-(v/max)*h}`).join(' ');
+      return `<svg width="${w}" height="${h}" style="opacity:0.4;margin-top:4px"><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.5"/></svg>`;
+    }
+
+    let autoRefreshEnabled = true;
+    let refreshInterval = null;
+
+    function toggleAutoRefresh() {
+      autoRefreshEnabled = !autoRefreshEnabled;
+      const el = document.getElementById('auto-refresh');
+      el.classList.toggle('paused', !autoRefreshEnabled);
+      el.title = autoRefreshEnabled ? 'Auto-refresh on (click to pause)' : 'Auto-refresh paused (click to resume)';
+      
+      if (autoRefreshEnabled && !refreshInterval) {
+        refreshInterval = setInterval(fetchData, 5000);
+      } else if (!autoRefreshEnabled && refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+      }
+    }
+
+    function toggleHelp() {
+      const modal = document.getElementById('help-modal');
+      const overlay = document.getElementById('help-overlay');
+      modal.classList.toggle('visible');
+      overlay.classList.toggle('visible');
+    }
+
+    function closeHelp() {
+      const modal = document.getElementById('help-modal');
+      const overlay = document.getElementById('help-overlay');
+      modal.classList.remove('visible');
+      overlay.classList.remove('visible');
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      // r - refresh now
+      if (e.key === 'r' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        fetchData();
+      }
+      // p - pause/resume auto-refresh
+      if (e.key === 'p') {
+        e.preventDefault();
+        toggleAutoRefresh();
+      }
+      // ? - show help
+      if (e.key === '?') {
+        e.preventDefault();
+        toggleHelp();
+      }
+      // Escape - close help
+      if (e.key === 'Escape') {
+        closeHelp();
+      }
+    });
 
     function formatUptime(seconds) {
       const d = Math.floor(seconds / 86400);
@@ -354,7 +617,7 @@
 
     function truncate(str, len = 40) {
       if (!str) return '—';
-      return str.length > len ? str.slice(0, len) + '...' : str;
+      return str.length > len ? `${str.slice(0, len)}...` : str;
     }
 
     function escapeHtml(str) {
@@ -364,7 +627,9 @@
 
     async function fetchData() {
       const refresh = document.getElementById('refresh');
+      const connStatus = document.getElementById('conn-status');
       refresh.classList.add('loading');
+      connStatus.className = 'connection-status loading';
       
       try {
         const [health, dashboard] = await Promise.all([
@@ -377,10 +642,33 @@
 
         // Update metrics
         const adapterCount = Object.keys(health.adapters).length;
-        document.getElementById('m-adapters').textContent = adapterCount;
-        document.getElementById('m-groups').textContent = dashboard.groups?.length ?? '—';
-        document.getElementById('m-queue').textContent = health.queue.active + health.queue.pending;
-        document.getElementById('m-containers').textContent = health.containers.active;
+        pushHistory('adapters', adapterCount);
+        document.getElementById('m-adapters').innerHTML = adapterCount + sparkline(history.adapters);
+        
+        const groupCount = dashboard.groups?.length ?? 0;
+        pushHistory('groups', groupCount);
+        document.getElementById('m-groups').innerHTML = groupCount + sparkline(history.groups);
+        
+        const queueCount = health.queue.active + health.queue.pending;
+        pushHistory('queue', queueCount);
+        document.getElementById('m-queue').innerHTML = queueCount + sparkline(history.queue);
+        
+        const containerCount = health.containers.active;
+        pushHistory('containers', containerCount);
+        document.getElementById('m-containers').innerHTML = containerCount + sparkline(history.containers);
+
+        // Update active runs
+        const activePanel = document.getElementById('active-panel');
+        const activeRuns = document.getElementById('active-runs');
+        if (dashboard.activeGroups?.length > 0) {
+          activePanel.style.display = 'block';
+          activeRuns.innerHTML = dashboard.activeGroups.map(g => {
+            const platform = g.split(':')[0];
+            return `<div class="row"><span class="badge">${platform}</span> <span class="status active">running</span></div>`;
+          }).join('');
+        } else {
+          activePanel.style.display = 'none';
+        }
 
         // Update adapters
         const adaptersEl = document.getElementById('adapters');
@@ -393,14 +681,28 @@
         }).join('');
         adaptersEl.innerHTML = adapterRows || '<div class="empty">No adapters configured</div>';
 
+        // Update activity
+        const activityRes = await fetch('/dashboard/activity').then(r => r.json()).catch(() => ({ activity: [] }));
+        const activityEl = document.getElementById('activity');
+        if (activityRes.activity?.length > 0) {
+          activityEl.innerHTML = activityRes.activity.map(a => `
+            <div class="activity-item">
+              <span class="time">${formatRelativeTime(a.time)}</span>
+              <span class="role ${a.role}">${a.role}</span>
+              <span class="preview">${escapeHtml(a.preview)}</span>
+            </div>
+          `).join('');
+        } else {
+          activityEl.innerHTML = '<div class="empty">No recent activity</div>';
+        }
+
         // Update groups
         const groupsEl = document.getElementById('groups');
         if (dashboard.groups && dashboard.groups.length > 0) {
           const groupRows = dashboard.groups.slice(0, 10).map(g => {
-            const platform = g.id.split(':')[0];
-            const shortId = g.id.split(':').slice(1).join(':');
+            const name = g.title || g.shortId;
             return `<tr>
-              <td><span class="badge">${platform}</span> <span class="mono truncate">${escapeHtml(truncate(shortId, 30))}</span></td>
+              <td><span class="badge">${g.platform}</span> <span class="mono truncate" title="${escapeHtml(g.id)}">${escapeHtml(name)}</span></td>
               <td class="muted">${formatRelativeTime(g.lastActivity)}</td>
             </tr>`;
           }).join('');
@@ -428,8 +730,27 @@
           tasksEl.innerHTML = '<tr><td colspan="5" class="empty">No scheduled tasks</td></tr>';
         }
 
+        // Update roles
+        const rolesEl = document.getElementById('roles');
+        if (dashboard.roles && dashboard.roles.length > 0) {
+          const roleRows = dashboard.roles.map(r => {
+            const roleClass = r.role === 'admin' ? 'green' : '';
+            const shortUserId = r.userId.length > 20 ? '...' + r.userId.slice(-15) : r.userId;
+            return `<tr>
+              <td><span class="badge">${r.platform}</span></td>
+              <td class="mono truncate" title="${escapeHtml(r.userId)}">${escapeHtml(shortUserId)}</td>
+              <td><span class="badge ${roleClass}">${r.role}</span></td>
+            </tr>`;
+          }).join('');
+          rolesEl.innerHTML = roleRows;
+        } else {
+          rolesEl.innerHTML = '<tr><td colspan="3" class="empty">No roles assigned</td></tr>';
+        }
+
+        connStatus.className = 'connection-status';
       } catch (err) {
         console.error('Failed to fetch data:', err);
+        connStatus.className = 'connection-status error';
       } finally {
         refresh.classList.remove('loading');
       }
@@ -439,7 +760,7 @@
     fetchData();
 
     // Poll every 5 seconds
-    setInterval(fetchData, 5000);
+    refreshInterval = setInterval(fetchData, 5000);
   </script>
 </body>
 </html>

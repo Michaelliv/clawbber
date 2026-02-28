@@ -18,165 +18,7 @@ import { authenticate } from "./whatsapp-auth.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = join(__dirname, "../..");
 const CWD = process.cwd();
-
-// Embedded templates
-const ENV_TEMPLATE = `# Required: one provider key
-ANTHROPIC_API_KEY=
-# OPENAI_API_KEY=
-
-# Identity
-MERCURY_CHATSDK_USERNAME=mercury
-MERCURY_CHATSDK_PORT=3000
-MERCURY_TRIGGER_PATTERNS=@Mercury,Mercury
-
-# Model
-MERCURY_MODEL_PROVIDER=anthropic
-MERCURY_MODEL=claude-sonnet-4-20250514
-
-# Runtime
-MERCURY_DATA_DIR=.mercury
-MERCURY_MAX_CONCURRENCY=2
-MERCURY_LOG_LEVEL=info
-
-# Containerized agent runtime
-MERCURY_AGENT_CONTAINER_IMAGE=mercury-agent:latest
-
-# Optional: admin caller IDs (comma-separated)
-# MERCURY_ADMINS=
-
-# WhatsApp ingress (Baileys socket)
-MERCURY_ENABLE_WHATSAPP=false
-
-# Optional Slack ingress
-# SLACK_BOT_TOKEN=
-# SLACK_SIGNING_SECRET=
-
-# Optional Discord ingress
-# DISCORD_BOT_TOKEN=
-# DISCORD_PUBLIC_KEY=
-# DISCORD_APPLICATION_ID=
-`;
-
-const DOCKERFILE_TEMPLATE = `# Mercury Agent Container
-FROM oven/bun:1.3
-
-# Install Chromium dependencies (from agent-browser install --with-deps)
-RUN apt-get update && apt-get install -y --no-install-recommends \\
-    libxcb-shm0 libx11-xcb1 libx11-6 libxcb1 libxext6 libxrandr2 \\
-    libxcomposite1 libxdamage1 libxfixes3 libxi6 \\
-    libpangocairo-1.0-0 libpango-1.0-0 libatk1.0-0 libcairo-gobject2 \\
-    libcairo2 libgdk-pixbuf-2.0-0 libxrender1 libasound2 libfreetype6 \\
-    libfontconfig1 libdbus-1-3 libnss3 libnspr4 libatk-bridge2.0-0 \\
-    libdrm2 libxkbcommon0 libatspi2.0-0 libcups2 libxshmfence1 libgbm1 \\
-    && rm -rf /var/lib/apt/lists/*
-
-# Install pi CLI and agent-browser
-RUN bun add -g @mariozechner/pi-coding-agent agent-browser
-
-# Install Chromium browser
-RUN bunx playwright install chromium
-
-WORKDIR /app
-
-# Copy container runtime files
-COPY src/agent/container-entry.ts /app/src/agent/container-entry.ts
-COPY src/cli/mercury-ctl.ts /app/src/cli/mercury-ctl.ts
-COPY src/types.ts /app/src/types.ts
-
-ENTRYPOINT ["bun", "run", "/app/src/agent/container-entry.ts"]
-`;
-
-const BUILD_SCRIPT_TEMPLATE = `#!/bin/bash
-set -e
-
-SCRIPT_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-cd "$PROJECT_ROOT"
-
-IMAGE_NAME="mercury-agent"
-TAG="\${1:-latest}"
-
-echo "Building Mercury agent container image..."
-echo "Image: \${IMAGE_NAME}:\${TAG}"
-
-docker build -f container/Dockerfile -t "\${IMAGE_NAME}:\${TAG}" .
-
-echo ""
-echo "Build complete: \${IMAGE_NAME}:\${TAG}"
-`;
-
-const AGENTS_MD_TEMPLATE = `# Mercury Agent Instructions
-
-You are a helpful AI assistant running inside a chat platform (WhatsApp, Slack, or Discord).
-
-## Guidelines
-
-1. **Be concise** — Chat messages should be readable on mobile
-2. **Use markdown sparingly** — Not all chat platforms render it well
-3. **Cite sources** — When searching the web, mention where information came from
-4. **Ask for clarification** — If a request is ambiguous, ask before acting
-
-## Web Search
-
-Use \`agent-browser\` with Brave Search. **Always include the user-agent to avoid CAPTCHAs:**
-
-\`\`\`bash
-agent-browser close 2>/dev/null
-agent-browser --user-agent "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \\
-  open "https://search.brave.com/search?q=your+query+here"
-agent-browser get text body
-\`\`\`
-
-To fetch content from a URL:
-
-\`\`\`bash
-agent-browser open "https://example.com"
-agent-browser wait --load networkidle
-agent-browser get text body
-\`\`\`
-
-**Note:** Google, DuckDuckGo, and Bing block automated access. Use Brave or Startpage.
-
-## Limitations
-
-- Running in a container with limited resources
-- Long-running tasks may time out
-- No persistent memory between conversations
-
-## Mercury Documentation
-
-When users ask about mercury's capabilities, configuration, or how things work, read the relevant docs:
-
-| Path | Contents |
-|------|----------|
-| /docs/mercury/README.md | Overview, commands, triggers, permissions, tasks, config |
-| /docs/mercury/docs/ingress.md | Adapter message flow (WhatsApp, Slack, Discord) |
-| /docs/mercury/docs/media/ | Media handling (downloads, attachments) |
-| /docs/mercury/docs/subagents.md | Delegating to sub-agents |
-| /docs/mercury/docs/web-search.md | Web search capabilities |
-| /docs/mercury/docs/auth/ | Platform authentication |
-| /docs/mercury/docs/rate-limiting.md | Rate limiting configuration |
-
-Read these lazily — only when the user asks about a specific topic.
-
-## Sub-agents
-
-You can delegate tasks to specialized sub-agents:
-
-| Agent | Purpose | Model |
-|-------|---------|-------|
-| explore | Fast codebase reconnaissance | Haiku |
-| worker | General-purpose tasks | Sonnet |
-
-### Single Agent
-"Use explore to find all authentication code"
-
-### Parallel Execution
-"Run 2 workers in parallel: one to refactor models, one to update tests"
-
-### Chained Workflow
-"Use a chain: first have explore find the code, then have worker implement the fix"
-`;
+const TEMPLATES_DIR = join(PACKAGE_ROOT, "resources/templates");
 
 function getVersion(): string {
   try {
@@ -228,7 +70,7 @@ function initAction(): void {
   // Create .env if it doesn't exist
   const envPath = join(CWD, ".env");
   if (!existsSync(envPath)) {
-    writeFileSync(envPath, ENV_TEMPLATE);
+    copyFileSync(join(TEMPLATES_DIR, "env.template"), envPath);
     console.log("  ✓ .env");
   } else {
     console.log("  • .env (already exists)");
@@ -247,7 +89,7 @@ function initAction(): void {
   // Create AGENTS.md for the agent
   const agentsMdPath = join(CWD, ".mercury/global/AGENTS.md");
   if (!existsSync(agentsMdPath)) {
-    writeFileSync(agentsMdPath, AGENTS_MD_TEMPLATE);
+    copyFileSync(join(TEMPLATES_DIR, "AGENTS.md"), agentsMdPath);
     console.log("  ✓ .mercury/global/AGENTS.md");
   } else {
     console.log("  • .mercury/global/AGENTS.md (already exists)");
@@ -281,13 +123,13 @@ function initAction(): void {
 
   const dockerfilePath = join(CWD, "container/Dockerfile");
   if (!existsSync(dockerfilePath)) {
-    writeFileSync(dockerfilePath, DOCKERFILE_TEMPLATE);
+    copyFileSync(join(PACKAGE_ROOT, "container/Dockerfile"), dockerfilePath);
     console.log("  ✓ container/Dockerfile");
   }
 
   const buildScriptPath = join(CWD, "container/build.sh");
   if (!existsSync(buildScriptPath)) {
-    writeFileSync(buildScriptPath, BUILD_SCRIPT_TEMPLATE);
+    copyFileSync(join(PACKAGE_ROOT, "container/build.sh"), buildScriptPath);
     chmodSync(buildScriptPath, 0o755);
     console.log("  ✓ container/build.sh");
   }

@@ -103,6 +103,10 @@ export class AgentContainerRunner {
     return this.runningByGroup.size;
   }
 
+  getActiveGroups(): string[] {
+    return [...this.runningByGroup.keys()];
+  }
+
   abort(groupId: string): boolean {
     const proc = this.runningByGroup.get(groupId);
     if (!proc) return false;
