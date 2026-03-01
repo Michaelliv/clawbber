@@ -75,6 +75,11 @@ export function createDiscordMessageHandler(
 ) {
   const { core, db, config } = opts;
 
+  // Get bot user ID from adapter for mention conversion
+  const getBotUserId = (adapter: unknown): string | undefined => {
+    return (adapter as { botUserId?: string }).botUserId;
+  };
+
   return async (
     thread: Thread,
     message: Message,
@@ -82,8 +87,17 @@ export function createDiscordMessageHandler(
   ): Promise<void> => {
     if (message.author.isMe) return;
 
-    const text = message.text.trim();
+    let text = message.text.trim();
     if (!text) return;
+
+    // Convert Discord raw mentions <@botId> to @userName for trigger matching
+    const botUserId = getBotUserId(thread.adapter);
+    if (botUserId) {
+      text = text.replace(
+        new RegExp(`<@!?${botUserId}>`, "g"),
+        `@${config.chatSdkUserName}`,
+      );
+    }
 
     const groupId = discordGroupId(thread.id);
     const callerId = discordCallerId(message);
@@ -117,7 +131,7 @@ export function createDiscordMessageHandler(
 
       const result = await core.handleRawInput({
         groupId,
-        rawText: message.text,
+        rawText: text, // Use converted text with @userName
         callerId,
         authorName: message.author.userName,
         isDM,

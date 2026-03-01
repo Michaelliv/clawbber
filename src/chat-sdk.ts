@@ -423,9 +423,12 @@ async function main() {
         const discord = bot.getAdapter(
           "discord",
         ) as unknown as DiscordGatewayAdapter;
+        const webhookUrl = `http://localhost:${config.chatSdkPort}/webhooks/discord`;
         return discord.startGatewayListener(
           { waitUntil },
           config.discordGatewayDurationMs,
+          undefined,
+          webhookUrl,
         );
       }
 
