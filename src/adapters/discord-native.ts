@@ -30,6 +30,49 @@ import {
 } from "discord.js";
 import { logger } from "../logger.js";
 
+/** Discord's maximum message length */
+export const DISCORD_MAX_LENGTH = 2000;
+
+/**
+ * Split a message into chunks that fit within Discord's character limit.
+ * Tries to break at natural boundaries (paragraphs, lines, spaces) when possible.
+ */
+export function chunkMessage(text: string, maxLength: number): string[] {
+  if (text.length <= maxLength) return [text];
+
+  const chunks: string[] = [];
+  let remaining = text;
+
+  while (remaining.length > maxLength) {
+    // Try to break at paragraph boundary
+    let breakPoint = remaining.lastIndexOf("\n\n", maxLength);
+
+    // Fall back to line break
+    if (breakPoint < maxLength / 2) {
+      breakPoint = remaining.lastIndexOf("\n", maxLength);
+    }
+
+    // Fall back to space
+    if (breakPoint < maxLength / 2) {
+      breakPoint = remaining.lastIndexOf(" ", maxLength);
+    }
+
+    // Hard break if no good boundary found
+    if (breakPoint <= 0) {
+      breakPoint = maxLength;
+    }
+
+    chunks.push(remaining.slice(0, breakPoint).trim());
+    remaining = remaining.slice(breakPoint).trim();
+  }
+
+  if (remaining) {
+    chunks.push(remaining);
+  }
+
+  return chunks;
+}
+
 type DiscordThreadId = {
   guildId: string;
   channelId: string;
@@ -142,8 +185,15 @@ export class DiscordNativeAdapter
     }
 
     const text = this.postableToText(message);
-    const sent = await channel.send(text);
+    const chunks = chunkMessage(text, DISCORD_MAX_LENGTH);
 
+    let lastSent: DiscordMessage | undefined;
+    for (const chunk of chunks) {
+      lastSent = await channel.send(chunk);
+    }
+
+    // lastSent is guaranteed to be defined since chunks always has at least one element
+    const sent = lastSent as DiscordMessage;
     return {
       id: sent.id,
       threadId,
