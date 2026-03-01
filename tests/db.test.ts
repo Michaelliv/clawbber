@@ -214,6 +214,50 @@ describe("tasks", () => {
     const task = db.getTask(id);
     expect(task?.nextRunAt).toBe(2000);
   });
+
+  test("createTask with silent flag", () => {
+    db.ensureGroup("g1");
+    const id = db.createTask(
+      "g1",
+      "* * * * *",
+      "silent task",
+      Date.now(),
+      "user1",
+      true,
+    );
+
+    const task = db.getTask(id);
+    expect(task?.silent).toBe(1);
+  });
+
+  test("createTask defaults to not silent", () => {
+    db.ensureGroup("g1");
+    const id = db.createTask("g1", "* * * * *", "task", Date.now(), "user1");
+
+    const task = db.getTask(id);
+    expect(task?.silent).toBe(0);
+  });
+
+  test("listTasks includes silent field", () => {
+    db.ensureGroup("g1");
+    db.createTask("g1", "* * * * *", "normal", Date.now(), "user1", false);
+    db.createTask("g1", "* * * * *", "silent", Date.now(), "user1", true);
+
+    const tasks = db.listTasks("g1");
+    expect(tasks.length).toBe(2);
+    expect(tasks[0].silent).toBe(0);
+    expect(tasks[1].silent).toBe(1);
+  });
+
+  test("getDueTasks includes silent field", () => {
+    db.ensureGroup("g1");
+    const now = Date.now();
+    db.createTask("g1", "* * * * *", "silent due", now - 1000, "user1", true);
+
+    const due = db.getDueTasks(now);
+    expect(due.length).toBe(1);
+    expect(due[0].silent).toBe(1);
+  });
 });
 
 describe("roles", () => {

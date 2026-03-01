@@ -2,6 +2,21 @@
 
 Mercury includes a task scheduler for recurring automated prompts. Tasks run on cron schedules and execute in the context of a specific group.
 
+## Silent Tasks
+
+Tasks can be marked as **silent** to execute without posting results to the chat. This is useful for:
+
+- **Maintenance tasks** — cleanup, archiving, or housekeeping
+- **Health checks** — periodic monitoring without noise
+- **Background updates** — knowledge base updates, data syncing
+
+The task executes normally but no message is sent to the group.
+
+```bash
+# Create a silent task
+mercury-ctl tasks create --cron "0 3 * * *" --prompt "Run nightly maintenance" --silent
+```
+
 ## How It Works
 
 ```
@@ -34,6 +49,9 @@ mercury-ctl tasks create --cron "0 17 * * 5" --prompt "Generate a summary of thi
 
 # Every 6 hours
 mercury-ctl tasks create --cron "0 */6 * * *" --prompt "Check for any pending items."
+
+# Silent nightly cleanup (no chat output)
+mercury-ctl tasks create --cron "0 3 * * *" --prompt "Clean up old temp files" --silent
 ```
 
 ## Managing Tasks
@@ -101,6 +119,7 @@ CREATE TABLE tasks (
   cron TEXT NOT NULL,
   prompt TEXT NOT NULL,
   active INTEGER NOT NULL DEFAULT 1,
+  silent INTEGER NOT NULL DEFAULT 0,
   next_run_at INTEGER NOT NULL,
   created_by TEXT NOT NULL,
   created_at INTEGER NOT NULL,
@@ -109,6 +128,10 @@ CREATE TABLE tasks (
 
 CREATE INDEX idx_tasks_next ON tasks(active, next_run_at);
 ```
+
+| Column | Description |
+|--------|-------------|
+| `silent` | If 1, task runs but doesn't post results to chat |
 
 ## Permissions
 
@@ -168,13 +191,14 @@ type TaskHandler = (task: {
   groupId: string;
   prompt: string;
   createdBy: string;
+  silent: boolean;
 }) => Promise<void>;
 ```
 
 ### Database Methods
 
 ```typescript
-db.createTask(groupId, cron, prompt, nextRunAt, createdBy);  // Returns task ID
+db.createTask(groupId, cron, prompt, nextRunAt, createdBy, silent);  // Returns task ID
 db.listTasks(groupId?);      // List tasks (optionally filter by group)
 db.getDueTasks(now);         // Get tasks ready to run
 db.getTask(id);              // Get single task

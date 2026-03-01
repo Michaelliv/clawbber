@@ -24,6 +24,7 @@ interface ApiContext {
 interface TaskCreateBody {
   cron?: string;
   prompt?: string;
+  silent?: boolean;
 }
 
 interface ConfigSetBody {
@@ -131,14 +132,22 @@ export function handleApiRequest(
           currentDate: new Date(),
         });
         const nextRunAt = interval.next().getTime();
+        const silent = body.silent ?? false;
         const id = ctx.db.createTask(
           groupId,
           body.cron,
           body.prompt,
           nextRunAt,
           callerId,
+          silent,
         );
-        return json({ id, cron: body.cron, prompt: body.prompt, nextRunAt });
+        return json({
+          id,
+          cron: body.cron,
+          prompt: body.prompt,
+          silent,
+          nextRunAt,
+        });
       } catch {
         return error("Invalid cron expression", 400);
       }

@@ -59,7 +59,9 @@ export class MercuryCoreRuntime {
         "scheduler",
         task.createdBy,
       );
-      if (sender) await sender.send(task.groupId, reply);
+      if (!task.silent && sender) {
+        await sender.send(task.groupId, reply);
+      }
     });
   }
 

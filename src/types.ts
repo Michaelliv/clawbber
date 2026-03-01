@@ -40,6 +40,7 @@ export interface ScheduledTask {
   cron: string;
   prompt: string;
   active: number;
+  silent: number;
   nextRunAt: number;
   createdBy: string;
   createdAt: number;
