@@ -95,7 +95,7 @@ export class AgentContainerRunner {
       try {
         execSync(`docker kill ${containerName}`, { timeout: 5000 });
       } catch {
-        // Container may have already exited, fall back to process signal
+        // docker kill can fail (container exited, daemon issues, etc.) — fall back to process signal
         proc.kill("SIGKILL");
       }
     }
@@ -119,7 +119,7 @@ export class AgentContainerRunner {
     try {
       execSync(`docker kill ${entry.containerName}`, { timeout: 5000 });
     } catch {
-      // Container may have already exited, fall back to process signal
+      // docker kill can fail (container exited, daemon issues, etc.) — fall back to process signal
       entry.proc.kill("SIGKILL");
     }
     return true;
