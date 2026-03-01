@@ -61,6 +61,14 @@ const schema = z.object({
 
   // ─── Permissions ────────────────────────────────────────────────────
   admins: z.string().default(""),
+
+  // ─── KB Distillation ────────────────────────────────────────────────
+  kbDistillIntervalMs: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(24 * 60 * 60 * 1000)
+    .default(0), // 0 = disabled
 });
 
 export type AppConfig = z.infer<typeof schema> & {
@@ -115,6 +123,9 @@ export function loadConfig(): AppConfig {
 
     // Permissions
     admins: process.env.MERCURY_ADMINS,
+
+    // KB Distillation
+    kbDistillIntervalMs: process.env.MERCURY_KB_DISTILL_INTERVAL_MS,
   });
 
   const dataDir = base.dataDir;

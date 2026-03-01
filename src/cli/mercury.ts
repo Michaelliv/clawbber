@@ -13,6 +13,7 @@ import {
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
+import { kbDistill } from "./kb-distill.js";
 import { authenticate } from "./whatsapp-auth.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -350,6 +351,30 @@ authCommand
       console.error("Authentication failed:", message);
       process.exit(1);
     }
+  });
+
+// KB Distillation command
+program
+  .command("kb-distill")
+  .description("Export messages and run kb-distiller")
+  .option("--backfill", "Process all historical messages, not just today")
+  .option("--dry-run", "Show what would be done without running distiller")
+  .action(async (options: { backfill?: boolean; dryRun?: boolean }) => {
+    const envPath = join(CWD, ".env");
+    let dataDir = ".mercury";
+
+    if (existsSync(envPath)) {
+      const envVars = loadEnvFile(envPath);
+      if (envVars.MERCURY_DATA_DIR) {
+        dataDir = envVars.MERCURY_DATA_DIR;
+      }
+    }
+
+    await kbDistill({
+      dataDir: join(CWD, dataDir),
+      backfill: options.backfill,
+      dryRun: options.dryRun,
+    });
   });
 
 program.parse();

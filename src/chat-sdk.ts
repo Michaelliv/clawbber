@@ -221,6 +221,7 @@ async function main() {
   };
 
   core.startScheduler(messageSender);
+  core.startKbDistill();
   await bot.initialize();
 
   const webhooks = bot.webhooks as Record<string, WebhookHandler>;

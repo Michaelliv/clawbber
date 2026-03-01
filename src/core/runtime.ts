@@ -1,5 +1,6 @@
 import { ContainerError } from "../agent/container-error.js";
 import { AgentContainerRunner } from "../agent/container-runner.js";
+import { kbDistill } from "../cli/kb-distill.js";
 import { type AppConfig, resolveProjectPath } from "../config.js";
 import { logger } from "../logger.js";
 import { Db } from "../storage/db.js";
@@ -26,6 +27,7 @@ export class MercuryCoreRuntime {
   private readonly shutdownHooks: ShutdownHook[] = [];
   private shuttingDown = false;
   private signalHandlersInstalled = false;
+  private kbDistillTimer: NodeJS.Timeout | null = null;
 
   constructor(readonly config: AppConfig) {
     this.db = new Db(resolveProjectPath(config.dbPath));
@@ -67,6 +69,43 @@ export class MercuryCoreRuntime {
 
   stopScheduler(): void {
     this.scheduler.stop();
+  }
+
+  startKbDistill(): void {
+    const intervalMs = this.config.kbDistillIntervalMs;
+    if (intervalMs <= 0) return;
+
+    logger.info("Starting KB distillation", { intervalMs });
+
+    // Run immediately on start, then on interval
+    void this.runKbDistill();
+
+    this.kbDistillTimer = setInterval(() => {
+      void this.runKbDistill();
+    }, intervalMs);
+  }
+
+  stopKbDistill(): void {
+    if (this.kbDistillTimer) {
+      clearInterval(this.kbDistillTimer);
+      this.kbDistillTimer = null;
+    }
+  }
+
+  private async runKbDistill(): Promise<void> {
+    try {
+      logger.info("Running KB distillation");
+      await kbDistill({
+        dataDir: resolveProjectPath(this.config.dataDir),
+        backfill: false,
+      });
+      logger.info("KB distillation complete");
+    } catch (err) {
+      logger.error(
+        "KB distillation failed",
+        err instanceof Error ? err : undefined,
+      );
+    }
   }
 
   async handleRawInput(input: {
@@ -247,9 +286,10 @@ export class MercuryCoreRuntime {
     if (forceTimer.unref) forceTimer.unref();
 
     try {
-      // 1. Stop scheduler
+      // 1. Stop schedulers
       logger.info("Shutdown: stopping task scheduler");
       this.scheduler.stop();
+      this.stopKbDistill();
 
       // 2. Drain queue — cancel pending, wait for active
       logger.info("Shutdown: draining group queue");
