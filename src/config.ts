@@ -44,6 +44,7 @@ const schema = z.object({
   chatSdkUserName: z.string().default("mercury"),
 
   // ─── Discord ────────────────────────────────────────────────────────
+  enableDiscord: z.coerce.boolean().default(false),
   discordGatewayDurationMs: z.coerce
     .number()
     .int()
@@ -51,6 +52,9 @@ const schema = z.object({
     .max(60 * 60 * 1000)
     .default(10 * 60 * 1000),
   discordGatewaySecret: z.string().optional(),
+
+  // ─── Slack ──────────────────────────────────────────────────────────
+  enableSlack: z.coerce.boolean().default(false),
 
   // ─── WhatsApp ───────────────────────────────────────────────────────
   enableWhatsApp: z.coerce.boolean().default(false),
@@ -111,8 +115,12 @@ export function loadConfig(): AppConfig {
     chatSdkUserName: process.env.MERCURY_CHATSDK_USERNAME,
 
     // Discord
+    enableDiscord: process.env.MERCURY_ENABLE_DISCORD,
     discordGatewayDurationMs: process.env.MERCURY_DISCORD_GATEWAY_DURATION_MS,
     discordGatewaySecret: process.env.MERCURY_DISCORD_GATEWAY_SECRET,
+
+    // Slack
+    enableSlack: process.env.MERCURY_ENABLE_SLACK,
 
     // WhatsApp
     enableWhatsApp: process.env.MERCURY_ENABLE_WHATSAPP,
