@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const PI_SUBDIRS = [".pi", ".pi/extensions", ".pi/skills", ".pi/prompts"];
-const VAULT_DIRS = [".obsidian", "entities", "daily"];
+const VAULT_DIRS = [".napkin", ".obsidian", "entities", "daily"];
 
 /**
  * Ensure a pi resource directory exists with standard structure.
@@ -23,7 +23,7 @@ export function ensurePiResourceDir(dir: string): void {
 
 /**
  * Ensure vault structure exists in a workspace directory.
- * Creates .obsidian/, entities/, daily/ directories for napkin compatibility.
+ * Creates .napkin/, .obsidian/, entities/, daily/ directories for napkin compatibility.
  */
 export function ensureVaultStructure(dir: string): void {
   for (const sub of VAULT_DIRS) {
