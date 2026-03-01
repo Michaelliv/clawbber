@@ -6,14 +6,6 @@
  */
 
 import {
-  Client,
-  Events,
-  GatewayIntentBits,
-  type Message as DiscordMessage,
-  type OmitPartialGroupDMChannel,
-  Partials,
-} from "discord.js";
-import {
   type Adapter,
   type AdapterPostableMessage,
   type ChatInstance,
@@ -22,13 +14,20 @@ import {
   type FetchResult,
   type FormattedContent,
   Message,
-  NotImplementedError,
   parseMarkdown,
   type RawMessage,
   stringifyMarkdown,
   type ThreadInfo,
   type WebhookOptions,
 } from "chat";
+import {
+  Client,
+  type Message as DiscordMessage,
+  Events,
+  GatewayIntentBits,
+  type OmitPartialGroupDMChannel,
+  Partials,
+} from "discord.js";
 import { logger } from "../logger.js";
 
 type DiscordThreadId = {
@@ -263,8 +262,11 @@ export class DiscordNativeAdapter
   }
 
   async fetchThread(threadId: string): Promise<ThreadInfo> {
-    const { guildId, channelId, threadId: discordThreadId } =
-      this.decodeThreadId(threadId);
+    const {
+      guildId,
+      channelId,
+      threadId: discordThreadId,
+    } = this.decodeThreadId(threadId);
 
     const isDM = guildId === "@me";
 
@@ -416,8 +418,10 @@ export class DiscordNativeAdapter
     if (typeof message === "object" && message !== null) {
       if ("markdown" in message && typeof message.markdown === "string")
         return message.markdown;
-      if ("ast" in message && message.ast) return stringifyMarkdown(message.ast);
-      if ("raw" in message && typeof message.raw === "string") return message.raw;
+      if ("ast" in message && message.ast)
+        return stringifyMarkdown(message.ast);
+      if ("raw" in message && typeof message.raw === "string")
+        return message.raw;
     }
     return "";
   }

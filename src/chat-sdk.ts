@@ -4,16 +4,8 @@ import { fileURLToPath } from "node:url";
 import { createSlackAdapter } from "@chat-adapter/slack";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import { type Adapter, Chat, type Message, type Thread } from "chat";
-import {
-  createDiscordMessageHandler,
-  discordGroupId,
-  discordCallerId,
-  isDiscordDM,
-} from "./adapters/discord.js";
-import {
-  createDiscordNativeAdapter,
-  type DiscordNativeAdapter,
-} from "./adapters/discord-native.js";
+import { createDiscordMessageHandler } from "./adapters/discord.js";
+import { createDiscordNativeAdapter } from "./adapters/discord-native.js";
 import { createSlackMessageHandler } from "./adapters/slack.js";
 import {
   createWhatsAppBaileysAdapter,
@@ -38,8 +30,6 @@ type WebhookHandler = (
   options?: { waitUntil?: WaitUntil },
 ) => Promise<Response>;
 
-
-
 function resolveCallerId(message: Message, thread: Thread): string {
   const userId = message.author.userId || "unknown";
   const platform = thread.adapter.name;
@@ -60,11 +50,21 @@ async function main() {
 
   const adapters: Record<string, Adapter> = {};
 
-  if (process.env.SLACK_SIGNING_SECRET) {
+  if (config.enableSlack) {
+    if (!process.env.SLACK_SIGNING_SECRET) {
+      throw new Error(
+        "MERCURY_ENABLE_SLACK=true but SLACK_SIGNING_SECRET is not set",
+      );
+    }
     adapters.slack = createSlackAdapter();
   }
 
-  if (process.env.DISCORD_BOT_TOKEN) {
+  if (config.enableDiscord) {
+    if (!process.env.DISCORD_BOT_TOKEN) {
+      throw new Error(
+        "MERCURY_ENABLE_DISCORD=true but DISCORD_BOT_TOKEN is not set",
+      );
+    }
     adapters.discord = createDiscordNativeAdapter({
       userName: config.chatSdkUserName,
     });
@@ -87,7 +87,7 @@ async function main() {
 
   if (Object.keys(adapters).length === 0) {
     throw new Error(
-      "No adapters enabled. Configure Slack/Discord env or set MERCURY_ENABLE_WHATSAPP=true",
+      "No adapters enabled. Set MERCURY_ENABLE_WHATSAPP, MERCURY_ENABLE_DISCORD, or MERCURY_ENABLE_SLACK to true",
     );
   }
 

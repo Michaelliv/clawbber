@@ -735,7 +735,7 @@
         if (dashboard.roles && dashboard.roles.length > 0) {
           const roleRows = dashboard.roles.map(r => {
             const roleClass = r.role === 'admin' ? 'green' : '';
-            const shortUserId = r.userId.length > 20 ? '...' + r.userId.slice(-15) : r.userId;
+            const shortUserId = r.userId.length > 20 ? `...${r.userId.slice(-15)}` : r.userId;
             return `<tr>
               <td><span class="badge">${r.platform}</span></td>
               <td class="mono truncate" title="${escapeHtml(r.userId)}">${escapeHtml(shortUserId)}</td>
