@@ -9,7 +9,7 @@ SIGTERM/SIGINT received
   │
   ├─1─► Stop scheduler (clear poll timer)
   ├─2─► Cancel all pending queue entries
-  ├─3─► Kill running containers (SIGTERM → SIGKILL)
+  ├─3─► Kill running containers (docker kill)
   ├─4─► Wait for active work to drain (up to 8s)
   ├─5─► Disconnect adapters (WhatsApp socket, etc.)
   ├─6─► Stop HTTP server
@@ -24,7 +24,7 @@ SIGTERM/SIGINT received
 
 1. **Scheduler first** — prevents new work from being created while we're shutting down.
 2. **Cancel pending queue entries** — no point starting queued work we'll just kill.
-3. **Kill containers** — sends SIGTERM to running Docker processes, escalates to SIGKILL after 2.5s. Containers are labeled with `mercury.managed=true` for identification (see [container-lifecycle.md](./container-lifecycle.md)).
+3. **Kill containers** — uses `docker kill` for reliable termination. Falls back to `SIGKILL` if the docker command fails. Containers are labeled with `mercury.managed=true` for identification (see [container-lifecycle.md](./container-lifecycle.md)).
 4. **Wait for drain** — gives active container runs a chance to finish cleanly (up to 8s).
 5. **Disconnect adapters** — closes the WhatsApp socket, Slack/Discord connections. Done after containers so in-flight replies can still be posted.
 6. **Stop HTTP server** — stops accepting new webhook/API requests.
@@ -57,6 +57,6 @@ core.isShuttingDown              // boolean
 | `TaskScheduler` | `stop()` | Clears the poll timer |
 | `GroupQueue` | `cancelAll()` | Drops all pending entries, returns count |
 | `GroupQueue` | `waitForActive(ms)` | Resolves when active count hits 0 or timeout |
-| `AgentContainerRunner` | `killAll()` | SIGTERM all running containers |
+| `AgentContainerRunner` | `killAll()` | Kill all running containers via `docker kill` |
 | `Db` | `close()` | Closes SQLite connection |
 | `WhatsAppBaileysAdapter` | `shutdown()` | Ends the Baileys socket |
