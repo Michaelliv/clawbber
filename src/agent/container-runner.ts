@@ -177,6 +177,9 @@ export class AgentContainerRunner {
         key: "MERCURY_API_URL",
         value: `http://host.docker.internal:${this.config.chatSdkPort}`,
       },
+      // Stage - React sandbox for AI agents
+      { key: "CONVEX_URL", value: process.env.CONVEX_URL },
+      { key: "STAGE_URL", value: process.env.STAGE_URL },
     ].filter((x): x is { key: string; value: string } => Boolean(x.value));
 
     const containerName = this.generateContainerName();
