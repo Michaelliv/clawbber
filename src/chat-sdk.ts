@@ -5,9 +5,15 @@ import { createSlackAdapter } from "@chat-adapter/slack";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import { type Adapter, Chat, type Message, type Thread } from "chat";
 import {
-  createDiscordAdapter,
   createDiscordMessageHandler,
+  discordGroupId,
+  discordCallerId,
+  isDiscordDM,
 } from "./adapters/discord.js";
+import {
+  createDiscordNativeAdapter,
+  type DiscordNativeAdapter,
+} from "./adapters/discord-native.js";
 import { createSlackMessageHandler } from "./adapters/slack.js";
 import {
   createWhatsAppBaileysAdapter,
@@ -32,14 +38,7 @@ type WebhookHandler = (
   options?: { waitUntil?: WaitUntil },
 ) => Promise<Response>;
 
-type DiscordGatewayAdapter = {
-  startGatewayListener: (
-    options: { waitUntil?: WaitUntil },
-    durationMs?: number,
-    abortSignal?: AbortSignal,
-    webhookUrl?: string,
-  ) => Promise<Response>;
-};
+
 
 function resolveCallerId(message: Message, thread: Thread): string {
   const userId = message.author.userId || "unknown";
@@ -65,12 +64,8 @@ async function main() {
     adapters.slack = createSlackAdapter();
   }
 
-  if (
-    process.env.DISCORD_BOT_TOKEN &&
-    process.env.DISCORD_PUBLIC_KEY &&
-    process.env.DISCORD_APPLICATION_ID
-  ) {
-    adapters.discord = createDiscordAdapter({
+  if (process.env.DISCORD_BOT_TOKEN) {
+    adapters.discord = createDiscordNativeAdapter({
       userName: config.chatSdkUserName,
     });
   }
@@ -406,32 +401,6 @@ async function main() {
         path: url.pathname,
       });
 
-      if (url.pathname === "/discord/gateway" && request.method === "GET") {
-        if (!adapters.discord) {
-          return new Response("Discord adapter not configured", {
-            status: 400,
-          });
-        }
-
-        if (config.discordGatewaySecret) {
-          const authHeader = request.headers.get("authorization");
-          if (authHeader !== `Bearer ${config.discordGatewaySecret}`) {
-            return new Response("Unauthorized", { status: 401 });
-          }
-        }
-
-        const discord = bot.getAdapter(
-          "discord",
-        ) as unknown as DiscordGatewayAdapter;
-        const webhookUrl = `http://localhost:${config.chatSdkPort}/webhooks/discord`;
-        return discord.startGatewayListener(
-          { waitUntil },
-          config.discordGatewayDurationMs,
-          undefined,
-          webhookUrl,
-        );
-      }
-
       const match = url.pathname.match(/^\/webhooks\/([a-z0-9_-]+)$/i);
       if (!match) {
         return new Response("Not found", { status: 404 });
@@ -481,7 +450,7 @@ async function main() {
   logger.info("Webhook path pattern: POST /webhooks/:platform");
   logger.info("Internal API: /api/*");
   if (adapters.discord) {
-    logger.info("Discord gateway trigger: GET /discord/gateway");
+    logger.info("Discord enabled (native adapter with persistent connection)");
   }
   if (adapters.whatsapp) {
     logger.info("WhatsApp enabled", {
