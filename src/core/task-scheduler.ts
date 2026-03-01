@@ -7,6 +7,7 @@ type TaskHandler = (task: {
   groupId: string;
   prompt: string;
   createdBy: string;
+  silent: boolean;
 }) => Promise<void>;
 
 export class TaskScheduler {
@@ -34,6 +35,7 @@ export class TaskScheduler {
               groupId: task.groupId,
               prompt: task.prompt,
               createdBy: task.createdBy,
+              silent: task.silent === 1,
             });
           } catch (error) {
             logger.error("Scheduler task handler failed", {
@@ -77,6 +79,7 @@ export class TaskScheduler {
       groupId: task.groupId,
       prompt: task.prompt,
       createdBy: task.createdBy,
+      silent: task.silent === 1,
     });
     return true;
   }

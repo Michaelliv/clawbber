@@ -63,6 +63,7 @@ export class Db {
         cron TEXT NOT NULL,
         prompt TEXT NOT NULL,
         active INTEGER NOT NULL DEFAULT 1,
+        silent INTEGER NOT NULL DEFAULT 0,
         next_run_at INTEGER NOT NULL,
         created_by TEXT NOT NULL DEFAULT 'system',
         created_at INTEGER NOT NULL,
@@ -102,6 +103,9 @@ export class Db {
 
     // Migration: add attachments column to messages table
     this.addColumnIfNotExists("messages", "attachments", "TEXT");
+
+    // Migration: add silent column to tasks table
+    this.addColumnIfNotExists("tasks", "silent", "INTEGER NOT NULL DEFAULT 0");
   }
 
   private addColumnIfNotExists(
@@ -283,13 +287,23 @@ export class Db {
     prompt: string,
     nextRunAt: number,
     createdBy: string,
+    silent = false,
   ): number {
     const now = Date.now();
     this.db
       .query(
-        "INSERT INTO tasks(group_id, cron, prompt, active, next_run_at, created_by, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?, ?, ?)",
+        "INSERT INTO tasks(group_id, cron, prompt, active, silent, next_run_at, created_by, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?)",
       )
-      .run(groupId, cron, prompt, nextRunAt, createdBy, now, now);
+      .run(
+        groupId,
+        cron,
+        prompt,
+        silent ? 1 : 0,
+        nextRunAt,
+        createdBy,
+        now,
+        now,
+      );
 
     const row = this.db.query("SELECT last_insert_rowid() as id").get() as {
       id: number;
@@ -302,7 +316,7 @@ export class Db {
     if (groupId) {
       return this.db
         .query(
-          `SELECT id, group_id as groupId, cron, prompt, active, next_run_at as nextRunAt, created_by as createdBy, created_at as createdAt, updated_at as updatedAt
+          `SELECT id, group_id as groupId, cron, prompt, active, silent, next_run_at as nextRunAt, created_by as createdBy, created_at as createdAt, updated_at as updatedAt
            FROM tasks WHERE group_id = ? ORDER BY id ASC`,
         )
         .all(groupId) as ScheduledTask[];
@@ -310,7 +324,7 @@ export class Db {
 
     return this.db
       .query(
-        `SELECT id, group_id as groupId, cron, prompt, active, next_run_at as nextRunAt, created_by as createdBy, created_at as createdAt, updated_at as updatedAt
+        `SELECT id, group_id as groupId, cron, prompt, active, silent, next_run_at as nextRunAt, created_by as createdBy, created_at as createdAt, updated_at as updatedAt
          FROM tasks ORDER BY id ASC`,
       )
       .all() as ScheduledTask[];
@@ -319,7 +333,7 @@ export class Db {
   getDueTasks(now = Date.now()): ScheduledTask[] {
     return this.db
       .query(
-        `SELECT id, group_id as groupId, cron, prompt, active, next_run_at as nextRunAt, created_by as createdBy, created_at as createdAt, updated_at as updatedAt
+        `SELECT id, group_id as groupId, cron, prompt, active, silent, next_run_at as nextRunAt, created_by as createdBy, created_at as createdAt, updated_at as updatedAt
          FROM tasks
          WHERE active = 1 AND next_run_at <= ?
          ORDER BY next_run_at ASC`,
@@ -349,7 +363,7 @@ export class Db {
   getTask(id: number): ScheduledTask | null {
     return this.db
       .query(
-        `SELECT id, group_id as groupId, cron, prompt, active, next_run_at as nextRunAt, created_by as createdBy, created_at as createdAt, updated_at as updatedAt
+        `SELECT id, group_id as groupId, cron, prompt, active, silent, next_run_at as nextRunAt, created_by as createdBy, created_at as createdAt, updated_at as updatedAt
          FROM tasks WHERE id = ?`,
       )
       .get(id) as ScheduledTask | null;

@@ -51,7 +51,7 @@ function usage(): never {
 Usage:
   mercury-ctl whoami
   mercury-ctl tasks list
-  mercury-ctl tasks create --cron <expr> --prompt <text>
+  mercury-ctl tasks create --cron <expr> --prompt <text> [--silent]
   mercury-ctl tasks pause <id>
   mercury-ctl tasks resume <id>
   mercury-ctl tasks run <id>
@@ -108,9 +108,12 @@ async function main() {
         case "create": {
           const cron = parseFlag(args, "--cron");
           const prompt = parseFlag(args, "--prompt");
+          const silent = args.includes("--silent");
           if (!cron || !prompt)
-            fatal("Usage: tasks create --cron <expr> --prompt <text>");
-          print(await api("POST", "/api/tasks", { cron, prompt }));
+            fatal(
+              "Usage: tasks create --cron <expr> --prompt <text> [--silent]",
+            );
+          print(await api("POST", "/api/tasks", { cron, prompt, silent }));
           break;
         }
         case "pause": {
