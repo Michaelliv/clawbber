@@ -26,7 +26,7 @@ const OOM_EXIT_CODE = 137;
 export class AgentContainerRunner {
   private readonly runningByGroup = new Map<
     string,
-    ChildProcessWithoutNullStreams
+    { proc: ChildProcessWithoutNullStreams; containerName: string }
   >();
   private readonly abortedGroups = new Set<string>();
   private readonly timedOutGroups = new Set<string>();
@@ -84,18 +84,20 @@ export class AgentContainerRunner {
   }
 
   /**
-   * Send SIGTERM to all running containers, escalating to SIGKILL after 2.5s.
+   * Kill all running containers using docker kill for reliable termination.
    * Note: runningByGroup entries are cleaned up by each process's 'close' handler.
    * During shutdown the process may exit before those fire, but that's fine —
    * Docker cleans up --rm containers regardless.
    */
   killAll(): void {
-    for (const [groupId, proc] of this.runningByGroup) {
+    for (const [groupId, { proc, containerName }] of this.runningByGroup) {
       this.abortedGroups.add(groupId);
-      proc.kill("SIGTERM");
-      setTimeout(() => {
-        if (!proc.killed) proc.kill("SIGKILL");
-      }, 2500);
+      try {
+        execSync(`docker kill ${containerName}`, { timeout: 5000 });
+      } catch {
+        // docker kill can fail (container exited, daemon issues, etc.) — fall back to process signal
+        proc.kill("SIGKILL");
+      }
     }
   }
 
@@ -108,14 +110,18 @@ export class AgentContainerRunner {
   }
 
   abort(groupId: string): boolean {
-    const proc = this.runningByGroup.get(groupId);
-    if (!proc) return false;
+    const entry = this.runningByGroup.get(groupId);
+    if (!entry) return false;
 
     this.abortedGroups.add(groupId);
-    proc.kill("SIGTERM");
-    setTimeout(() => {
-      if (!proc.killed) proc.kill("SIGKILL");
-    }, 2500);
+
+    // Use docker kill for reliable container termination
+    try {
+      execSync(`docker kill ${entry.containerName}`, { timeout: 5000 });
+    } catch {
+      // docker kill can fail (container exited, daemon issues, etc.) — fall back to process signal
+      entry.proc.kill("SIGKILL");
+    }
     return true;
   }
 
@@ -230,7 +236,7 @@ export class AgentContainerRunner {
         stdio: ["pipe", "pipe", "pipe"],
       });
 
-      this.runningByGroup.set(input.groupId, proc);
+      this.runningByGroup.set(input.groupId, { proc, containerName });
 
       // Log container start
       log.info("Container started", { event: "container.start" });
