@@ -8,8 +8,10 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
@@ -376,5 +378,369 @@ program
       dryRun: options.dryRun,
     });
   });
+
+// Service management commands
+const SERVICE_NAME = "mercury";
+const LAUNCHD_LABEL = "com.mercury.agent";
+
+function getServicePaths(): {
+  systemdUser: string;
+  systemdSystem: string;
+  launchdPlist: string;
+  logDir: string;
+} {
+  return {
+    systemdUser: join(homedir(), ".config/systemd/user/mercury.service"),
+    systemdSystem: "/etc/systemd/system/mercury.service",
+    launchdPlist: join(
+      homedir(),
+      "Library/LaunchAgents/com.mercury.agent.plist",
+    ),
+    logDir: join(CWD, ".mercury/logs"),
+  };
+}
+
+function checkCommandExists(cmd: string): boolean {
+  const result = spawnSync("which", [cmd], { stdio: "pipe" });
+  return result.status === 0;
+}
+
+function generateSystemdService(userMode: boolean): string {
+  const mercuryBin = process.argv[1];
+  const workDir = CWD;
+
+  return `[Unit]
+Description=Mercury Chat Agent
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=${mercuryBin} run
+WorkingDirectory=${workDir}
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=${userMode ? "default.target" : "multi-user.target"}
+`;
+}
+
+function generateLaunchdPlist(): string {
+  const mercuryBin = process.argv[1];
+  const workDir = CWD;
+  const { logDir } = getServicePaths();
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>${LAUNCHD_LABEL}</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>${mercuryBin}</string>
+    <string>run</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>${workDir}</string>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>${logDir}/mercury.log</string>
+  <key>StandardErrorPath</key>
+  <string>${logDir}/mercury.error.log</string>
+</dict>
+</plist>`;
+}
+
+function installSystemd(userMode: boolean): void {
+  if (!checkCommandExists("systemctl")) {
+    console.error("Error: systemctl not found. Is systemd installed?");
+    process.exit(1);
+  }
+
+  const paths = getServicePaths();
+  const servicePath = userMode ? paths.systemdUser : paths.systemdSystem;
+  const serviceContent = generateSystemdService(userMode);
+
+  // Check if we need sudo for system-level install
+  if (!userMode) {
+    console.log("Installing system-level service requires sudo.");
+    console.log("Consider using --user flag for user-level service instead.");
+  }
+
+  // Create directory if needed
+  mkdirSync(dirname(servicePath), { recursive: true });
+
+  // Write service file
+  try {
+    writeFileSync(servicePath, serviceContent);
+  } catch (err) {
+    if (!userMode) {
+      console.error(
+        "Error: Cannot write to system directory. Try with sudo or use --user flag.",
+      );
+    } else {
+      console.error(`Error writing service file: ${err}`);
+    }
+    process.exit(1);
+  }
+
+  // Enable and start service
+  const systemctlBase = userMode ? ["systemctl", "--user"] : ["systemctl"];
+
+  console.log("Reloading systemd daemon...");
+  const reloadResult = spawnSync(
+    systemctlBase[0],
+    [...systemctlBase.slice(1), "daemon-reload"],
+    {
+      stdio: "inherit",
+    },
+  );
+  if (reloadResult.status !== 0) {
+    console.error("Failed to reload systemd daemon");
+    process.exit(1);
+  }
+
+  console.log("Enabling mercury service...");
+  const enableResult = spawnSync(
+    systemctlBase[0],
+    [...systemctlBase.slice(1), "enable", SERVICE_NAME],
+    {
+      stdio: "inherit",
+    },
+  );
+  if (enableResult.status !== 0) {
+    console.error("Failed to enable service");
+    process.exit(1);
+  }
+
+  console.log("Starting mercury service...");
+  const startResult = spawnSync(
+    systemctlBase[0],
+    [...systemctlBase.slice(1), "start", SERVICE_NAME],
+    {
+      stdio: "inherit",
+    },
+  );
+  if (startResult.status !== 0) {
+    console.error("Failed to start service");
+    process.exit(1);
+  }
+
+  console.log("\n✓ Mercury service installed and started");
+  console.log(`  Service file: ${servicePath}`);
+  console.log(
+    `  View logs: journalctl ${userMode ? "--user " : ""}-u mercury -f`,
+  );
+}
+
+function installLaunchd(): void {
+  if (!checkCommandExists("launchctl")) {
+    console.error("Error: launchctl not found. Are you on macOS?");
+    process.exit(1);
+  }
+
+  const paths = getServicePaths();
+  const plistContent = generateLaunchdPlist();
+
+  // Create log directory
+  mkdirSync(paths.logDir, { recursive: true });
+
+  // Create LaunchAgents directory if needed
+  mkdirSync(dirname(paths.launchdPlist), { recursive: true });
+
+  // Unload existing service if present
+  if (existsSync(paths.launchdPlist)) {
+    spawnSync("launchctl", ["unload", paths.launchdPlist], { stdio: "pipe" });
+  }
+
+  // Write plist file
+  writeFileSync(paths.launchdPlist, plistContent);
+
+  // Load service
+  const loadResult = spawnSync("launchctl", ["load", paths.launchdPlist], {
+    stdio: "inherit",
+  });
+  if (loadResult.status !== 0) {
+    console.error("Failed to load service");
+    process.exit(1);
+  }
+
+  console.log("\n✓ Mercury service installed and started");
+  console.log(`  Plist: ${paths.launchdPlist}`);
+  console.log(`  Logs: ${paths.logDir}/mercury.log`);
+  console.log(`  View logs: tail -f ${paths.logDir}/mercury.log`);
+}
+
+function serviceInstallAction(options: { user?: boolean }): void {
+  // Verify we're in a mercury project
+  const envPath = join(CWD, ".env");
+  if (!existsSync(envPath)) {
+    console.error("Error: .env file not found in current directory.");
+    console.error("Run 'mercury init' first, or cd into your mercury project.");
+    process.exit(1);
+  }
+
+  const platform = process.platform;
+
+  if (platform === "darwin") {
+    installLaunchd();
+  } else if (platform === "linux") {
+    // Default to user mode unless explicitly installing system-wide
+    installSystemd(options.user ?? true);
+  } else {
+    console.error(`Unsupported platform: ${platform}`);
+    console.log("See docs/deployment.md for manual setup instructions.");
+    process.exit(1);
+  }
+}
+
+function serviceUninstallAction(): void {
+  const platform = process.platform;
+  const paths = getServicePaths();
+
+  if (platform === "darwin") {
+    if (existsSync(paths.launchdPlist)) {
+      console.log("Unloading mercury service...");
+      spawnSync("launchctl", ["unload", paths.launchdPlist], {
+        stdio: "inherit",
+      });
+      unlinkSync(paths.launchdPlist);
+      console.log("✓ Mercury service uninstalled");
+    } else {
+      console.log("Service not installed");
+    }
+  } else if (platform === "linux") {
+    // Try user service first, then system
+    if (existsSync(paths.systemdUser)) {
+      console.log("Stopping mercury user service...");
+      spawnSync("systemctl", ["--user", "stop", SERVICE_NAME], {
+        stdio: "inherit",
+      });
+      console.log("Disabling mercury user service...");
+      spawnSync("systemctl", ["--user", "disable", SERVICE_NAME], {
+        stdio: "inherit",
+      });
+      unlinkSync(paths.systemdUser);
+      spawnSync("systemctl", ["--user", "daemon-reload"], { stdio: "inherit" });
+      console.log("✓ Mercury user service uninstalled");
+    } else if (existsSync(paths.systemdSystem)) {
+      console.log("Stopping mercury system service...");
+      spawnSync("systemctl", ["stop", SERVICE_NAME], { stdio: "inherit" });
+      console.log("Disabling mercury system service...");
+      spawnSync("systemctl", ["disable", SERVICE_NAME], { stdio: "inherit" });
+      try {
+        unlinkSync(paths.systemdSystem);
+      } catch {
+        console.error(
+          "Error: Cannot remove system service file. Try with sudo.",
+        );
+        process.exit(1);
+      }
+      spawnSync("systemctl", ["daemon-reload"], { stdio: "inherit" });
+      console.log("✓ Mercury system service uninstalled");
+    } else {
+      console.log("Service not installed");
+    }
+  } else {
+    console.error(`Unsupported platform: ${platform}`);
+    process.exit(1);
+  }
+}
+
+function serviceStatusAction(): void {
+  const platform = process.platform;
+  const paths = getServicePaths();
+
+  if (platform === "darwin") {
+    if (!existsSync(paths.launchdPlist)) {
+      console.log("Mercury service is not installed");
+      return;
+    }
+    console.log("Mercury service status:\n");
+    spawnSync("launchctl", ["list", LAUNCHD_LABEL], { stdio: "inherit" });
+  } else if (platform === "linux") {
+    // Try user service first
+    if (existsSync(paths.systemdUser)) {
+      spawnSync("systemctl", ["--user", "status", SERVICE_NAME], {
+        stdio: "inherit",
+      });
+    } else if (existsSync(paths.systemdSystem)) {
+      spawnSync("systemctl", ["status", SERVICE_NAME], { stdio: "inherit" });
+    } else {
+      console.log("Mercury service is not installed");
+    }
+  } else {
+    console.error(`Unsupported platform: ${platform}`);
+    process.exit(1);
+  }
+}
+
+function serviceLogsAction(options: { follow?: boolean }): void {
+  const platform = process.platform;
+  const paths = getServicePaths();
+
+  if (platform === "darwin") {
+    const logPath = join(paths.logDir, "mercury.log");
+    if (!existsSync(logPath)) {
+      console.error(`Log file not found: ${logPath}`);
+      console.log("The service may not have been started yet.");
+      process.exit(1);
+    }
+    const args = options.follow ? ["-f", logPath] : ["-n", "100", logPath];
+    spawnSync("tail", args, { stdio: "inherit" });
+  } else if (platform === "linux") {
+    // Determine if user or system service
+    const isUserService = existsSync(paths.systemdUser);
+    const isSystemService = existsSync(paths.systemdSystem);
+
+    if (!isUserService && !isSystemService) {
+      console.error("Mercury service is not installed");
+      process.exit(1);
+    }
+
+    const args = isUserService
+      ? ["--user", "-u", SERVICE_NAME]
+      : ["-u", SERVICE_NAME];
+    if (options.follow) args.push("-f");
+    spawnSync("journalctl", args, { stdio: "inherit" });
+  } else {
+    console.error(`Unsupported platform: ${platform}`);
+    process.exit(1);
+  }
+}
+
+// Service subcommand
+const serviceCommand = program
+  .command("service")
+  .description("Manage Mercury as a system service");
+
+serviceCommand
+  .command("install")
+  .description("Install Mercury as a system service")
+  .option(
+    "--user",
+    "Install as user service (default on Linux, no sudo required)",
+  )
+  .action(serviceInstallAction);
+
+serviceCommand
+  .command("uninstall")
+  .description("Uninstall Mercury service")
+  .action(serviceUninstallAction);
+
+serviceCommand
+  .command("status")
+  .description("Show service status")
+  .action(serviceStatusAction);
+
+serviceCommand
+  .command("logs")
+  .description("View service logs")
+  .option("-f, --follow", "Follow log output")
+  .action(serviceLogsAction);
 
 program.parse();
