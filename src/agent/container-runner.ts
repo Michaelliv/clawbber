@@ -32,7 +32,32 @@ export class AgentContainerRunner {
   private readonly timedOutGroups = new Set<string>();
   private containerCounter = 0;
 
-  constructor(private readonly config: AppConfig) {}
+  constructor(private readonly config: AppConfig) {
+    this.validateImage();
+  }
+
+  /**
+   * Warn if using a custom image that might be missing required tools.
+   * Known presets (mercury-agent:*) are assumed to be valid.
+   */
+  private validateImage(): void {
+    const image = this.config.agentContainerImage;
+
+    // Skip validation for known presets
+    if (
+      image.startsWith("mercury-agent:") ||
+      image.includes("/mercury-agent:")
+    ) {
+      return;
+    }
+
+    // For custom images, log a warning about requirements
+    logger.warn("Using custom agent image", {
+      image,
+      note: "Ensure image has: bun, pi, agent-browser, napkin, mercury-ctl",
+      docs: "See docs/container-lifecycle.md for custom image requirements",
+    });
+  }
 
   isRunning(groupId: string): boolean {
     return this.runningByGroup.has(groupId);

@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   test:
@@ -51,3 +52,40 @@ jobs:
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-docker:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Build and push latest image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: container/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/mercury-agent:latest
+            ghcr.io/${{ github.repository_owner }}/mercury-agent:${{ steps.version.outputs.version }}
+
+      - name: Build and push minimal image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: container/Dockerfile.minimal
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/mercury-agent:minimal
+            ghcr.io/${{ github.repository_owner }}/mercury-agent:${{ steps.version.outputs.version }}-minimal
