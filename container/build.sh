@@ -25,8 +25,8 @@ else
     echo "Usage: $0 [all|latest|minimal]"
     echo ""
     echo "Presets:"
-    echo "  latest   Full devcontainer with Node, Python, Go, git (~2GB)"
-    echo "  minimal  Bun + pi + browser only (~800MB)"
+    echo "  latest   Full devcontainer with Node, Python, Go, git (~2.8GB)"
+    echo "  minimal  Bun + pi + browser only (~1.9GB)"
     echo "  all      Build both presets"
     echo ""
     echo "Default: latest"
@@ -49,6 +49,6 @@ fi
 
 echo "Build complete!"
 if [ "$BUILD_ALL" = true ]; then
-    echo "  ${IMAGE_NAME}:latest  - Full devcontainer (~2GB)"
-    echo "  ${IMAGE_NAME}:minimal - Bun + pi + browser (~800MB)"
+    echo "  ${IMAGE_NAME}:latest  - Full devcontainer (~2.8GB)"
+    echo "  ${IMAGE_NAME}:minimal - Bun + pi + browser (~1.9GB)"
 fi
