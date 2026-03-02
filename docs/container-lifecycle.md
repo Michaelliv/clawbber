@@ -100,8 +100,113 @@ Message received
 # Set container timeout to 10 minutes
 export MERCURY_CONTAINER_TIMEOUT_MS=600000
 
-# Use a custom container image
-export MERCURY_AGENT_CONTAINER_IMAGE=my-agent:latest
+# Use a preset image from GitHub Container Registry
+export MERCURY_AGENT_IMAGE=ghcr.io/michaelliv/mercury-agent:latest   # Full (default)
+export MERCURY_AGENT_IMAGE=ghcr.io/michaelliv/mercury-agent:minimal  # Lightweight
+```
+
+## Agent Image Presets
+
+Mercury publishes two image presets to GitHub Container Registry:
+
+| Preset | Size | Contents |
+|--------|------|----------|
+| `ghcr.io/michaelliv/mercury-agent:latest` | ~2.8GB | Full devcontainer: Bun, Node.js, Python, Go, git, build tools |
+| `ghcr.io/michaelliv/mercury-agent:minimal` | ~1.9GB | Bun only: Bun runtime, pi, agent-browser, napkin |
+
+Images are published on each release. Version-specific tags are also available (e.g., `:0.2.0`, `:0.2.0-minimal`).
+
+### Building Locally
+
+To build images locally instead of pulling from the registry:
+```bash
+./container/build.sh all      # Both presets
+./container/build.sh latest   # Full image only (default)
+./container/build.sh minimal  # Lightweight image only
+```
+
+Then use `mercury-agent:latest` or `mercury-agent:minimal` (without the ghcr.io prefix).
+
+## Custom Agent Images
+
+You can use custom Docker images via `MERCURY_AGENT_IMAGE`.
+
+### Requirements
+
+Your image **must** have:
+- `bun` runtime
+- `pi` CLI (`@mariozechner/pi-coding-agent`)
+- `agent-browser` CLI
+- `napkin` CLI (`napkin-ai`)
+- `mercury-ctl` (copied during build)
+
+### Entry Point
+
+The image must use this entrypoint:
+```dockerfile
+ENTRYPOINT ["bun", "run", "/app/src/agent/container-entry.ts"]
+```
+
+### Required Files
+
+Copy these files into your image at `/app/`:
+```dockerfile
+COPY src/agent/container-entry.ts /app/src/agent/container-entry.ts
+COPY src/cli/mercury-ctl.ts /app/src/cli/mercury-ctl.ts
+COPY src/types.ts /app/src/types.ts
+```
+
+### mercury-ctl Setup
+
+Create the mercury-ctl wrapper:
+```dockerfile
+RUN echo '#!/bin/sh\nbun run /app/src/cli/mercury-ctl.ts "$@"' > /usr/local/bin/mercury-ctl && \
+    chmod +x /usr/local/bin/mercury-ctl
+```
+
+### Volume Mounts
+
+Mercury mounts these paths into containers:
+- `/groups` — Group workspaces (read/write)
+- `/home/node/.pi/agent` — Global agent config (read/write)
+- `/docs/mercury/` — Self-documentation (read-only)
+
+### Example Custom Dockerfile
+
+```dockerfile
+FROM your-base-image:tag
+
+# Install Bun
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:$PATH"
+
+# Install required CLIs
+RUN bun add -g @mariozechner/pi-coding-agent agent-browser napkin-ai
+
+# Install Playwright for browser automation (optional but recommended)
+RUN bunx playwright install chromium
+
+WORKDIR /app
+
+# Copy Mercury agent files
+COPY src/agent/container-entry.ts /app/src/agent/container-entry.ts
+COPY src/cli/mercury-ctl.ts /app/src/cli/mercury-ctl.ts
+COPY src/types.ts /app/src/types.ts
+
+# Setup mercury-ctl
+RUN echo '#!/bin/sh\nbun run /app/src/cli/mercury-ctl.ts "$@"' > /usr/local/bin/mercury-ctl && \
+    chmod +x /usr/local/bin/mercury-ctl
+
+ENTRYPOINT ["bun", "run", "/app/src/agent/container-entry.ts"]
+```
+
+### Validation
+
+When using a custom image (not `mercury-agent:*`), Mercury logs a warning at startup:
+```
+WARN  Using custom agent image
+      image: your-image:tag
+      note: Ensure image has: bun, pi, agent-browser, napkin, mercury-ctl
 ```
 
 ## API

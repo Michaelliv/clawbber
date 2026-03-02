@@ -1,0 +1,29 @@
+# Mercury Agent Container (Minimal)
+# Lightweight image with only Bun runtime - ~800MB vs ~2GB for full image
+FROM oven/bun:1
+
+# Install minimal dependencies for agent tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git curl ca-certificates \
+    # Chromium deps for Playwright
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+    libgbm1 libasound2t64 libpango-1.0-0 libcairo2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install CLIs
+RUN bun add -g @mariozechner/pi-coding-agent agent-browser napkin-ai
+
+# Install Playwright Chromium
+RUN bunx playwright install chromium
+
+WORKDIR /app
+
+COPY src/agent/container-entry.ts /app/src/agent/container-entry.ts
+COPY src/cli/mercury-ctl.ts /app/src/cli/mercury-ctl.ts
+COPY src/types.ts /app/src/types.ts
+
+RUN echo '#!/bin/sh\nbun run /app/src/cli/mercury-ctl.ts "$@"' > /usr/local/bin/mercury-ctl && \
+    chmod +x /usr/local/bin/mercury-ctl
+
+ENTRYPOINT ["bun", "run", "/app/src/agent/container-entry.ts"]
