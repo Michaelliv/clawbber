@@ -111,8 +111,8 @@ Mercury publishes two image presets to GitHub Container Registry:
 
 | Preset | Size | Contents |
 |--------|------|----------|
-| `ghcr.io/michaelliv/mercury-agent:latest` | ~2GB | Full devcontainer: Bun, Node.js, Python, Go, git, build tools |
-| `ghcr.io/michaelliv/mercury-agent:minimal` | ~800MB | Bun only: Bun runtime, pi, agent-browser, napkin |
+| `ghcr.io/michaelliv/mercury-agent:latest` | ~2.8GB | Full devcontainer: Bun, Node.js, Python, Go, git, build tools |
+| `ghcr.io/michaelliv/mercury-agent:minimal` | ~1.9GB | Bun only: Bun runtime, pi, agent-browser, napkin |
 
 Images are published on each release. Version-specific tags are also available (e.g., `:0.2.0`, `:0.2.0-minimal`).
 
