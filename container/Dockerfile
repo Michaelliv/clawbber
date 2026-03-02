@@ -1,22 +1,37 @@
 # Mercury Agent Container
-FROM oven/bun:1.3
+FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
-# Install Chromium dependencies
+# Install dev tools and language runtimes
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libxcb-shm0 libx11-xcb1 libx11-6 libxcb1 libxext6 libxrandr2 \
-    libxcomposite1 libxdamage1 libxfixes3 libxi6 \
-    libpangocairo-1.0-0 libpango-1.0-0 libatk1.0-0 libcairo-gobject2 \
-    libcairo2 libgdk-pixbuf-2.0-0 libxrender1 libasound2 libfreetype6 \
-    libfontconfig1 libdbus-1-3 libnss3 libnspr4 libatk-bridge2.0-0 \
-    libdrm2 libxkbcommon0 libatspi2.0-0 libcups2 libxshmfence1 libgbm1 \
+    # Core tools (already in base: git, curl, wget, jq, vim, zsh, ssh, gpg)
+    build-essential \
+    # Python
+    python3 python3-pip python3-venv \
+    # Chromium deps for Playwright
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+    libgbm1 libasound2t64 libpango-1.0-0 libcairo2 \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js (required for pi/napkin/agent-browser shebangs)
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Bun
+RUN curl -fsSL https://bun.sh/install | bash
+ENV BUN_INSTALL="/root/.bun"
+ENV PATH="$BUN_INSTALL/bin:$PATH"
+
+# Install Go
+RUN curl -fsSL https://go.dev/dl/go1.24.1.linux-$(dpkg --print-architecture).tar.gz | tar -C /usr/local -xzf -
+ENV PATH="/usr/local/go/bin:$PATH"
 
 # Install CLIs
 RUN bun add -g @mariozechner/pi-coding-agent agent-browser napkin-ai
 
-# Set HOME to /home/node for playwright (container-runner uses this)
-ENV HOME=/home/node
-RUN mkdir -p /home/node/.cache && bunx playwright install chromium
+# Install Playwright Chromium
+RUN bunx playwright install chromium
 
 WORKDIR /app
 
