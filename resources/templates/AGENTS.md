@@ -34,7 +34,55 @@ agent-browser get text body
 
 - Running in a container with limited resources
 - Long-running tasks may time out
-- No persistent memory between conversations
+
+## Mercury Control (mercury-ctl)
+
+Full command reference for managing Mercury from inside the container:
+
+### Identity
+```bash
+mercury-ctl whoami                    # Show caller, group, role, permissions
+```
+
+### Scheduled Tasks
+```bash
+mercury-ctl tasks list                # List all tasks for this group
+mercury-ctl tasks create --cron "0 9 * * *" --prompt "Good morning!" [--silent]
+mercury-ctl tasks run <id>            # Trigger task immediately
+mercury-ctl tasks pause <id>          # Pause a task
+mercury-ctl tasks resume <id>         # Resume a paused task
+mercury-ctl tasks delete <id>         # Delete a task
+```
+
+### Group Configuration
+```bash
+mercury-ctl config get [key]          # Get config (all or specific key)
+mercury-ctl config set <key> <value>  # Set config value
+# Valid keys: trigger.match, trigger.patterns, trigger.case_sensitive
+```
+
+### Groups
+```bash
+mercury-ctl groups list               # List all groups with names
+mercury-ctl groups name               # Get current group's display name
+mercury-ctl groups name "My Group"    # Set current group's display name
+```
+
+### Roles & Permissions
+```bash
+mercury-ctl roles list                # List roles in this group
+mercury-ctl roles grant <user-id> [--role admin]   # Grant role to user
+mercury-ctl roles revoke <user-id>    # Revoke role (becomes member)
+
+mercury-ctl permissions show [--role <role>]       # Show permissions
+mercury-ctl permissions set <role> <perm1,perm2>   # Set role permissions
+```
+
+### Control
+```bash
+mercury-ctl stop                      # Abort current run, clear queue
+mercury-ctl compact                   # Reset session (fresh context)
+```
 
 ## Mercury Documentation
 
