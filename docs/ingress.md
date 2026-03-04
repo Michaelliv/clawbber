@@ -94,7 +94,7 @@ Uses [`@chat-adapter/discord`](https://www.npmjs.com/package/@chat-adapter/disco
 |--------|-------|
 | **Connection** | Webhook (`POST /webhooks/discord`) |
 | **Auth** | Bot token + public key + application ID |
-| **Group ID** | `discord:<channelId>` (channel-level, sub-threads share a group) |
+| **Group ID** | `discord:<guildId>:<channelId>` (channel-level, sub-threads share a group) |
 | **Caller ID** | `discord:<userId>` |
 | **DM detection** | Guild ID is `@me` |
 | **Gateway** | Optional `GET /discord/gateway` endpoint, gated by `MERCURY_DISCORD_GATEWAY_SECRET` |
@@ -113,7 +113,7 @@ Each platform maps threads to groups differently. The group ID determines worksp
 ```
 WhatsApp:  whatsapp:12345@g.us:12345@g.us     → used as-is (full thread ID)
 Slack:     slack:C1234:1234567890.123456       → slack:C1234 (channel level)
-Discord:   discord:111222:444555:777888        → discord:444555 (channel level)
+Discord:   discord:111222:444555:777888        → discord:111222:444555 (guild:channel level)
 ```
 
 Slack and Discord strip thread/sub-thread IDs so all conversations in a channel share one workspace and session. WhatsApp uses the full thread ID.
