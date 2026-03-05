@@ -10,26 +10,13 @@ import path from "node:path";
 import type { Logger } from "../logger.js";
 import type { Db } from "../storage/db.js";
 import { MercuryExtensionAPIImpl } from "./api.js";
+import { RESERVED_EXTENSION_NAMES } from "./reserved.js";
 import type {
 	EventHandler,
 	ExtensionMeta,
 	JobDef,
 	MercuryEvents,
 } from "./types.js";
-
-/** Built-in mrctl command names — extensions cannot use these. */
-const RESERVED_NAMES = new Set([
-	"tasks",
-	"roles",
-	"permissions",
-	"config",
-	"groups",
-	"stop",
-	"compact",
-	"ext",
-	"whoami",
-	"help",
-]);
 
 /** Extension names must be alphanumeric + hyphens. */
 const VALID_NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
@@ -61,7 +48,7 @@ export class ExtensionRegistry {
 			}
 
 			// Check reserved names
-			if (RESERVED_NAMES.has(name)) {
+			if (RESERVED_EXTENSION_NAMES.has(name)) {
 				throw new Error(
 					`Extension "${name}" conflicts with built-in command`,
 				);
