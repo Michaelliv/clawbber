@@ -128,7 +128,7 @@ mercury service status     # Show service status
 mercury service logs [-f]  # View/tail logs
 ```
 
-### mrctl (mrctl)
+### mrctl
 
 Management CLI used by the agent inside containers:
 

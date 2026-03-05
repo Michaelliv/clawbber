@@ -218,8 +218,6 @@ interface MercuryExtensionContext {
 
 ## Container Integration
 
-### Derived Image
-
 ### Skill Files
 
 Skills can include anything the agent needs:

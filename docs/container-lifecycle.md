@@ -153,6 +153,7 @@ Copy these files into your image at `/app/`:
 ```dockerfile
 COPY src/agent/container-entry.ts /app/src/agent/container-entry.ts
 COPY src/cli/mrctl.ts /app/src/cli/mrctl.ts
+COPY src/extensions/reserved.ts /app/src/extensions/reserved.ts
 COPY src/types.ts /app/src/types.ts
 ```
 
@@ -191,6 +192,7 @@ WORKDIR /app
 # Copy Mercury agent files
 COPY src/agent/container-entry.ts /app/src/agent/container-entry.ts
 COPY src/cli/mrctl.ts /app/src/cli/mrctl.ts
+COPY src/extensions/reserved.ts /app/src/extensions/reserved.ts
 COPY src/types.ts /app/src/types.ts
 
 # Setup mrctl

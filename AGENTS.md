@@ -61,7 +61,8 @@ src/
 │       ├── roles.ts                # /api/roles/* + /api/permissions/*
 │       ├── config.ts               # /api/config/*
 │       ├── groups.ts               # /api/groups/*
-│       └── control.ts              # /api/whoami, /api/stop, /api/compact
+│       ├── control.ts              # /api/whoami, /api/stop, /api/compact
+│       └── extensions.ts           # /api/ext/*
 │
 ├── agent/
 │   ├── container-runner.ts     # Spawns Docker containers
@@ -79,6 +80,7 @@ src/
 │   ├── loader.ts               # Extension discovery + ExtensionRegistry
 │   ├── hooks.ts                # Hook dispatcher (lifecycle events)
 │   ├── skills.ts               # Skill installation (copy to global dir)
+│   ├── image-builder.ts        # Derived Docker image builder
 │   └── reserved.ts             # Reserved extension names (shared constant)
 │
 ├── cli/
@@ -114,6 +116,7 @@ resources/
 | `extensions/loader.ts` | Extension discovery, loading via Bun import, registry |
 | `extensions/hooks.ts` | Hook dispatch with mutation semantics for before/after_container |
 | `extensions/skills.ts` | Copy extension skills to global dir (not symlink — Docker mount) |
+| `extensions/image-builder.ts` | Derived Docker image with extension CLIs, content-hash cache |
 
 ## Database Schema
 
@@ -142,6 +145,8 @@ Internal API used by `mrctl` from inside containers:
 | `/api/config` | GET/POST | Group config |
 | `/api/stop` | POST | Abort current run |
 | `/api/compact` | POST | Session boundary |
+| `/api/ext` | GET | List installed extensions |
+| `/api/ext/:name/auth` | POST | Permission check for extension CLI |
 
 Auth: `X-Mercury-Caller` + `X-Mercury-Group` headers.
 
