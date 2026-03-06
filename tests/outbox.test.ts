@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { detectMimeType, scanOutbox } from "../src/core/outbox.js";
+import { extToMime } from "../src/core/media.js";
+import { scanOutbox } from "../src/core/outbox.js";
 
 let tmpDir: string;
 
@@ -138,39 +139,39 @@ describe("scanOutbox", () => {
   });
 });
 
-describe("detectMimeType", () => {
+describe("extToMime", () => {
   test("detects common image types", () => {
-    expect(detectMimeType("photo.jpg")).toBe("image/jpeg");
-    expect(detectMimeType("photo.jpeg")).toBe("image/jpeg");
-    expect(detectMimeType("image.png")).toBe("image/png");
-    expect(detectMimeType("anim.gif")).toBe("image/gif");
-    expect(detectMimeType("pic.webp")).toBe("image/webp");
+    expect(extToMime("photo.jpg")).toBe("image/jpeg");
+    expect(extToMime("photo.jpeg")).toBe("image/jpeg");
+    expect(extToMime("image.png")).toBe("image/png");
+    expect(extToMime("anim.gif")).toBe("image/gif");
+    expect(extToMime("pic.webp")).toBe("image/webp");
   });
 
   test("detects audio types", () => {
-    expect(detectMimeType("voice.ogg")).toBe("audio/ogg");
-    expect(detectMimeType("song.mp3")).toBe("audio/mpeg");
+    expect(extToMime("voice.ogg")).toBe("audio/ogg");
+    expect(extToMime("song.mp3")).toBe("audio/mpeg");
   });
 
   test("detects video types", () => {
-    expect(detectMimeType("clip.mp4")).toBe("video/mp4");
+    expect(extToMime("clip.mp4")).toBe("video/mp4");
   });
 
   test("detects document types", () => {
-    expect(detectMimeType("doc.pdf")).toBe("application/pdf");
-    expect(detectMimeType("notes.txt")).toBe("text/plain");
-    expect(detectMimeType("data.csv")).toBe("text/csv");
-    expect(detectMimeType("config.json")).toBe("application/json");
-    expect(detectMimeType("readme.md")).toBe("text/markdown");
+    expect(extToMime("doc.pdf")).toBe("application/pdf");
+    expect(extToMime("notes.txt")).toBe("text/plain");
+    expect(extToMime("data.csv")).toBe("text/csv");
+    expect(extToMime("config.json")).toBe("application/json");
+    expect(extToMime("readme.md")).toBe("text/markdown");
   });
 
   test("falls back to application/octet-stream for unknown", () => {
-    expect(detectMimeType("binary.xyz")).toBe("application/octet-stream");
-    expect(detectMimeType("noext")).toBe("application/octet-stream");
+    expect(extToMime("binary.xyz")).toBe("application/octet-stream");
+    expect(extToMime("noext")).toBe("application/octet-stream");
   });
 
   test("handles case insensitivity via lowercase", () => {
-    expect(detectMimeType("PHOTO.JPG")).toBe("image/jpeg");
-    expect(detectMimeType("Doc.PDF")).toBe("application/pdf");
+    expect(extToMime("PHOTO.JPG")).toBe("image/jpeg");
+    expect(extToMime("Doc.PDF")).toBe("application/pdf");
   });
 });
