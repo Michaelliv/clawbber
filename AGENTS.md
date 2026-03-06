@@ -186,9 +186,16 @@ Auth: `X-Mercury-Caller` + `X-Mercury-Group` headers.
 |----------|--------|-------------|
 | `/chat` | POST | Send a message and get a synchronous reply |
 
-No auth required. Request body: `{ text, callerId?, groupId?, authorName? }`. Returns `{ reply, files }`.
+No auth required. Request body: `{ text, callerId?, groupId?, authorName?, files?: [{ name, data(base64) }] }`. Returns `{ reply, files: [{ filename, mimeType, sizeBytes, data(base64) }] }`.
 
-CLI wrapper: `mercury chat "hello"` or `echo "msg" | mercury chat`.
+Input files are saved to the group's `inbox/`. Output files are read from `outbox/` and returned as base64.
+
+CLI wrapper:
+```bash
+mercury chat "hello"
+mercury chat --file photo.jpg "what's in this?"
+echo "msg" | mercury chat
+```
 
 ## Extension System
 

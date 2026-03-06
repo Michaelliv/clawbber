@@ -188,16 +188,17 @@ Replying to a bot message triggers a response without explicit `@mention`. Works
 
 ```bash
 mercury chat "hello"
+mercury chat --file photo.jpg "what's in this?"
 mercury chat --group my-project "check status"
 echo "summarize" | mercury chat
 curl -X POST localhost:8787/chat -H 'Content-Type: application/json' \
   -d '{"text": "hello", "callerId": "api:my-agent"}'
 ```
 
-Request: `{ text, callerId?, groupId?, authorName? }`
-Response: `{ reply, files }`
+Request: `{ text, callerId?, groupId?, authorName?, files?: [{ name, data(base64) }] }`
+Response: `{ reply, files: [{ filename, mimeType, sizeBytes, data(base64) }] }`
 
-Messages are always treated as DMs with `isReplyToBot: true`, so they always trigger a response regardless of trigger mode.
+Input files are saved to the group's `inbox/`. Output files are read from `outbox/` and returned as base64. Messages are always treated as DMs with `isReplyToBot: true`, so they always trigger a response regardless of trigger mode.
 
 ## Adding a New Platform
 
