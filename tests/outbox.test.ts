@@ -71,7 +71,7 @@ describe("scanOutbox", () => {
     const pastTime = new Date(Date.now() - 60_000);
     fs.utimesSync(filePath, pastTime, pastTime);
 
-    const startTime = Date.now();
+    const startTime = Date.now() - 1; // -1ms to avoid mtime race on fast CI
 
     // Modify it (mtime updates)
     fs.writeFileSync(filePath, "updated content");
