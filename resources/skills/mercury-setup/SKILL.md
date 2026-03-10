@@ -82,11 +82,6 @@ See [user-ids.md](references/user-ids.md) for how to find your caller ID on each
 ## First Run
 
 ```bash
-mercury run
-```
-
-Or install as a background service:
-```bash
 mercury service install
 mercury service status
 mercury service logs -f
