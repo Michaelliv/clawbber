@@ -1,103 +1,82 @@
-# Mercury — Agent Instructions
+# Mercury
 
-Personal AI assistant for chat platforms. Runs agents in Docker containers using [pi](https://github.com/badlogic/pi) as the runtime.
+Personal AI assistant for chat platforms. Runs agents in Docker containers using pi as the runtime. Adapters bridge WhatsApp/Slack/Discord/Teams → core → Docker → reply.
+
+AGENTS.md and CLAUDE.md are symlinked. This file is your system prompt. Loads every context window. Every token has a cost. Keep it holy — concise, tight, agents-only.
 
 ## Philosophy
 
-- Mercury is a **host**, not a framework — adapters, extensions, and agents are pluggable
-- Every message runs inside a short-lived Docker container; the host survives crashes
-- Spaces are the primary isolation boundary — conversations link to spaces, spaces own memory
-- Extensions are the escape hatch — anything Mercury doesn't do natively, an extension can add
-- Configuration lives in env vars (`.env`), never in code
+- This file + docs/ = diary. Fresh context = amnesia. Recover here first, then docs/ for lost insights, decisions, workarounds.
+- docs/ has details. This file references — never duplicates.
+- Tooling-enforced rules (Biome, tsconfig) belong nowhere in this file.
+- Capabilities > file paths. `git log`, `package.json` scripts = living docs.
+- Be extremely concise. Sacrifice grammar for concision. Every interaction, plan, commit, doc.
 
-## Commands
+## Context Recovery
 
-```bash
-bun run check        # Typecheck + lint + test (run before PR)
-bun run check:fix    # Same but auto-fix lint issues
-bun run format       # Format with Biome
-bun test             # Tests only
-bun run typecheck    # TypeScript only
-bun run lint         # Biome only
-```
+1. Read this file — your diary, your memory
+2. `find docs -name "*.md" | sort` — scan docs, read any relevant to task
+3. `cat package.json | jq .scripts` — available commands
+4. `git log --oneline -20` — recent changes, decisions, context
+5. Scan relevant source dirs — ground in actual code
 
-## ⚠️ Safety Rules
+## Identity
 
-- **Never kill processes by port** (e.g. `lsof -ti:8787 | xargs kill`). This can kill the agent process itself if it has an open connection to that port. Use `mercury service uninstall` to stop Mercury cleanly.
-- **Never run `mercury run` directly** — always use `mercury service install`. Direct runs block the terminal and don't auto-restart.
+Pick role(s) before starting. Compose for multi-domain. Security task → pen tester. Design → UI/UX. Architecture → systems architect.
+Delegating: YOU assign each agent a role identity.
+Subagents = focused workers, report to you only. Quick isolated tasks.
+Teams = direct agent-to-agent communication. Cross-layer coordination.
 
-## Running a Mercury Project
+## Workflow
 
-To start a mercury project (e.g. after changing extensions or `.env`):
-
-```bash
-cd /path/to/mercury-project
-mercury service install   # Installs and starts as a system service
-```
-
-That's it. The derived Docker image (with extension CLIs) is built automatically on startup if needed, and cached by content hash. You do **not** need to run `mercury build` — that command is only for developing the base mercury-agent image from source.
-
-## Running in Background
-
-The preferred way to run Mercury in the background is via system service (not tmux):
-
-```bash
-mercury service install   # Install as launchd (macOS) or systemd (Linux)
-mercury service status    # Check if running
-mercury service logs -f   # Tail logs
-mercury service uninstall # Remove service
-```
-
-See [deployment.md](docs/deployment.md) for details.
+- New problem → issue with full overview → branch → PR. Never push to main.
+- Conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`
+- Branches: `issue-<num>-<slug>` for GitHub issues
+- Git history IS documentation — insightful commits, not descriptive. Searchable record of decisions.
+- Plans: self-contained — include data, insights, decisions, constants. Fresh-context agent must execute without your memory.
+- End plans with unresolved questions.
 
 ## Architecture
 
-Mercury connects chat platforms (WhatsApp, Slack, Discord, Teams) to AI agents running in Docker containers.
+Mercury = host, not framework. Adapters, extensions, agents are pluggable.
 
-**Adapters** (`src/adapters/`) receive platform messages and normalize them via **bridges** (`src/bridges/`).
-**Core** (`src/core/`) routes messages, manages spaces and conversations, enforces RBAC, and schedules tasks.
-**Agent runner** (`src/agent/`) spawns Docker containers, passes context, collects replies.
-**Extensions** (`src/extensions/`) add CLIs, hooks, background jobs, skills, and config keys at runtime.
-**Storage** (`src/storage/`) manages SQLite (spaces, conversations, messages, tasks, roles, config) and workspace directories.
+- **Adapters** receive platform messages, normalize via bridges
+- **Core** routes messages, manages spaces/conversations, enforces RBAC, schedules tasks
+- **Agent runner** spawns short-lived Docker containers, passes context, collects replies
+- **Extensions** add CLIs, hooks, background jobs, skills, config keys at runtime
+- **Storage** SQLite (spaces, conversations, messages, tasks, roles, config) + workspace dirs
 
-## Key Files
+Non-obvious:
 
-| File | What it does |
-|------|--------------|
-| `src/main.ts` | Entry point — initializes runtime, adapters, server |
-| `src/core/runtime.ts` | Orchestrates message → container → reply flow |
-| `src/storage/db.ts` | All SQLite: spaces, conversations, messages, tasks, roles, config |
-| `src/config.ts` | Environment parsing with Zod |
-| `src/agent/container-runner.ts` | Docker spawn, timeout, cleanup |
-| `src/extensions/loader.ts` | Extension discovery, loading, registry |
-| `src/core/handler.ts` | Unified message handler — platform-agnostic |
-| `src/core/permissions.ts` | RBAC — role checks, dynamic extension permissions |
+- `MERCURY_*` env vars passed into containers with prefix stripped — `MERCURY_FOO` → `FOO`. Extensions use `mercury.env()` to declare needed vars.
+- Spaces ≠ conversations. Conversations auto-discovered from traffic; spaces created explicitly. Must link conversation → space before agent can use memory.
+- Extension names reserved against built-in commands (`tasks`, `roles`, `config`) — collision = silent failure.
+- Docker image cache key = content hash. Changing extension code busts cache automatically.
+- Outbox is mtime-based, not inotify. Tests writing files too fast can race.
 
-## Gotchas
+→ docs/pipeline.md, docs/extensions.md, docs/container-lifecycle.md
 
-- **All `MERCURY_*` env vars** are passed into containers with the prefix stripped — `MERCURY_FOO` becomes `FOO`. Extensions use `mercury.env()` to declare which vars they need.
-- **Spaces vs conversations**: Conversations are discovered automatically from traffic; spaces are created explicitly. A conversation must be _linked_ to a space before the agent can use its memory.
-- **Extension names are reserved** against built-in commands (`tasks`, `roles`, `config`, etc.) — see `src/extensions/reserved.ts`.
-- **Docker image caching**: When extensions declare CLIs, Mercury builds a derived image. The cache key is a content hash — changing extension code busts it automatically.
-- **Outbox is mtime-based**: `src/core/outbox.ts` detects new files by modification time, not inotify. Tests that write files too fast can race.
+## Running
 
-## Docs
+Background: `mercury service install|status|logs|uninstall` → docs/deployment.md
 
-| Doc | Topic |
-|-----|-------|
-| [auth/overview.md](docs/auth/overview.md) | Authentication (OAuth + API keys + platforms) |
-| [pipeline.md](docs/pipeline.md) | Message pipeline (ingress/egress) |
-| [memory.md](docs/memory.md) | Obsidian vault system |
-| [scheduler.md](docs/scheduler.md) | Task scheduling (cron + at) |
-| [permissions.md](docs/permissions.md) | RBAC system |
-| [container-lifecycle.md](docs/container-lifecycle.md) | Docker management |
-| [extensions.md](docs/extensions.md) | Extension system design |
-| [deployment.md](docs/deployment.md) | Service install + deployment |
+## Safety
+
+- Never kill processes by port (`lsof -ti:8787 | xargs kill`) — can kill the agent. Use `mercury service uninstall`.
+- Never run `mercury run` directly — use `mercury service install`. Direct runs block terminal, no auto-restart.
 
 ## Conventions
 
-- **Commits**: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`
-- **Branches**: `issue-<num>-<slug>` for GitHub issues
-- **Tests**: Co-located in `tests/`, use temp DBs
-- **Config**: All via env vars, parsed in `config.ts`
-- **Errors**: Use typed errors from `container-error.ts`
+- Tests: co-located in `tests/`, use temp DBs
+- Config: all via env vars, parsed in `src/config.ts` with Zod
+- Errors: typed errors from `container-error.ts`
+
+## Docs Index
+
+**Core:** pipeline | extensions | container-lifecycle | permissions | memory
+**Auth:** auth/overview | auth/whatsapp
+**Media:** media/overview | media/whatsapp
+**Operations:** deployment | scheduler | rate-limiting | graceful-shutdown
+**Features:** subagents | web-search | kb-distillation
+
+All docs in `docs/`. Read on demand — don't front-load.

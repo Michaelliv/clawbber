@@ -1,5 +1,7 @@
 # WhatsApp Media Handling
 
+Baileys-based media detection, download, size limits, and file naming for WhatsApp attachments.
+
 Downloads media from WhatsApp messages using the Baileys library.
 
 ## Supported Media Types

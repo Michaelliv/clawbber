@@ -1,5 +1,7 @@
 # Web Search
 
+Extension-based web search and browser automation via installable CLIs (e.g. pinchtab).
+
 Web search is **extension-based** in Mercury.
 
 Mercury core does not ship a built-in browser/search CLI. Instead, install a web automation extension (for example, `pinchtab`) and let the agent use that tool directly.

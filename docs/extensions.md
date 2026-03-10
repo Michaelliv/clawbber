@@ -1,5 +1,7 @@
 # Extensions
 
+How to build, load, and register extensions that add CLIs, skills, jobs, hooks, config, and widgets to Mercury.
+
 Mercury's extension system lets you add CLIs, skills, background jobs, lifecycle hooks, config keys, and dashboard widgets — all in TypeScript.
 
 ## Structure

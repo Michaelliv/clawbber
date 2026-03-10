@@ -1,5 +1,7 @@
 # WhatsApp Authentication
 
+QR code and pairing code auth via Baileys, session lifecycle, re-auth, and status monitoring.
+
 Mercury connects to WhatsApp using the [Baileys](https://github.com/WhiskeySockets/Baileys) library, which implements the WhatsApp Web protocol. This means you need to link your WhatsApp account just like you would link WhatsApp Web.
 
 ## Initial Setup

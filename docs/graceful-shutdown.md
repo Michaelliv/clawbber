@@ -1,5 +1,7 @@
 # Graceful Shutdown
 
+Ordered teardown on SIGTERM/SIGINT: scheduler → queue → containers → adapters → server → DB.
+
 On `SIGTERM` or `SIGINT`, mercury tears down all components in order instead of exiting abruptly.
 
 ## Sequence
