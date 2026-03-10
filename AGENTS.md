@@ -12,6 +12,22 @@ bun run typecheck    # TypeScript only
 bun run lint         # Biome only
 ```
 
+## ⚠️ Safety Rules
+
+- **Never kill processes by port** (e.g. `lsof -ti:8787 | xargs kill`). This can kill the agent process itself if it has an open connection to that port. Use `mercury service uninstall` to stop Mercury cleanly.
+- **Never run `mercury run` directly** — always use `mercury service install`. Direct runs block the terminal and don't auto-restart.
+
+## Running a Mercury Project
+
+To start a mercury project (e.g. after changing extensions or `.env`):
+
+```bash
+cd /path/to/mercury-project
+mercury service install   # Installs and starts as a system service
+```
+
+That's it. The derived Docker image (with extension CLIs) is built automatically on startup if needed, and cached by content hash. You do **not** need to run `mercury build` — that command is only for developing the base mercury-agent image from source.
+
 ## Running in Background
 
 The preferred way to run Mercury in the background is via system service (not tmux):

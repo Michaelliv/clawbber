@@ -151,7 +151,7 @@ Multiple platform conversations can point at the same space.
 # setup + runtime
 mercury init
 mercury run
-mercury build
+mercury build              # only needed when developing the base image from source
 mercury status
 
 # auth
