@@ -67,6 +67,8 @@ Background: `mercury service install|status|logs|uninstall` → docs/deployment.
 
 ## Conventions
 
+- **Commits**: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`
+- **Branches**: `issue-<num>-<slug>` for GitHub issues
 - Tests: co-located in `tests/`, use temp DBs
 - Config: all via env vars, parsed in `src/config.ts` with Zod
 - Errors: typed errors from `container-error.ts`
