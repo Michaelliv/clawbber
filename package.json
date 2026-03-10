@@ -35,6 +35,8 @@
     "typecheck": "bunx tsc --noEmit",
     "lint": "bunx biome check src/ tests/",
     "lint:fix": "bunx biome check --fix src/ tests/",
+    "format": "bunx biome format --write src/ tests/",
+    "format:check": "bunx biome format src/ tests/",
     "check": "bun run typecheck && bun run lint && bun test",
     "check:fix": "bun run typecheck && bun run lint:fix && bun test"
   },
