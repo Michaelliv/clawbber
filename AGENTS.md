@@ -2,11 +2,20 @@
 
 Personal AI assistant for chat platforms. Runs agents in Docker containers using [pi](https://github.com/badlogic/pi) as the runtime.
 
+## Philosophy
+
+- Mercury is a **host**, not a framework — adapters, extensions, and agents are pluggable
+- Every message runs inside a short-lived Docker container; the host survives crashes
+- Spaces are the primary isolation boundary — conversations link to spaces, spaces own memory
+- Extensions are the escape hatch — anything Mercury doesn't do natively, an extension can add
+- Configuration lives in env vars (`.env`), never in code
+
 ## Commands
 
 ```bash
 bun run check        # Typecheck + lint + test (run before PR)
 bun run check:fix    # Same but auto-fix lint issues
+bun run format       # Format with Biome
 bun test             # Tests only
 bun run typecheck    # TypeScript only
 bun run lint         # Biome only
@@ -39,219 +48,38 @@ mercury service logs -f   # Tail logs
 mercury service uninstall # Remove service
 ```
 
-This provides auto-restart on crash and proper system integration. See [deployment.md](docs/deployment.md) for details.
+See [deployment.md](docs/deployment.md) for details.
 
-## Structure
+## Architecture
 
-```
-src/
-├── main.ts                 # Entry point — bootstraps everything
-├── server.ts               # Hono HTTP server factory
-├── chat-shim.ts            # Minimal ChatInstance shim (replaces Chat SDK routing)
-├── config.ts               # Zod schema + env parsing
-├── logger.ts               # Pino logger
-├── types.ts                # Shared types
-│
-├── adapters/               # Platform adapters
-│   ├── setup.ts                # Adapter initialization
-│   ├── whatsapp.ts             # Baileys-based WhatsApp
-│   ├── whatsapp-media.ts       # Media download/upload
-│   ├── slack.ts                # Slack Events API
-│   ├── discord.ts              # Discord interactions
-│   └── discord-native.ts       # Discord gateway
-│
-├── bridges/                # Platform bridge implementations
-│   ├── whatsapp.ts             # WhatsApp PlatformBridge
-│   ├── discord.ts              # Discord PlatformBridge
-│   ├── slack.ts                # Slack PlatformBridge
-│   └── teams.ts                # Teams PlatformBridge
-│
-├── core/
-│   ├── runtime.ts              # Main orchestrator
-│   ├── handler.ts              # Unified message handler
-│   ├── router.ts               # Message routing
-│   ├── conversation.ts         # Conversation → space resolution
-│   ├── space-queue.ts          # Per-space concurrency
-│   ├── task-scheduler.ts       # Task scheduling (cron + at)
-│   ├── permissions.ts          # RBAC
-│   ├── trigger.ts              # Pattern matching
-│   ├── media.ts                # Shared media utilities (MIME, URL download)
-│   ├── outbox.ts               # Outbox directory scanner
-│   ├── rate-limiter.ts         # Rate limiting
-│   ├── api.ts                  # API app factory (Hono)
-│   ├── api-types.ts            # Shared API types
-│   └── routes/                 # API route handlers
-│       ├── tasks.ts                # /api/tasks/*
-│       ├── roles.ts                # /api/roles/* + /api/permissions/*
-│       ├── config.ts               # /api/config/*
-│       ├── spaces.ts               # /api/spaces/*
-│       ├── conversations.ts        # /api/conversations/*
-│       ├── mutes.ts                # /api/mutes/*
-│       ├── control.ts              # /api/whoami, /api/stop, /api/compact
-│       ├── extensions.ts           # /api/ext/*
-│       └── chat.ts                 # /chat (direct agent bridge)
-│
-├── agent/
-│   ├── container-runner.ts     # Spawns Docker containers
-│   ├── container-entry.ts      # Runs inside container (calls pi)
-│   └── container-error.ts      # Error types
-│
-├── storage/
-│   ├── db.ts                   # SQLite schema + queries (spaces + conversations)
-│   ├── memory.ts               # Workspace management (ensureSpaceWorkspace)
-│   └── pi-auth.ts              # Pi OAuth tokens
-│
-├── extensions/
-│   ├── types.ts                # Extension system type definitions
-│   ├── api.ts                  # MercuryExtensionAPI implementation
-│   ├── loader.ts               # Extension discovery + ExtensionRegistry
-│   ├── hooks.ts                # Hook dispatcher (lifecycle events)
-│   ├── jobs.ts                 # Background job runner (interval + cron)
-│   ├── config-registry.ts      # Extension config key registration
-│   ├── skills.ts               # Skill installation (copy to global dir)
-│   ├── image-builder.ts        # Derived Docker image builder
-│   └── reserved.ts             # Reserved extension names (shared constant)
-│
-├── cli/
-│   ├── mercury.ts              # Main CLI (init, run, build, auth, add, remove, ext list)
-│   ├── mrctl.ts                # In-container CLI
-│   └── whatsapp-auth.ts        # WhatsApp QR auth
-│
-└── dashboard/
-    └── index.html              # Admin dashboard (static)
+Mercury connects chat platforms (WhatsApp, Slack, Discord, Teams) to AI agents running in Docker containers.
 
-tests/                      # Bun tests
-docs/                       # Documentation
-container/                  # Dockerfile + build.sh
-resources/
-├── templates/              # Init templates (AGENTS.md, .env)
-├── prompts/                # KB distillation prompts
-├── skills/                 # Built-in skills for mrctl commands
-│   ├── tasks/SKILL.md
-│   ├── roles/SKILL.md
-│   ├── permissions/SKILL.md
-│   ├── config/SKILL.md
-│   └── spaces/SKILL.md
-└── extensions/             # Pi extensions (subagent)
-```
+**Adapters** (`src/adapters/`) receive platform messages and normalize them via **bridges** (`src/bridges/`).
+**Core** (`src/core/`) routes messages, manages spaces and conversations, enforces RBAC, and schedules tasks.
+**Agent runner** (`src/agent/`) spawns Docker containers, passes context, collects replies.
+**Extensions** (`src/extensions/`) add CLIs, hooks, background jobs, skills, and config keys at runtime.
+**Storage** (`src/storage/`) manages SQLite (spaces, conversations, messages, tasks, roles, config) and workspace directories.
 
 ## Key Files
 
 | File | What it does |
 |------|--------------|
-| `main.ts` | Entry point — initializes runtime, adapters, server |
-| `server.ts` | Creates Hono app with all routes (dashboard, API, webhooks) |
-| `runtime.ts` | Orchestrates message → container → reply flow |
-| `db.ts` | All SQLite: spaces, conversations, messages, tasks, roles, config |
-| `container-runner.ts` | Docker spawn, timeout, cleanup |
-| `config.ts` | Environment parsing with Zod |
-| `core/api.ts` | Creates API app, mounts route handlers |
-| `core/routes/*.ts` | Individual API route handlers |
-| `extensions/loader.ts` | Extension discovery, loading via Bun import, registry |
-| `extensions/hooks.ts` | Hook dispatch with mutation semantics for before/after_container |
-| `extensions/jobs.ts` | Background job runner — interval and cron scheduling |
-| `extensions/config-registry.ts` | Extension config key registration with validation |
-| `extensions/skills.ts` | Copy extension skills to global dir (not symlink — Docker mount) |
-| `extensions/image-builder.ts` | Derived Docker image with extension CLIs, content-hash cache |
-| `chat-shim.ts` | Minimal ChatInstance shim for adapter initialization |
-| `core/handler.ts` | Unified message handler — platform-agnostic, uses PlatformBridge |
-| `core/media.ts` | Shared media utilities — MIME detection, URL downloader |
-| `core/outbox.ts` | Outbox scanner — detects new/modified files by mtime |
-| `bridges/whatsapp.ts` | WhatsApp PlatformBridge — normalize + sendReply with Baileys |
-| `bridges/discord.ts` | Discord PlatformBridge — normalize + sendReply with discord.js |
-| `bridges/slack.ts` | Slack PlatformBridge — normalize + sendReply with Slack API |
+| `src/main.ts` | Entry point — initializes runtime, adapters, server |
+| `src/core/runtime.ts` | Orchestrates message → container → reply flow |
+| `src/storage/db.ts` | All SQLite: spaces, conversations, messages, tasks, roles, config |
+| `src/config.ts` | Environment parsing with Zod |
+| `src/agent/container-runner.ts` | Docker spawn, timeout, cleanup |
+| `src/extensions/loader.ts` | Extension discovery, loading, registry |
+| `src/core/handler.ts` | Unified message handler — platform-agnostic |
+| `src/core/permissions.ts` | RBAC — role checks, dynamic extension permissions |
 
-## Database Schema
+## Gotchas
 
-Tables in `state.db`:
-- `spaces` — User-defined memory boundaries
-- `conversations` — Discovered platform conversations that may be linked to a space
-- `messages` — Message history (for ambient context)
-- `tasks` — Scheduled tasks (cron + one-shot at)
-- `space_roles` — User role assignments per space
-- `space_config` — Per-space config overrides + role permission sets
-- `extension_state` — Scoped key-value store for extensions `(extension, key) → value`
-
-## API
-
-Internal API used by `mrctl` from inside containers:
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check |
-| `/api/whoami` | GET | Caller + space info |
-| `/api/tasks` | GET/POST | List/create tasks |
-| `/api/tasks/:id` | DELETE | Delete task |
-| `/api/tasks/:id/pause` | POST | Pause task |
-| `/api/tasks/:id/resume` | POST | Resume task |
-| `/api/roles` | GET/POST/DELETE | Role management |
-| `/api/permissions` | GET/POST | Permission management |
-| `/api/config` | GET/POST | Space config |
-| `/api/spaces` | GET | List spaces |
-| `/api/spaces/current` | GET/PUT/DELETE | Current space operations |
-| `/api/conversations` | GET | List conversations |
-| `/api/conversations/:id/link` | POST | Link conversation to a space |
-| `/api/conversations/:id/unlink` | POST | Unlink conversation from its space |
-| `/api/mutes` | GET | List active mutes in space |
-| `/api/mutes` | POST | Mute a user (two-step confirmation) |
-| `/api/mutes/:userId` | DELETE | Unmute a user |
-| `/api/stop` | POST | Abort current run |
-| `/api/compact` | POST | Session boundary |
-| `/api/ext` | GET | List installed extensions |
-| `/api/ext/:name/auth` | POST | Permission check for extension CLI |
-
-Auth: `X-Mercury-Caller` + `X-Mercury-Space` headers.
-
-### Chat API (direct bridge)
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/chat` | POST | Send a message and get a synchronous reply |
-
-No auth required. Request body: `{ text, callerId?, spaceId?, authorName?, files?: [{ name, data(base64) }] }`. Returns `{ reply, files: [{ filename, mimeType, sizeBytes, data(base64) }] }`.
-
-Input files are saved to the space's `inbox/`. Output files are read from `outbox/` and returned as base64.
-
-CLI wrapper:
-```bash
-mercury chat "hello"
-mercury chat --file photo.jpg "what's in this?"
-echo "msg" | mercury chat
-```
-
-## Extension System
-
-Mercury has a TypeScript extension system. Extensions live in `.mercury/extensions/*/` and export a setup function:
-
-```typescript
-import type { MercuryExtensionAPI } from "../extensions/types.js";
-
-export default function(mercury: MercuryExtensionAPI) {
-  mercury.cli({ name: "napkin", install: "bun add -g napkin-ai" });
-  mercury.permission({ defaultRoles: ["admin", "member"] });
-  mercury.env({ from: "MERCURY_NAPKIN_API_KEY" });
-  mercury.skill("./skill");
-  mercury.on("workspace_init", async ({ workspace, containerWorkspace }, ctx) => { ... });
-  mercury.job("distill", { interval: 3600_000, run: async (ctx) => { ... } });
-  mercury.config("enabled", { description: "...", default: "true" });
-  mercury.widget({ label: "Status", render: (ctx) => "<p>OK</p>" });
-  mercury.store.get("key");
-}
-```
-
-Key types are in `src/extensions/types.ts`. See [docs/extensions.md](docs/extensions.md) for the full design.
-
-### Built-in vs extension commands
-
-`mrctl` has two types of commands:
-- **Built-in**: `tasks`, `roles`, `permissions`, `config`, `spaces`, `conversations`, `stop`, `compact` — HTTP calls to host API
-- **Extension**: Called directly in bash (e.g., `napkin search "query"`) — RBAC enforced by pi extension at bash level
-
-Built-in names are reserved — extensions cannot collide with them.
-
-### Permissions
-
-Permissions are now dynamic. Built-in permissions are static; extensions register new ones at runtime via `registerPermission()`. Admin always gets all permissions. See `src/core/permissions.ts`.
+- **All `MERCURY_*` env vars** are passed into containers with the prefix stripped — `MERCURY_FOO` becomes `FOO`. Extensions use `mercury.env()` to declare which vars they need.
+- **Spaces vs conversations**: Conversations are discovered automatically from traffic; spaces are created explicitly. A conversation must be _linked_ to a space before the agent can use its memory.
+- **Extension names are reserved** against built-in commands (`tasks`, `roles`, `config`, etc.) — see `src/extensions/reserved.ts`.
+- **Docker image caching**: When extensions declare CLIs, Mercury builds a derived image. The cache key is a content hash — changing extension code busts it automatically.
+- **Outbox is mtime-based**: `src/core/outbox.ts` detects new files by modification time, not inotify. Tests that write files too fast can race.
 
 ## Docs
 
@@ -262,12 +90,9 @@ Permissions are now dynamic. Built-in permissions are static; extensions registe
 | [memory.md](docs/memory.md) | Obsidian vault system |
 | [scheduler.md](docs/scheduler.md) | Task scheduling (cron + at) |
 | [permissions.md](docs/permissions.md) | RBAC system |
-| [kb-distillation.md](docs/kb-distillation.md) | Knowledge extraction |
 | [container-lifecycle.md](docs/container-lifecycle.md) | Docker management |
-| [graceful-shutdown.md](docs/graceful-shutdown.md) | Shutdown sequence |
-| [rate-limiting.md](docs/rate-limiting.md) | Rate limits |
-| [media/overview.md](docs/media/overview.md) | Media handling |
 | [extensions.md](docs/extensions.md) | Extension system design |
+| [deployment.md](docs/deployment.md) | Service install + deployment |
 
 ## Conventions
 
