@@ -56,6 +56,9 @@ Built-in commands:
   mrctl permissions show|set
   mrctl spaces list|name|delete
   mrctl conversations list
+  mrctl mute <platform-user-id> <duration> [--reason <reason>]
+  mrctl unmute <platform-user-id>
+  mrctl mutes
   mrctl stop
   mrctl compact
 Environment:
@@ -280,6 +283,43 @@ async function main() {
         default:
           fatal(`Unknown conversations subcommand: ${action}`);
       }
+      break;
+    }
+
+    case "mute": {
+      const userId = requireArg(args, 1, "platform-user-id");
+      const duration = requireArg(args, 2, "duration (e.g. 10m, 1h, 24h)");
+      const reason = parseFlag(args, "--reason");
+      const confirm = args.includes("--confirm");
+
+      const result = (await api("POST", "/api/mutes", {
+        platformUserId: userId,
+        duration,
+        reason,
+        confirm,
+      })) as { warning?: boolean; message?: string };
+
+      if (result.warning) {
+        process.stdout.write(`${result.message}\n`);
+        process.stdout.write(
+          `\nTo confirm, run: mrctl mute ${userId} ${duration}${reason ? ` --reason "${reason}"` : ""} --confirm\n`,
+        );
+      } else {
+        print(result);
+      }
+      break;
+    }
+
+    case "unmute": {
+      const userId = requireArg(args, 1, "platform-user-id");
+      print(
+        await api("DELETE", `/api/mutes/${encodeURIComponent(userId)}`),
+      );
+      break;
+    }
+
+    case "mutes": {
+      print(await api("GET", "/api/mutes"));
       break;
     }
 

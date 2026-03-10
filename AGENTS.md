@@ -86,6 +86,7 @@ src/
 │       ├── config.ts               # /api/config/*
 │       ├── spaces.ts               # /api/spaces/*
 │       ├── conversations.ts        # /api/conversations/*
+│       ├── mutes.ts                # /api/mutes/*
 │       ├── control.ts              # /api/whoami, /api/stop, /api/compact
 │       ├── extensions.ts           # /api/ext/*
 │       └── chat.ts                 # /chat (direct agent bridge)
@@ -191,6 +192,9 @@ Internal API used by `mrctl` from inside containers:
 | `/api/conversations` | GET | List conversations |
 | `/api/conversations/:id/link` | POST | Link conversation to a space |
 | `/api/conversations/:id/unlink` | POST | Unlink conversation from its space |
+| `/api/mutes` | GET | List active mutes in space |
+| `/api/mutes` | POST | Mute a user (two-step confirmation) |
+| `/api/mutes/:userId` | DELETE | Unmute a user |
 | `/api/stop` | POST | Abort current run |
 | `/api/compact` | POST | Session boundary |
 | `/api/ext` | GET | List installed extensions |

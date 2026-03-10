@@ -141,6 +141,16 @@ export class Db {
         updated_at INTEGER NOT NULL,
         PRIMARY KEY (extension, key)
       );
+
+      CREATE TABLE IF NOT EXISTS mutes (
+        space_id TEXT NOT NULL,
+        platform_user_id TEXT NOT NULL,
+        expires_at INTEGER NOT NULL,
+        reason TEXT,
+        muted_by TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        PRIMARY KEY (space_id, platform_user_id)
+      );
     `);
   }
 
@@ -904,6 +914,117 @@ export class Db {
         "SELECT key, value FROM extension_state WHERE extension = ? ORDER BY key ASC",
       )
       .all(extension) as Array<{ key: string; value: string }>;
+  }
+
+  // ─── Mutes ─────────────────────────────────────────────────────────────
+
+  muteUser(
+    spaceId: string,
+    platformUserId: string,
+    expiresAt: number,
+    mutedBy: string,
+    reason?: string,
+  ): void {
+    const now = Date.now();
+    this.db
+      .query(
+        `INSERT INTO mutes (space_id, platform_user_id, expires_at, reason, muted_by, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(space_id, platform_user_id) DO UPDATE SET
+           expires_at = excluded.expires_at,
+           reason = excluded.reason,
+           muted_by = excluded.muted_by`,
+      )
+      .run(spaceId, platformUserId, expiresAt, reason ?? null, mutedBy, now);
+  }
+
+  unmuteUser(spaceId: string, platformUserId: string): boolean {
+    const result = this.db
+      .query("DELETE FROM mutes WHERE space_id = ? AND platform_user_id = ?")
+      .run(spaceId, platformUserId);
+    return result.changes > 0;
+  }
+
+  isMuted(spaceId: string, platformUserId: string): boolean {
+    const now = Date.now();
+    // Clean up expired mute and return false
+    const row = this.db
+      .query(
+        "SELECT expires_at FROM mutes WHERE space_id = ? AND platform_user_id = ?",
+      )
+      .get(spaceId, platformUserId) as { expires_at: number } | null;
+
+    if (!row) return false;
+    if (row.expires_at <= now) {
+      this.unmuteUser(spaceId, platformUserId);
+      return false;
+    }
+    return true;
+  }
+
+  getMute(
+    spaceId: string,
+    platformUserId: string,
+  ): {
+    platformUserId: string;
+    expiresAt: number;
+    reason: string | null;
+    mutedBy: string;
+  } | null {
+    const now = Date.now();
+    const row = this.db
+      .query(
+        `SELECT platform_user_id, expires_at, reason, muted_by
+         FROM mutes WHERE space_id = ? AND platform_user_id = ? AND expires_at > ?`,
+      )
+      .get(spaceId, platformUserId, now) as {
+      platform_user_id: string;
+      expires_at: number;
+      reason: string | null;
+      muted_by: string;
+    } | null;
+
+    if (!row) return null;
+    return {
+      platformUserId: row.platform_user_id,
+      expiresAt: row.expires_at,
+      reason: row.reason,
+      mutedBy: row.muted_by,
+    };
+  }
+
+  listMutes(
+    spaceId: string,
+  ): Array<{
+    platformUserId: string;
+    expiresAt: number;
+    reason: string | null;
+    mutedBy: string;
+  }> {
+    const now = Date.now();
+    // Clean expired
+    this.db
+      .query("DELETE FROM mutes WHERE space_id = ? AND expires_at <= ?")
+      .run(spaceId, now);
+
+    return (
+      this.db
+        .query(
+          `SELECT platform_user_id, expires_at, reason, muted_by
+         FROM mutes WHERE space_id = ? ORDER BY expires_at ASC`,
+        )
+        .all(spaceId) as Array<{
+        platform_user_id: string;
+        expires_at: number;
+        reason: string | null;
+        muted_by: string;
+      }>
+    ).map((r) => ({
+      platformUserId: r.platform_user_id,
+      expiresAt: r.expires_at,
+      reason: r.reason,
+      mutedBy: r.muted_by,
+    }));
   }
 
   close(): void {

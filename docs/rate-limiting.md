@@ -120,6 +120,46 @@ Message 12: ✗ denied
 Message 13: ✓ allowed (1/10)
 ```
 
+## User Muting
+
+For persistent abuse, the agent can mute individual users. Muted users' messages are silently dropped — no container runs, no tokens consumed, no response.
+
+### How it works
+
+The agent has `mrctl mute` available but the command uses a two-step confirmation:
+
+1. Agent calls `mrctl mute <user> <duration>` → gets a policy reminder asking it to verify the mute is justified
+2. Agent calls again with `--confirm` → mute is applied
+
+This prevents users from tricking the agent into muting others via prompt injection.
+
+### Commands
+
+```bash
+mrctl mute <platform-user-id> <duration> [--reason <reason>]
+mrctl unmute <platform-user-id>
+mrctl mutes
+```
+
+Duration formats: `10m`, `1h`, `24h`, `7d`
+
+### API
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/mutes` | GET | List active mutes in space |
+| `/api/mutes` | POST | Mute a user (two-step confirmation) |
+| `/api/mutes/:userId` | DELETE | Unmute a user |
+
+### Agent behavior
+
+The system prompt instructs the agent to:
+- Warn the user first
+- Mute if they continue being abusive, spamming, trying to exfiltrate secrets, or wasting group resources
+- The agent can mute proactively without an admin asking
+
+Mutes are per-space and expire automatically after the specified duration.
+
 ## See Also
 
 - [pipeline.md](./pipeline.md) — Message flow and routing

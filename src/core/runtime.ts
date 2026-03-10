@@ -116,6 +116,11 @@ export class MercuryCoreRuntime {
       return { ...route, result: { reply, files: [] } };
     }
 
+    // Check mute — silently drop messages from muted users
+    if (route.type === "assistant" && this.db.isMuted(message.spaceId, message.callerId)) {
+      return { type: "ignore" };
+    }
+
     // Check rate limit for assistant requests (not commands, not ignored messages)
     if (route.type === "assistant") {
       // Check per-group override first

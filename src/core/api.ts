@@ -6,6 +6,7 @@ import {
   control,
   conversations,
   extensions,
+  mutes,
   permissions,
   roles,
   spaces,
@@ -57,6 +58,7 @@ export function createApiApp(apiCtx: ApiContext): Hono<Env> {
   app.route("/permissions", permissions);
   app.route("/spaces", spaces);
   app.route("/conversations", conversations);
+  app.route("/mutes", mutes);
   app.route("/ext", extensions);
 
   // ─── Fallback ───────────────────────────────────────────────────────────
