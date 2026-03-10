@@ -1,6 +1,15 @@
 import path from "node:path";
 import { z } from "zod";
 
+/** Parse boolean from env var strings — case-insensitive "true"/"1" → true, everything else → false */
+const booleanFromEnv = z
+  .union([z.boolean(), z.string()])
+  .transform((val) => {
+    if (typeof val === "boolean") return val;
+    const lower = val.toLowerCase();
+    return lower === "true" || lower === "1";
+  });
+
 const schema = z.object({
   // ─── Logging ────────────────────────────────────────────────────────
   logLevel: z
@@ -46,7 +55,7 @@ const schema = z.object({
   botUsername: z.string().default("mercury"),
 
   // ─── Discord ────────────────────────────────────────────────────────
-  enableDiscord: z.coerce.boolean().default(false),
+  enableDiscord: booleanFromEnv.default(false),
   discordGatewayDurationMs: z.coerce
     .number()
     .int()
@@ -56,16 +65,16 @@ const schema = z.object({
   discordGatewaySecret: z.string().optional(),
 
   // ─── Slack ──────────────────────────────────────────────────────────
-  enableSlack: z.coerce.boolean().default(false),
+  enableSlack: booleanFromEnv.default(false),
 
   // ─── Teams ───────────────────────────────────────────────────────────
-  enableTeams: z.coerce.boolean().default(false),
+  enableTeams: booleanFromEnv.default(false),
 
   // ─── WhatsApp ───────────────────────────────────────────────────────
-  enableWhatsApp: z.coerce.boolean().default(false),
+  enableWhatsApp: booleanFromEnv.default(false),
 
   // ─── Media Handling ─────────────────────────────────────────────────
-  mediaEnabled: z.coerce.boolean().default(true),
+  mediaEnabled: booleanFromEnv.default(true),
   mediaMaxSizeMb: z.coerce.number().min(1).max(100).default(10),
 
   // ─── Permissions ────────────────────────────────────────────────────
