@@ -233,7 +233,22 @@ export default function(mercury) {
 
 Extensions with CLIs get auto-installed into a derived Docker image. Skills are symlinked for agent discovery. Permissions integrate with the existing RBAC system.
 
-See [docs/extensions.md](docs/extensions.md) for the full guide.
+### Official Extensions
+
+Install curated extensions from the [`@mercuryai`](https://github.com/Michaelliv/mercury-extensions) scope:
+
+```bash
+mercury add @mercuryai/knowledge        # Obsidian-based knowledge vault with KB distillation
+mercury add @mercuryai/web-browser      # Web browsing via Playwright/Chromium
+mercury add @mercuryai/charts           # Chart generation
+mercury add @mercuryai/github           # GitHub CLI integration
+mercury add @mercuryai/google-workspace # Google Workspace (Gmail, Calendar, Drive)
+mercury add @mercuryai/pdf-tools        # PDF processing, OCR, and form filling
+```
+
+See [mercury-extensions](https://github.com/Michaelliv/mercury-extensions) for the full list and documentation.
+
+See [docs/extensions.md](docs/extensions.md) for the extension system guide.
 
 ---
 
