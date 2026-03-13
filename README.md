@@ -17,13 +17,15 @@ Mercury is a personal AI assistant that lives where you chat. It connects to Wha
 
 ## Quick Start
 
+### 1. Install and initialize
+
 ```bash
 npm install -g mercury-ai
 mkdir my-assistant && cd my-assistant
 mercury init
 ```
 
-Authenticate:
+### 2. Authenticate with an AI provider
 
 ```bash
 mercury auth login              # Interactive OAuth (Anthropic, GitHub Copilot, etc.)
@@ -31,47 +33,79 @@ mercury auth login anthropic    # Or specify provider directly
 mercury auth status             # Check what's configured
 ```
 
-Or set an API key in `.env`:
+Or set an API key directly in `.env`:
 
 ```bash
 MERCURY_ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-Configure identity and adapters in `.env`:
+### 3. Configure adapters
+
+Edit `.env` to enable the platforms you want:
 
 ```bash
 MERCURY_BOT_USERNAME=Mercury
 MERCURY_TRIGGER_PATTERNS=@Mercury,Mercury
 
-# Enable adapters
+# WhatsApp
 MERCURY_ENABLE_WHATSAPP=true
+
+# Discord (optional)
 MERCURY_ENABLE_DISCORD=true
 MERCURY_DISCORD_BOT_TOKEN=your-bot-token
 ```
 
-Start:
+### 4. Connect WhatsApp (if enabled)
+
+You must authenticate WhatsApp **before** starting Mercury:
 
 ```bash
-mercury run
-# or install as a background service:
+mercury auth whatsapp
+```
+
+This displays a QR code — scan it with your phone (WhatsApp → Settings → Linked Devices → Link a Device). For remote/headless servers, use pairing code mode instead:
+
+```bash
+mercury auth whatsapp --pairing-code --phone 14155551234
+```
+
+See [docs/auth/whatsapp.md](docs/auth/whatsapp.md) for details.
+
+### 5. Start Mercury
+
+Install as a background service (recommended):
+
+```bash
 mercury service install
 ```
 
-### Set up spaces and conversations
-
-Mercury discovers conversations from incoming traffic. They start **unlinked** — you assign them to **spaces** (memory boundaries).
+Check that it's running:
 
 ```bash
-# Create spaces
-mercury spaces create main
-mercury spaces create work
-mercury spaces create family
-
-# Send a message from WhatsApp/Discord/Slack, then:
-mercury conversations              # See discovered conversations
-mercury conversations --unlinked   # See unlinked ones
-mercury link <id> main             # Link a conversation to a space
+mercury service status
+mercury service logs -f          # Follow logs
 ```
+
+Alternatively, run in the foreground with `mercury run`.
+
+### 6. Create a space
+
+Spaces are memory boundaries — each has its own workspace, session, and vault.
+
+```bash
+mercury spaces create main
+```
+
+### 7. Link a conversation
+
+Send a message from WhatsApp (or Discord/Slack) to trigger conversation discovery, then link it to your space:
+
+```bash
+mercury conversations --unlinked   # Find the new conversation
+mercury link <id> main             # Link it to your space
+```
+
+That's it — Mercury is now listening and will respond to messages in that conversation.
 
 Multiple conversations can point at the same space — they share memory, session, and vault.
 
