@@ -1,5 +1,15 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+// Suppress noisy Bun WebSocket warnings from Baileys
+const originalWarn = console.warn;
+console.warn = (...args: unknown[]) => {
+  const msg = typeof args[0] === "string" ? args[0] : "";
+  if (msg.includes("ws.WebSocket") && msg.includes("not implemented in bun"))
+    return;
+  originalWarn(...args);
+};
+
 import type { Adapter, Message } from "chat";
 import type { DiscordNativeAdapter } from "./adapters/discord-native.js";
 import { setupAdapters } from "./adapters/setup.js";
