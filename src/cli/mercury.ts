@@ -611,6 +611,8 @@ function generateSystemdService(userMode: boolean): string {
   const mercuryScript = resolve(process.argv[1]);
   const workDir = CWD;
 
+  const currentPath = process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin";
+
   return `[Unit]
 Description=Mercury Chat Agent
 After=network.target
@@ -619,6 +621,7 @@ After=network.target
 Type=simple
 ExecStart=${bunPath} run ${mercuryScript} run
 WorkingDirectory=${workDir}
+Environment=PATH=${currentPath}
 Restart=on-failure
 RestartSec=10
 
