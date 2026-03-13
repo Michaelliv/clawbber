@@ -151,9 +151,10 @@ tail -f .mercury/logs/mercury.log
 
 ### Service fails to start
 
-1. Check that `mercury run` works manually first
-2. Verify `.env` exists and is configured
-3. Check logs for errors: `mercury service logs`
+1. Run `mercury doctor` to check for common issues
+2. Check that `mercury run` works manually first
+3. Verify `.env` exists and is configured
+4. Check logs for errors: `mercury service logs`
 
 ### Permission denied (Linux)
 

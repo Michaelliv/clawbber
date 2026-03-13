@@ -113,7 +113,7 @@ src/
 │   └── reserved.ts             # Reserved extension names (shared constant)
 │
 ├── cli/
-│   ├── mercury.ts              # Main CLI (init, run, build, auth, add, remove, ext list)
+│   ├── mercury.ts              # Main CLI (init, run, build, auth, doctor, add, remove, ext list)
 │   ├── mrctl.ts                # In-container CLI
 │   └── whatsapp-auth.ts        # WhatsApp QR auth
 │
