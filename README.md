@@ -329,6 +329,7 @@ mrctl config set trigger_patterns "@Bot,Bot"
 ## Docs
 
 - [Authentication](docs/auth/overview.md)
+- **Platform setup:** [WhatsApp](docs/setup-whatsapp.md) · [Discord](docs/setup-discord.md) · [Slack](docs/setup-slack.md)
 - [Message pipeline](docs/pipeline.md)
 - [Memory system](docs/memory.md)
 - [Scheduled tasks](docs/scheduler.md)
