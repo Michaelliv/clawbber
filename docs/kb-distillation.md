@@ -1,5 +1,7 @@
 # KB Distillation
 
+Extension-driven periodic extraction of conversation history into structured vault knowledge.
+
 KB distillation is **extension-based** in Mercury (not built-in).
 
 As of v0.3.x, Mercury no longer ships a built-in `kb-distill` extension. The recommended approach is to use a user-installed extension (for example, `napkin`) that runs a background job and writes distilled knowledge into each space vault.

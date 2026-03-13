@@ -1,5 +1,7 @@
 # Subagents
 
+Delegate tasks to isolated pi sub-agents (explore, worker, custom) with single, parallel, and chained execution.
+
 Mercury supports delegating tasks to specialized sub-agents using pi's subagent extension. Each sub-agent runs in its own isolated context window, keeping the main conversation clean.
 
 ## How It Works

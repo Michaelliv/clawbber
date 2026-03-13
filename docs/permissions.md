@@ -1,5 +1,7 @@
 # Permissions
 
+Per-space RBAC: roles, permission sets, extension permissions, and admin seeding.
+
 Mercury uses role-based access control (RBAC) per space. Each user has a role, and each role has a set of permissions.
 
 ## How It Works

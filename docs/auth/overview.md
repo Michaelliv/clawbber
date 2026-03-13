@@ -1,5 +1,7 @@
 # Authentication
 
+OAuth login, API keys, and chat platform credentials (WhatsApp, Discord, Slack, Teams).
+
 Mercury needs credentials for two things:
 
 1. **AI model provider** — to call the LLM (Anthropic, OpenAI, etc.)

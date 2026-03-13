@@ -1,5 +1,7 @@
 # Rate Limiting
 
+Per-user per-space sliding window rate limiting with per-space overrides and command bypass.
+
 Mercury rate limits messages per-user per-space to prevent abuse. This protects against users flooding the agent or bot loops exhausting resources.
 
 ## How It Works

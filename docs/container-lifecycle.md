@@ -1,5 +1,7 @@
 # Container Lifecycle
 
+Docker container spawn, timeout, error classification, orphan cleanup, and custom image support.
+
 Mercury runs agent code inside Docker containers. This document covers how containers are managed, what happens when they fail, and how the system recovers.
 
 ## Container Identity

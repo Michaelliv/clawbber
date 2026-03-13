@@ -1,5 +1,7 @@
 # Media Handling
 
+Cross-platform media ingress (inbox/) and egress (outbox/), attachment types, size limits, and prompt format.
+
 Mercury downloads and processes media attachments from chat platforms, saving them to space workspaces and passing them to pi for processing. Models can also produce files via the `outbox/` directory.
 
 ## Supported Platforms

@@ -1,5 +1,7 @@
 # Scheduler
 
+Cron (recurring) and at (one-shot) task scheduling for automated agent prompts per space.
+
 Mercury includes a task scheduler for automated prompts. Tasks can run on **cron schedules** (recurring) or **at schedules** (one-shot).
 
 ## Task Types

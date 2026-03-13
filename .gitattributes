@@ -1,0 +1,2 @@
+# Bun lockfile is text-based but should be treated as generated
+bun.lock -diff linguist-generated

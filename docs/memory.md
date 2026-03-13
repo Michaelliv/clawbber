@@ -1,5 +1,7 @@
 # Memory
 
+Per-space agent memory via workspace directories and extension-driven vault structures (Obsidian-compatible).
+
 Mercury stores memory per **space** in the space workspace directory. Memory behavior is extension-driven (for example, via a napkin extension).
 
 ## How It Works

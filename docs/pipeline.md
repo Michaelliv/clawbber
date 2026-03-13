@@ -1,5 +1,7 @@
 # Message Pipeline
 
+Message flow from platform ingress through adapter → bridge → handler → Docker container to reply egress.
+
 Mercury connects to chat platforms through **adapters** and **bridges**. Messages flow through a standardized pipeline regardless of platform:
 
 ```

@@ -1,5 +1,7 @@
 # Deployment
 
+Install Mercury as a system service (launchd/systemd) with auto-restart, logging, and troubleshooting.
+
 Mercury can run as a background daemon with automatic restart on crash.
 
 ## Quick Setup
