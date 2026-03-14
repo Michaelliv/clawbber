@@ -347,12 +347,12 @@ describe("mergeInstalls", () => {
 // toRunStatements
 // ---------------------------------------------------------------------------
 describe("toRunStatements", () => {
-  it("generates apt RUN with cache mount", () => {
+  it("generates apt RUN without cache mount", () => {
     const lines = toRunStatements([
       { type: "apt", packages: ["ffmpeg", "git"] },
     ]);
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toContain("--mount=type=cache,target=/var/cache/apt");
+    expect(lines[0]).not.toContain("--mount");
     expect(lines[0]).toContain(
       "apt-get install -y --no-install-recommends ffmpeg git",
     );

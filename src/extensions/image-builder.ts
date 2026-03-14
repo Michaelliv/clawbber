@@ -191,9 +191,7 @@ export function toRunStatements(merged: ParsedInstall[]): string[] {
     switch (m.type) {
       case "apt":
         lines.push(
-          `RUN --mount=type=cache,target=/var/cache/apt,sharing=locked ` +
-            `--mount=type=cache,target=/var/lib/apt/lists,sharing=locked ` +
-            `apt-get update && apt-get install -y --no-install-recommends ${m.packages.join(" ")} && ` +
+          `RUN apt-get update && apt-get install -y --no-install-recommends ${m.packages.join(" ")} && ` +
             `rm -rf /var/lib/apt/lists/*`,
         );
         break;
@@ -329,6 +327,7 @@ export async function ensureDerivedImage(
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mercury-ext-"));
   try {
     fs.writeFileSync(path.join(tmpDir, "Dockerfile"), dockerfile);
+    log.debug("Generated Dockerfile:\n" + dockerfile);
 
     const startTime = Date.now();
     execSync(`DOCKER_BUILDKIT=1 docker build -t ${derivedTag} ${tmpDir}`, {
@@ -340,10 +339,18 @@ export async function ensureDerivedImage(
 
     log.info(`Built derived agent image ${derivedTag}`, { durationMs });
     return derivedTag;
-  } catch (err) {
+  } catch (err: unknown) {
+    const stderr =
+      err && typeof err === "object" && "stderr" in err
+        ? String((err as { stderr: unknown }).stderr).slice(-2000)
+        : "";
+    const msg = err instanceof Error ? err.message : String(err);
     log.error(
-      `Failed to build derived image, falling back to base image: ${err instanceof Error ? err.message : String(err)}`,
+      `Failed to build derived image, falling back to base image: ${msg}`,
     );
+    if (stderr) {
+      log.error(`Docker build stderr:\n${stderr}`);
+    }
     return baseImage;
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });

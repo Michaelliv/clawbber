@@ -23,6 +23,9 @@ ENV PATH="$BUN_INSTALL/bin:$PATH"
 RUN curl -fsSL https://go.dev/dl/go1.24.1.linux-$(dpkg --print-architecture).tar.gz | tar -C /usr/local -xzf -
 ENV PATH="/usr/local/go/bin:$PATH"
 
+# Install Playwright + Chromium (used by multiple extensions: web-browser, diagrams, charts)
+RUN npx playwright install --with-deps chromium
+
 # Install CLIs
 RUN bun add -g @mariozechner/pi-coding-agent
 
