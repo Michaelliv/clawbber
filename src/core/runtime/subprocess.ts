@@ -185,6 +185,7 @@ export class SubprocessAgent implements Agent {
         "--dev", "/dev",
         "--proc", "/proc",
         "--tmpfs", "/tmp",
+        "--tmpfs", "/run",
       ];
 
       for (const p of allowedPaths) {
