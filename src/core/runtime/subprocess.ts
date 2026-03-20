@@ -180,12 +180,10 @@ export class SubprocessAgent implements Agent {
 
     if (process.platform === "linux") {
       const bwrapArgs = [
-        "--ro-bind", "/", "/",
+        "--bind", "/", "/",
         "--tmpfs", dataDir,
         "--dev", "/dev",
         "--proc", "/proc",
-        "--tmpfs", "/tmp",
-        "--tmpfs", "/run",
       ];
 
       for (const p of allowedPaths) {
