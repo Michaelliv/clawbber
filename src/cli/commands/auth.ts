@@ -69,7 +69,7 @@ export function registerAuthCommands(authCommand: Command): void {
       console.log(`\nLogging in to ${provider.name}...`);
 
       const dataDir = getProjectDataDir();
-      const authPath = join(CWD, dataDir, "workspace", "auth.json");
+      const authPath = join(CWD, dataDir, "pi-agent", "auth.json");
       const authDir = dirname(authPath);
       if (!existsSync(authDir)) mkdirSync(authDir, { recursive: true });
 
@@ -145,7 +145,7 @@ export function registerAuthCommands(authCommand: Command): void {
     .description("Remove saved OAuth credentials for a provider")
     .action(async (providerArg?: string) => {
       const dataDir = getProjectDataDir();
-      const authPath = join(CWD, dataDir, "workspace", "auth.json");
+      const authPath = join(CWD, dataDir, "pi-agent", "auth.json");
 
       if (!existsSync(authPath)) {
         console.log("No credentials found.");
@@ -187,7 +187,7 @@ export function registerAuthCommands(authCommand: Command): void {
       const { getOAuthProviders } = await import("@mariozechner/pi-ai");
 
       const dataDir = getProjectDataDir();
-      const authPath = join(CWD, dataDir, "workspace", "auth.json");
+      const authPath = join(CWD, dataDir, "pi-agent", "auth.json");
 
       let authData: Record<string, { type?: string; expires?: number }> = {};
       if (existsSync(authPath)) {

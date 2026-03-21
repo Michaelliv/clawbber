@@ -47,7 +47,7 @@ export function doctorAction(): void {
 
   console.log("\nAI Credentials:");
   const dataDir = getProjectDataDir();
-  const authPath = join(CWD, dataDir, "workspace", "auth.json");
+  const authPath = join(CWD, dataDir, "pi-agent", "auth.json");
   const hasOAuth = existsSync(authPath);
   const hasApiKey = !!(
     envVars.MERCURY_ANTHROPIC_API_KEY || envVars.MERCURY_ANTHROPIC_OAUTH_TOKEN

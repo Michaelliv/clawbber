@@ -6,7 +6,6 @@ import { type AppConfig, resolveProjectPath } from "../config.js";
 import { HookDispatcher } from "../../extensions/hooks.js";
 import type { ExtensionRegistry } from "../../extensions/loader.js";
 import type { MercuryExtensionContext } from "../../extensions/types.js";
-import fs from "node:fs";
 import { logger } from "../logger.js";
 import { ensurePiResourceDir } from "./workspace.js";
 
@@ -59,16 +58,6 @@ export class MercuryCoreRuntime {
   }
 
   async initialize(): Promise<void> {
-    const authPath = path.join(this.workspace, "auth.json");
-    const piAgentDir = path.join(process.env.HOME ?? "/root", ".pi", "agent");
-    const piAuthPath = path.join(piAgentDir, "auth.json");
-
-    if (fs.existsSync(authPath)) {
-      fs.mkdirSync(piAgentDir, { recursive: true });
-      try { fs.unlinkSync(piAuthPath); } catch {}
-      fs.symlinkSync(authPath, piAuthPath);
-      logger.info("Linked pi auth.json to workspace credentials");
-    }
   }
 
   initExtensions(registry: ExtensionRegistry): void {
