@@ -40,7 +40,7 @@ export class MercuryCoreRuntime {
   readonly agent: Agent;
   hooks: HookDispatcher | null = null;
   private extensionCtx: MercuryExtensionContext | null = null;
-  private extensionRegistry: ExtensionRegistry | null = null;
+  extensionRegistry: ExtensionRegistry | null = null;
   private readonly shutdownHooks: ShutdownHook[] = [];
   private shuttingDown = false;
   private signalHandlersInstalled = false;

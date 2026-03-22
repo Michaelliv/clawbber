@@ -1,4 +1,6 @@
+import fs from "node:fs";
 import path from "node:path";
+import { SessionManager } from "@mariozechner/pi-coding-agent";
 import type { MercuryCoreRuntime } from "../runtime/runtime.js";
 import { compactSession, newSession } from "../runtime/compact.js";
 
@@ -44,7 +46,46 @@ export async function handleCommand(
   }
 
   if (cmd === "/status") {
-    return { handled: true, reply: "Running." };
+    const sessionFile = getSessionFile(core, isDM, callerId, conversationId);
+    const lines: string[] = [];
+
+    // Identity & model
+    lines.push(`🤖 *${core.config.botUsername}*`);
+    lines.push(`🧠 ${core.config.modelProvider}/${core.config.model}`);
+
+    // Session info
+    if (fs.existsSync(sessionFile)) {
+      try {
+        const sm = SessionManager.open(sessionFile);
+        const entries = sm.getEntries();
+        const messages = entries.filter((e: { type: string }) => e.type === "message");
+        const stat = fs.statSync(sessionFile);
+        const sizeKb = Math.round(stat.size / 1024);
+        lines.push(`📚 Session: ${messages.length} messages (${sizeKb}KB)`);
+      } catch {
+        lines.push("📚 Session: error reading");
+      }
+    } else {
+      lines.push("📚 Session: none");
+    }
+
+    // Agent state
+    const agentState = core.agent.isRunning ? "busy" : "idle";
+    const queueDepth = core.queue.pendingCount;
+    lines.push(`⚙️ Agent: ${agentState}${queueDepth > 0 ? ` · Queue: ${queueDepth}` : ""}`);
+
+    // Trigger config
+    const patterns = core.config.triggerPatterns.split(",").map((s: string) => s.trim()).join(", ");
+    lines.push(`👥 Triggers: ${patterns}`);
+
+    // Extensions
+    const extCount = core.extensionRegistry?.list().length ?? 0;
+    if (extCount > 0) {
+      const extNames = core.extensionRegistry!.list().map((e: { name: string }) => e.name).join(", ");
+      lines.push(`🧩 Extensions: ${extNames}`);
+    }
+
+    return { handled: true, reply: lines.join("\n") };
   }
 
   if (cmd === "/stop") {
