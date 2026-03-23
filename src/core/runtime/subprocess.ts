@@ -240,9 +240,11 @@ export class SubprocessAgent implements Agent {
     const log: Logger = logger;
     const startTime = Date.now();
 
+    const piAgentDir = path.join(dataDir, "pi-agent");
     const { cmd, cmdArgs } = this.wrapWithSandbox("pi", args, dataDir, [
       input.workspace,
       sessionDir,
+      piAgentDir,
     ]);
 
     return new Promise<AgentOutput>((resolve, reject) => {
