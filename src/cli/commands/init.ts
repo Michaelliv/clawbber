@@ -1,8 +1,67 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CWD, PACKAGE_ROOT, TEMPLATES_DIR } from "../helpers.js";
 import { createDatabase } from "../../core/db.js";
 import { createApiKeyService } from "../../services/api-keys/service.js";
+
+const GITIGNORE = `.env
+state.db
+state.db-shm
+state.db-wal
+whatsapp-auth/
+pi-agent/
+sessions/
+workspace/outbox/
+workspace/inbox/
+workspace/auth.json
+workspace/.messages/
+workspace/.pi/skills/
+workspace/.pi/extensions/
+extensions/*/dist/
+extensions/*/node_modules/
+.build-context/
+build-tmp.db
+build-tmp.db-shm
+build-tmp.db-wal
+`;
+
+const CI_WORKFLOW = `name: Build
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: \${{ github.actor }}
+          password: \${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/\${{ github.repository }}:latest
+            ghcr.io/\${{ github.repository }}:\${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+`;
 
 export function initAction(): void {
   console.log("🪽 Initializing mercury project...\n");
@@ -44,6 +103,24 @@ export function initAction(): void {
       copyFileSync(join(srcExtDir, file), join(extensionsDir, file));
       console.log(`  ✓ .pi/extensions/subagent/${file}`);
     }
+  }
+
+  const gitignorePath = join(CWD, ".gitignore");
+  if (!existsSync(gitignorePath)) {
+    writeFileSync(gitignorePath, GITIGNORE);
+    console.log("  ✓ .gitignore");
+  } else {
+    console.log("  • .gitignore (already exists)");
+  }
+
+  const ciDir = join(CWD, ".github", "workflows");
+  const ciPath = join(ciDir, "build.yml");
+  if (!existsSync(ciPath)) {
+    mkdirSync(ciDir, { recursive: true });
+    writeFileSync(ciPath, CI_WORKFLOW);
+    console.log("  ✓ .github/workflows/build.yml");
+  } else {
+    console.log("  • .github/workflows/build.yml (already exists)");
   }
 
   // Generate first API key
