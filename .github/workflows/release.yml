@@ -48,8 +48,19 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
+      - name: Determine npm tag
+        id: npm-tag
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          if [[ "$VERSION" == *-* ]]; then
+            PRE="${VERSION#*-}"
+            echo "tag=${PRE%%.*}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          fi
+
       - name: Publish to npm
-        run: npm publish
+        run: npm publish --tag ${{ steps.npm-tag.outputs.tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
