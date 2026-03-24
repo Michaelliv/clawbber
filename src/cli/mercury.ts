@@ -34,13 +34,13 @@ program.command("restart").description("Rebuild and restart Mercury").action(res
 program.command("logs").description("View container logs").option("-f, --follow", "Follow log output").action(logsAction);
 program.command("dockerfile")
   .description("Generate Dockerfile from extensions")
-  .option("--version <version>", "Mercury npm version or tag (default: current version)")
-  .action(dockerfileAction);
+  .option("--mercury-version <version>", "Mercury npm version or tag (default: current version)")
+  .action((opts) => dockerfileAction({ version: opts.mercuryVersion }));
 
 program.command("build")
   .description("Generate Dockerfile and build image locally")
-  .option("--version <version>", "Mercury npm version or tag (default: current version)")
-  .action(buildAction);
+  .option("--mercury-version <version>", "Mercury npm version or tag (default: current version)")
+  .action((opts) => buildAction({ version: opts.mercuryVersion }));
 program.command("status").description("Show current status and configuration").action(statusAction);
 program.command("doctor").description("Check environment and configuration").action(doctorAction);
 
