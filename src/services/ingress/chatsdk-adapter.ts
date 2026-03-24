@@ -104,6 +104,9 @@ function createChannel(
     async startTyping() {
       await thread.startTyping();
     },
+    async subscribe() {
+      try { await thread.subscribe(); } catch {}
+    },
   };
 }
 

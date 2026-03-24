@@ -6,6 +6,7 @@ export interface MessageChannel {
   sendFiles(text: string, files: OutputFile[]): Promise<void>;
   markRead(): Promise<void>;
   startTyping(): Promise<void>;
+  subscribe(): Promise<void>;
 }
 
 export interface IngressService {

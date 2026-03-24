@@ -111,6 +111,7 @@ export function createIngressService(
       }
 
       // ─── Addressed to bot: run through policy → agent ─────────────────
+      try { await channel.subscribe(); } catch {}
       try { await channel.startTyping(); } catch {}
 
       const ingress: IngressMessage = {
