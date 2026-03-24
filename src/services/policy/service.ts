@@ -3,7 +3,6 @@ import type { IngressMessage } from "../../core/types.js";
 import type { RoleService } from "../roles/interface.js";
 import type { ConfigService } from "../config/interface.js";
 import type { MuteService } from "../mutes/interface.js";
-import { loadTriggerConfig, matchTrigger } from "../../core/ingress/trigger.js";
 import { RateLimiter } from "../../core/runtime/rate-limiter.js";
 import type { PolicyResult, PolicyService } from "./interface.js";
 
@@ -14,30 +13,12 @@ export function createPolicyService(
   mutes: MuteService,
   rateLimiter?: RateLimiter,
 ): PolicyService {
-  const defaultPatterns = appConfig.triggerPatterns
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
   return {
     evaluate(message: IngressMessage): PolicyResult {
       const text = message.text.trim();
       if (!text) return { action: "ignore" };
 
-      // Resolve role
       const role = roles.resolveRole(message.callerId);
-
-      // Trigger matching
-      const triggerConfig = loadTriggerConfig(config, {
-        patterns: defaultPatterns,
-        match: appConfig.triggerMatch,
-      });
-
-      const result = matchTrigger(text, triggerConfig, message.isDM);
-      const isReplyTrigger = message.isReplyToBot && !message.isDM;
-      if (!result.matched && !isReplyTrigger) return { action: "ignore" };
-
-      const prompt = result.matched ? result.prompt : text;
 
       // Permission check
       const promptPerm = message.isDM ? "prompt.dm" : "prompt.group";
@@ -67,7 +48,7 @@ export function createPolicyService(
         }
       }
 
-      return { action: "process", prompt, callerId: message.callerId, role };
+      return { action: "process", prompt: text, callerId: message.callerId, role };
     },
   };
 }

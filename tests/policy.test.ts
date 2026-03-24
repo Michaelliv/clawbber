@@ -60,17 +60,17 @@ afterEach(() => {
 
 describe("PolicyService", () => {
   describe("trigger matching", () => {
-    test("matches trigger word in group", () => {
+    test("processes group message (trigger matching done by ingress)", () => {
       const result = policy.evaluate(msg({ text: "bot what time is it" }));
       expect(result.action).toBe("process");
       if (result.action === "process") {
-        expect(result.prompt).toBe("what time is it");
+        expect(result.prompt).toBe("bot what time is it");
       }
     });
 
-    test("ignores non-triggered group message", () => {
+    test("processes any text (policy does not filter by trigger)", () => {
       const result = policy.evaluate(msg({ text: "hello everyone" }));
-      expect(result.action).toBe("ignore");
+      expect(result.action).toBe("process");
     });
 
     test("DMs trigger for admin", () => {
@@ -99,11 +99,11 @@ describe("PolicyService", () => {
       expect(result.action).toBe("ignore");
     });
 
-    test("@bot mention trigger", () => {
+    test("@bot mention passes text through unmodified", () => {
       const result = policy.evaluate(msg({ text: "@bot explain this" }));
       expect(result.action).toBe("process");
       if (result.action === "process") {
-        expect(result.prompt).toBe("explain this");
+        expect(result.prompt).toBe("@bot explain this");
       }
     });
   });

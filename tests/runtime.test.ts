@@ -99,7 +99,7 @@ describe("Runtime.handleMessage", () => {
     expect(result.action).toBe("process");
     expect(result.result?.text).toBe("hello world");
     expect(agentCalls).toHaveLength(1);
-    expect(agentCalls[0].prompt).toBe("hi");
+    expect(agentCalls[0].prompt).toBe("bot hi");
   });
 
   test("stores user and assistant messages", async () => {
@@ -111,15 +111,13 @@ describe("Runtime.handleMessage", () => {
     expect(roles).toContain("assistant");
   });
 
-  test("ignored messages are not stored by runtime (ambient is ingress concern)", async () => {
-    setup();
+  test("non-triggered messages still process (policy no longer filters by trigger)", async () => {
+    setup("ok");
     const result = await core.handleMessage(
       msg({ text: "just chatting", authorName: "Alice" }),
       "chat-sdk",
     );
-    expect(result.action).toBe("ignore");
-    const allMsgs = db.prepare("SELECT * FROM messages WHERE conversation_id = 'conv1'").all() as any[];
-    expect(allMsgs).toHaveLength(0);
+    expect(result.action).toBe("process");
   });
 
   test("passes caller role to agent", async () => {

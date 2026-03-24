@@ -47,21 +47,21 @@ export function createIngressService(
       core.services.conversations.create(platform, externalId, isDM ? "dm" : "group");
 
       // ─── Check if addressed to bot via mention or trigger pattern ─────
-      let addressedToBot = isMention || isDM;
+      let effectiveMention = isMention || isDM;
 
-      if (!addressedToBot && !isDM) {
+      if (!effectiveMention && !isDM) {
         const triggerConfig = loadTriggerConfig(core.services.config, {
           patterns: config.triggerPatterns.split(","),
           match: config.triggerMatch,
         });
         const result = matchTrigger(text, triggerConfig, false);
         if (result.matched) {
-          addressedToBot = true;
+          effectiveMention = true;
         }
       }
 
       // ─── Slash commands (only when addressed to bot) ────────────────────
-      if (text.startsWith("/") && addressedToBot) {
+      if (text.startsWith("/") && effectiveMention) {
         // DM pairing
         if (text.startsWith("/pair ") && isDM) {
           const code = text.slice(6).trim().toUpperCase();
@@ -101,7 +101,7 @@ export function createIngressService(
         }
       }
 
-      if (!addressedToBot) {
+      if (!effectiveMention) {
         log.info("Ambient message", { callerId, authorName, text });
         const ambientText = authorName
           ? `${authorName}: ${text.trim()}`
@@ -122,9 +122,9 @@ export function createIngressService(
         conversationExternalId: externalId,
         callerId,
         authorName,
-        text: text,
+        text,
         isDM,
-        isReplyToBot: isMention,
+        isReplyToBot: effectiveMention,
         attachments,
       };
 
