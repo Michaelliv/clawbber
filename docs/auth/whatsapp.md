@@ -15,7 +15,7 @@ mercury auth whatsapp
 This will:
 1. Display a QR code in your terminal
 2. Wait for you to scan it with WhatsApp
-3. Save credentials to `.mercury/whatsapp-auth/`
+3. Save credentials to `whatsapp-auth/`
 4. Exit when authentication is complete
 
 **To scan:**
@@ -67,7 +67,7 @@ If your session expires:
 
 2. **Delete old credentials**:
    ```bash
-   rm -rf .mercury/whatsapp-auth/
+   rm -rf whatsapp-auth/
    ```
 
 3. **Re-authenticate**:
@@ -86,8 +86,8 @@ The auth script writes status files for external monitoring (useful for headless
 
 | File | Description |
 |------|-------------|
-| `.mercury/whatsapp-status.txt` | Current status (`authenticated`, `waiting_qr`, `pairing_code:XXXX`, `failed:reason`) |
-| `.mercury/whatsapp-qr.txt` | Raw QR data for external rendering (deleted after successful auth) |
+| `whatsapp-status.txt` | Current status (`authenticated`, `waiting_qr`, `pairing_code:XXXX`, `failed:reason`) |
+| `whatsapp-qr.txt` | Raw QR data for external rendering (deleted after successful auth) |
 
 ### Status Values
 
@@ -129,7 +129,7 @@ This endpoint requires no authentication, making it suitable for headless monito
 
 If you see this but WhatsApp isn't working:
 ```bash
-rm -rf .mercury/whatsapp-auth/
+rm -rf whatsapp-auth/
 mercury auth whatsapp
 ```
 
@@ -143,7 +143,7 @@ WhatsApp QR codes expire after ~20 seconds. If you're having trouble:
 
 This is usually transient and the auth script will automatically reconnect. If it persists:
 ```bash
-rm -rf .mercury/whatsapp-auth/
+rm -rf whatsapp-auth/
 mercury auth whatsapp
 ```
 
@@ -162,12 +162,12 @@ Mercury ignores messages that were sent before it connected to prevent processin
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MERCURY_ENABLE_WHATSAPP` | `false` | Enable WhatsApp adapter |
-| `MERCURY_WHATSAPP_AUTH_DIR` | `.mercury/whatsapp-auth` | Directory for auth credentials |
-| `MERCURY_DATA_DIR` | `.mercury` | Base data directory (auth dir is relative to this) |
+| `MERCURY_WHATSAPP_AUTH_DIR` | `whatsapp-auth` | Directory for auth credentials |
+| `MERCURY_PROJECT_ROOT` | `.` | Project root directory (auth dir is relative to this) |
 
 ## Security Notes
 
-- Auth credentials in `.mercury/whatsapp-auth/` are sensitive — treat them like passwords
+- Auth credentials in `whatsapp-auth/` are sensitive — treat them like passwords
 - Anyone with access to these files can impersonate your WhatsApp account
 - The `/auth/whatsapp` endpoint is unauthenticated — only expose your API port to trusted networks
 - Consider using a dedicated WhatsApp number for your bot

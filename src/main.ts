@@ -84,7 +84,7 @@ async function main() {
 
   const registry = new ExtensionRegistry();
   const configRegistry = new ConfigRegistry();
-  const extensionsDir = resolveProjectPath(`${config.dataDir}/extensions`);
+  const extensionsDir = resolveProjectPath(`${config.projectRoot}/extensions`);
   const builtinExtDir = join(__dirname, "extensions");
   const extState = createExtensionStateService(database);
 

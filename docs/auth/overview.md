@@ -35,7 +35,7 @@ mercury auth login anthropic    # Specify directly
 | Antigravity | `antigravity` |
 | ChatGPT Plus/Pro | `openai-codex` |
 
-Credentials saved to `.mercury/workspace/auth.json`, auto-refreshed on expiry.
+Credentials saved to `workspace/auth.json`, auto-refreshed on expiry.
 
 ### API Key
 

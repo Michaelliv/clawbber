@@ -15,16 +15,16 @@ export function initAction(): void {
     console.log("  • .env (already exists)");
   }
 
-  const wsDir = join(CWD, ".mercury/workspace");
+  const wsDir = join(CWD, "workspace");
   mkdirSync(wsDir, { recursive: true });
-  console.log("  ✓ .mercury/workspace/");
+  console.log("  ✓ workspace/");
 
   const agentsMdPath = join(wsDir, "AGENTS.md");
   if (!existsSync(agentsMdPath)) {
     copyFileSync(join(TEMPLATES_DIR, "AGENTS.md"), agentsMdPath);
-    console.log("  ✓ .mercury/workspace/AGENTS.md");
+    console.log("  ✓ workspace/AGENTS.md");
   } else {
-    console.log("  • .mercury/workspace/AGENTS.md (already exists)");
+    console.log("  • workspace/AGENTS.md (already exists)");
   }
 
   const srcExtDir = join(PACKAGE_ROOT, "resources/extensions/subagent");
@@ -39,7 +39,7 @@ export function initAction(): void {
   }
 
   // Generate first API key
-  const dbPath = join(CWD, ".mercury", "state.db");
+  const dbPath = join(CWD, "state.db");
   const db = createDatabase(dbPath);
   const apiKeys = createApiKeyService(db);
   const existing = apiKeys.list();

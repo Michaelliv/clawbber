@@ -230,13 +230,13 @@ if (import.meta.main) {
     (_, i, arr) => arr[i - 1] === "--status-dir",
   );
 
-  const dataDir = process.env.MERCURY_DATA_DIR || ".mercury";
+  const root = process.env.MERCURY_PROJECT_ROOT || ".";
   const authDir =
     authDirIndex >= 0
       ? args[authDirIndex]
       : process.env.MERCURY_WHATSAPP_AUTH_DIR ||
-        path.join(dataDir, "whatsapp-auth");
-  const statusDir = statusDirIndex >= 0 ? args[statusDirIndex] : dataDir;
+        path.join(root, "whatsapp-auth");
+  const statusDir = statusDirIndex >= 0 ? args[statusDirIndex] : root;
 
   authenticate({
     authDir,

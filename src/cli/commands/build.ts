@@ -14,7 +14,7 @@ export async function buildAction(): Promise<void> {
   const baseDockerfile = join(PACKAGE_ROOT, "container/Dockerfile");
   const envPath = join(CWD, ".env");
   const tag = getImageTag(envPath);
-  const extensionsDir = join(CWD, ".mercury", "extensions");
+  const extensionsDir = join(CWD, "extensions");
 
   let dockerfileContent = readFileSync(baseDockerfile, "utf8");
 
@@ -29,7 +29,7 @@ export async function buildAction(): Promise<void> {
     const { createRoleService } = await import("../../services/roles/service.js");
     const { createConfigService } = await import("../../services/config/service.js");
 
-    const tmpDbPath = join(CWD, ".mercury", "build-tmp.db");
+    const tmpDbPath = join(CWD, "build-tmp.db");
     const db = createDatabase(tmpDbPath);
     const configSvc = createConfigService(db);
     const rolesSvc = createRoleService(db, configSvc);
@@ -57,7 +57,7 @@ export async function buildAction(): Promise<void> {
     }
   }
 
-  const buildDir = join(CWD, ".mercury", ".build-context");
+  const buildDir = join(CWD, ".build-context");
   mkdirSync(buildDir, { recursive: true });
   writeFileSync(join(buildDir, "Dockerfile"), dockerfileContent);
 

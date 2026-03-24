@@ -35,7 +35,7 @@ function makeConfig(dir: string): AppConfig {
     model: "test",
     triggerPatterns: "@bot,bot",
     triggerMatch: "word",
-    dataDir: dir,
+    projectRoot: dir,
     port: 0,
     botUsername: "bot",
     dbPath: path.join(dir, "state.db"),

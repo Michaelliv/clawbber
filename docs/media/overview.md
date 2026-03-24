@@ -7,12 +7,12 @@ Mercury downloads media attachments from chat platforms, saves them to the works
 Incoming media is saved to the workspace:
 
 ```
-.mercury/workspace/inbox/<timestamp>-<filename>
+workspace/inbox/<timestamp>-<filename>
 ```
 
 Examples:
 ```
-.mercury/workspace/inbox/
+workspace/inbox/
 ├── 1741243200000-photo.jpg
 ├── 1741243500000-voice.ogg
 └── 1741244000000-report.pdf
@@ -31,7 +31,7 @@ The agent receives attachments as XML in the prompt:
 The agent writes files to `outbox/` during a run. After the agent exits, the runtime scans for files with `mtime >= startTime` and attaches them to the reply:
 
 ```
-.mercury/workspace/outbox/
+workspace/outbox/
 ├── chart.png
 └── summary.pdf
 ```

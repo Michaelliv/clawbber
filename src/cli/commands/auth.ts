@@ -7,7 +7,7 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Command } from "commander";
-import { CWD, getProjectDataDir, loadEnvFile } from "../helpers.js";
+import { CWD, getProjectRoot, loadEnvFile } from "../helpers.js";
 import { authenticate } from "../whatsapp-auth.js";
 
 export function registerAuthCommands(authCommand: Command): void {
@@ -68,8 +68,8 @@ export function registerAuthCommands(authCommand: Command): void {
       const provider = getOAuthProvider(providerId)!;
       console.log(`\nLogging in to ${provider.name}...`);
 
-      const dataDir = getProjectDataDir();
-      const authPath = join(CWD, dataDir, "pi-agent", "auth.json");
+      const root = getProjectRoot();
+      const authPath = join(CWD, root, "pi-agent", "auth.json");
       const authDir = dirname(authPath);
       if (!existsSync(authDir)) mkdirSync(authDir, { recursive: true });
 
@@ -144,8 +144,8 @@ export function registerAuthCommands(authCommand: Command): void {
     .command("logout [provider]")
     .description("Remove saved OAuth credentials for a provider")
     .action(async (providerArg?: string) => {
-      const dataDir = getProjectDataDir();
-      const authPath = join(CWD, dataDir, "pi-agent", "auth.json");
+      const root = getProjectRoot();
+      const authPath = join(CWD, root, "pi-agent", "auth.json");
 
       if (!existsSync(authPath)) {
         console.log("No credentials found.");
@@ -186,8 +186,8 @@ export function registerAuthCommands(authCommand: Command): void {
     .action(async () => {
       const { getOAuthProviders } = await import("@mariozechner/pi-ai");
 
-      const dataDir = getProjectDataDir();
-      const authPath = join(CWD, dataDir, "pi-agent", "auth.json");
+      const root = getProjectRoot();
+      const authPath = join(CWD, root, "pi-agent", "auth.json");
 
       let authData: Record<string, { type?: string; expires?: number }> = {};
       if (existsSync(authPath)) {
@@ -241,17 +241,12 @@ export function registerAuthCommands(authCommand: Command): void {
     )
     .action(async (options: { pairingCode?: boolean; phone?: string }) => {
       const envPath = join(CWD, ".env");
-      let dataDir = ".mercury";
-
-      if (existsSync(envPath)) {
-        const envVars = loadEnvFile(envPath);
-        if (envVars.MERCURY_DATA_DIR) dataDir = envVars.MERCURY_DATA_DIR;
-      }
+      const root = getProjectRoot();
 
       const authDir =
         process.env.MERCURY_WHATSAPP_AUTH_DIR ||
-        join(CWD, dataDir, "whatsapp-auth");
-      const statusDir = join(CWD, dataDir);
+        join(CWD, root, "whatsapp-auth");
+      const statusDir = join(CWD, root);
 
       try {
         await authenticate({

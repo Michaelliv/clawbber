@@ -245,7 +245,7 @@ echo "msg" | mercury chat
 
 ## Extension System
 
-Mercury has a TypeScript extension system. Extensions live in `.mercury/extensions/*/` and export a setup function:
+Mercury has a TypeScript extension system. Extensions live in `extensions/*/` and export a setup function:
 
 ```typescript
 import type { MercuryExtensionAPI } from "../extensions/types.js";

@@ -89,7 +89,7 @@ describe("MercuryCoreRuntime.shutdown (real runtime)", () => {
       model: "test",
       triggerPatterns: "@test,test",
       triggerMatch: "mention",
-      dataDir: dir,
+      projectRoot: dir,
       port: 0,
       botUsername: "test",
       discordGatewayDurationMs: 600_000,

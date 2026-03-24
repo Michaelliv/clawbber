@@ -26,7 +26,7 @@ mercury status        # Check if running
 The container runs with:
 - `--restart unless-stopped` — auto-restarts on crash
 - `--cap-add SYS_ADMIN --security-opt seccomp=unconfined` — required for bubblewrap sandbox
-- `-v .mercury:/data` — persistent data (DB, workspace, auth, sessions)
+- `-v ./:/data` — persistent data (DB, workspace, auth, sessions)
 - `--env-file .env` — configuration
 
 ## Image
@@ -85,10 +85,10 @@ If no chat adapters are enabled, Mercury runs with only the HTTP API:
 
 ## Data Directory
 
-`.mercury/` contains all persistent state:
+`` contains all persistent state:
 
 ```
-.mercury/
+
 ├── state.db          # SQLite: conversations, messages, tasks, roles, config, mutes, api keys
 ├── workspace/        # Agent workspace (AGENTS.md, skills, extensions, inbox, outbox)
 ├── sessions/         # Per-conversation pi session files

@@ -27,8 +27,8 @@ mercury init
 
 This creates:
 - `.env` — configuration template
-- `.mercury/workspace/AGENTS.md` — default agent persona
-- `.mercury/state.db` — database with first API key
+- `workspace/AGENTS.md` — default agent persona
+- `state.db` — database with first API key
 
 **Save the API key** — it's shown once during init.
 
@@ -81,7 +81,7 @@ mercury auth login anthropic    # Opens browser for OAuth
 mercury auth status             # Verify credentials
 ```
 
-This saves credentials to `.mercury/workspace/auth.json`. OAuth tokens auto-refresh.
+This saves credentials to `workspace/auth.json`. OAuth tokens auto-refresh.
 
 Alternatively, set an API key directly in `.env`:
 ```bash
@@ -90,7 +90,7 @@ MERCURY_ANTHROPIC_API_KEY=sk-ant-...
 
 ## 5. Define Agent Persona
 
-Edit `.mercury/workspace/AGENTS.md` with your agent's personality, capabilities, and security rules. See the template created by `mercury init` for the structure.
+Edit `workspace/AGENTS.md` with your agent's personality, capabilities, and security rules. See the template created by `mercury init` for the structure.
 
 ## 6. Build Docker Image
 
@@ -111,12 +111,12 @@ docker save mercury:latest | ssh user@server "docker load"
 ### Push the data
 
 ```bash
-# Transfer the .mercury directory
-scp -r .mercury user@server:~/my-agent/.mercury
+# Transfer the project
+scp -r . user@server:~/my-agent
 scp .env user@server:~/my-agent/.env
 
 # Fix ownership (container may have written files as root previously)
-ssh user@server "sudo chown -R \$(whoami) ~/my-agent/.mercury"
+ssh user@server "sudo chown -R \$(whoami) ~/my-agent"
 ```
 
 ## 8. Create API Key on Server
@@ -125,7 +125,7 @@ The API key created during `mercury init` is in the local DB. After transferring
 
 ```bash
 ssh user@server "docker run --rm --entrypoint bun \
-  -v ~/my-agent/.mercury:/app/.mercury \
+  -v ~/my-agent:/data \
   mercury:latest run /app/src/cli/mercury.ts api-keys list"
 ```
 
@@ -133,7 +133,7 @@ If no keys show up (WAL checkpoint issue), create one:
 
 ```bash
 ssh user@server "docker run --rm --entrypoint bun \
-  -v ~/my-agent/.mercury:/app/.mercury \
+  -v ~/my-agent:/data \
   mercury:latest run /app/src/cli/mercury.ts api-keys create remote"
 ```
 
@@ -147,7 +147,7 @@ ssh user@server "cd ~/my-agent && docker run -d \
   --restart unless-stopped \
   --cap-add SYS_ADMIN \
   --security-opt seccomp=unconfined \
-  -v \$(pwd)/.mercury:/app/.mercury \
+  -v \$(pwd)/project:/data \
   --env-file .env \
   -p 3000:3000 \
   mercury:latest"
@@ -171,8 +171,8 @@ Server started port=3000 adapters=whatsapp
 If you have an existing WhatsApp session from another deployment:
 
 ```bash
-scp -r /path/to/existing/.mercury/whatsapp-auth user@server:~/my-agent/.mercury/
-ssh user@server "sudo chown -R \$(whoami) ~/my-agent/.mercury/whatsapp-auth"
+scp -r /path/to/existing/whatsapp-auth user@server:~/my-agent/
+ssh user@server "sudo chown -R \$(whoami) ~/my-agent/whatsapp-auth"
 ssh user@server "docker restart my-agent"
 ```
 
@@ -181,7 +181,7 @@ Run the auth flow inside the container. Use pairing code for headless servers:
 
 ```bash
 ssh user@server "docker run -it --rm \
-  -v ~/my-agent/.mercury:/app/.mercury \
+  -v ~/my-agent:/data \
   --entrypoint bun mercury:latest \
   run /app/src/cli/mercury.ts auth whatsapp --pairing-code --phone <your-number>"
 ```
@@ -210,7 +210,7 @@ To pair a group: send `/pair <CODE>` in the group (mentioning the bot).
 The Docker container runs as root. Files created by the container will be owned by root on the host. Fix with:
 
 ```bash
-ssh user@server "sudo chown -R \$(whoami) ~/my-agent/.mercury"
+ssh user@server "sudo chown -R \$(whoami) ~/my-agent"
 ```
 
 ## Firewall
@@ -261,8 +261,8 @@ curl -s -X POST http://localhost:4000/chat \
 | Problem | Fix |
 |---------|-----|
 | `No API key found for anthropic` | Run `mercury auth login anthropic` locally, re-copy `auth.json` |
-| `Extensions loaded count=0` | Ensure `.mercury/extensions/` is in the volume mount |
+| `Extensions loaded count=0` | Ensure `extensions/` is in the volume mount |
 | API key invalid after restart | WAL checkpoint issue — create key via one-off container (step 8) |
 | WhatsApp QR code cut off | Use `--pairing-code` mode instead |
-| Permission denied on files | `sudo chown -R $(whoami) ~/my-agent/.mercury` |
+| Permission denied on files | `sudo chown -R $(whoami) ~/my-agent` |
 | Port not reachable externally | Check OS firewall + cloud security groups |

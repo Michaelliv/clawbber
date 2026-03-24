@@ -157,7 +157,7 @@ export class SubprocessAgent implements Agent {
   private wrapWithSandbox(
     command: string,
     args: string[],
-    dataDir: string,
+    projectRoot: string,
     allowedPaths: string[],
   ): { cmd: string; cmdArgs: string[] } {
     if (process.platform === "darwin") {
@@ -168,7 +168,7 @@ export class SubprocessAgent implements Agent {
       const profile = [
         "(version 1)",
         "(allow default)",
-        `(deny file-read* file-write* (subpath "${dataDir}"))`,
+        `(deny file-read* file-write* (subpath "${projectRoot}"))`,
         allowRules,
       ].join("\n");
 
@@ -181,7 +181,7 @@ export class SubprocessAgent implements Agent {
     if (process.platform === "linux") {
       const bwrapArgs = [
         "--bind", "/", "/",
-        "--tmpfs", dataDir,
+        "--tmpfs", projectRoot,
         "--dev", "/dev",
         "--proc", "/proc",
       ];
@@ -199,11 +199,11 @@ export class SubprocessAgent implements Agent {
   }
 
   async run(input: AgentInput): Promise<AgentOutput> {
-    const dataDir = path.resolve(path.join(input.workspace, ".."));
+    const projectRoot = path.resolve(path.join(input.workspace, ".."));
     const conversationId = sanitizeFilename(
       input.isDM ? `dm-${input.callerId}` : input.conversationId || "default",
     );
-    const sessionDir = path.join(dataDir, "sessions", conversationId);
+    const sessionDir = path.join(projectRoot, "sessions", conversationId);
     fs.mkdirSync(sessionDir, { recursive: true });
     const sessionFile = path.join(sessionDir, "session.jsonl");
 
@@ -240,8 +240,8 @@ export class SubprocessAgent implements Agent {
     const log: Logger = logger;
     const startTime = Date.now();
 
-    const piAgentDir = path.join(dataDir, "pi-agent");
-    const { cmd, cmdArgs } = this.wrapWithSandbox("pi", args, dataDir, [
+    const piAgentDir = path.join(projectRoot, "pi-agent");
+    const { cmd, cmdArgs } = this.wrapWithSandbox("pi", args, projectRoot, [
       input.workspace,
       sessionDir,
       piAgentDir,

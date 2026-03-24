@@ -65,7 +65,7 @@ DM pairing grants admin. Group pairing activates the bot in that group.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MERCURY_ENABLE_WHATSAPP` | `false` | Enable WhatsApp adapter |
-| `MERCURY_WHATSAPP_AUTH_DIR` | `.mercury/whatsapp-auth` | Credentials directory |
+| `MERCURY_WHATSAPP_AUTH_DIR` | `whatsapp-auth` | Credentials directory |
 
 ## Session Lifecycle
 
@@ -73,7 +73,7 @@ WhatsApp linked device sessions last **~14–20 days** before requiring re-authe
 
 ```bash
 mercury service uninstall
-rm -rf .mercury/whatsapp-auth/
+rm -rf whatsapp-auth/
 mercury auth whatsapp
 mercury service install
 ```
@@ -83,14 +83,14 @@ mercury service install
 | Problem | Solution |
 |---------|----------|
 | QR code not showing | Run `mercury auth whatsapp` separately, not `mercury run` |
-| "Already authenticated" but not working | Delete `.mercury/whatsapp-auth/` and re-auth |
+| "Already authenticated" but not working | Delete `whatsapp-auth/` and re-auth |
 | QR code expires too fast | Use `--pairing-code` mode instead |
 | Messages not arriving | Check `MERCURY_ENABLE_WHATSAPP=true` and re-auth |
 | Old messages appear on startup | Normal — Mercury ignores pre-connection messages |
 
 ## Security
 
-- Credentials in `.mercury/whatsapp-auth/` are sensitive — treat like passwords
+- Credentials in `whatsapp-auth/` are sensitive — treat like passwords
 - Consider using a dedicated phone number for the bot
 
 See also: [auth/whatsapp.md](auth/whatsapp.md) for detailed auth internals.

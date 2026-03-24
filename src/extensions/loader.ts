@@ -1,7 +1,7 @@
 /**
  * Extension discovery, loading, and registry.
  *
- * Scans `.mercury/extensions/` for directories with index.ts,
+ * Scans `extensions/` for directories with index.ts,
  * loads them, validates, and builds a registry.
  */
 

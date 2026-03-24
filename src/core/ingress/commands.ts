@@ -16,9 +16,9 @@ function sanitizeFilename(id: string): string {
 }
 
 function getSessionFile(core: MercuryCoreRuntime, isDM: boolean, callerId: string, conversationId: string): string {
-  const dataDir = path.resolve(path.join(core.workspace, ".."));
+  const projectRoot = path.resolve(path.join(core.workspace, ".."));
   const sessionId = sanitizeFilename(isDM ? `dm-${callerId}` : conversationId);
-  return path.join(dataDir, "sessions", sessionId, "session.jsonl");
+  return path.join(projectRoot, "sessions", sessionId, "session.jsonl");
 }
 
 export async function handleCommand(

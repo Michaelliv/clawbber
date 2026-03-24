@@ -31,8 +31,8 @@ beforeEach(() => {
     tmpdir(),
     `mercury-add-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   );
-  extensionsDir = join(testDir, ".mercury", "extensions");
-  globalDir = join(testDir, ".mercury", "global");
+  extensionsDir = join(testDir, "extensions");
+  globalDir = join(testDir, "global");
   mkdirSync(extensionsDir, { recursive: true });
   mkdirSync(globalDir, { recursive: true });
 });

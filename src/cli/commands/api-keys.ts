@@ -2,10 +2,10 @@ import type { Command } from "commander";
 import { createDatabase } from "../../core/db.js";
 import { createApiKeyService } from "../../services/api-keys/service.js";
 import { join } from "node:path";
-import { CWD, getProjectDataDir } from "../helpers.js";
+import { CWD, getProjectRoot } from "../helpers.js";
 
 function withApiKeys<T>(fn: (svc: ReturnType<typeof createApiKeyService>) => T): T {
-  const dbPath = join(CWD, getProjectDataDir(), "state.db");
+  const dbPath = join(CWD, getProjectRoot(), "state.db");
   const db = createDatabase(dbPath);
   db.exec("PRAGMA journal_mode = DELETE");
   try {

@@ -5,7 +5,7 @@ Mercury stores memory in a single workspace directory and per-conversation sessi
 ## Workspace
 
 ```
-.mercury/workspace/
+workspace/
 ├── inbox/              # Media received from users
 ├── outbox/             # Files produced by the agent
 ├── AGENTS.md           # Agent instructions
@@ -22,7 +22,7 @@ The workspace is shared across all conversations. Extensions create additional d
 Each conversation gets its own pi session file:
 
 ```
-.mercury/sessions/<conversation-id>/session.jsonl
+sessions/<conversation-id>/session.jsonl
 ```
 
 Sessions persist agent conversation history across messages. The `/compact` command resets the session (fresh context). The `/new` command starts a new session without compacting.

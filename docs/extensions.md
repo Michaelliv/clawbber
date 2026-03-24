@@ -4,10 +4,10 @@ Mercury's extension system lets you add CLIs, skills, background jobs, lifecycle
 
 ## Structure
 
-Extensions live in `.mercury/extensions/*/`:
+Extensions live in `extensions/*/`:
 
 ```
-.mercury/extensions/
+extensions/
 ├── knowledge/
 │   ├── index.ts           # Required — setup function
 │   ├── skill/SKILL.md     # Optional — agent skill

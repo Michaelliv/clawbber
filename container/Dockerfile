@@ -46,10 +46,11 @@ COPY tsconfig.json ./
 RUN echo '#!/bin/sh\nbun run /app/src/cli/mrctl.ts "$@"' > /usr/local/bin/mrctl && \
     chmod +x /usr/local/bin/mrctl
 
-# Pi agent dir → persisted data dir (symlink resolves at runtime when volume is mounted)
-RUN mkdir -p /root/.pi && ln -s /app/.mercury/pi-agent /root/.pi/agent
+# Pi agent dir → persisted project root (symlink resolves at runtime when volume is mounted)
+RUN mkdir -p /root/.pi && ln -s /data/pi-agent /root/.pi/agent
 
-# Data directory is mounted separately (persisted across deploys)
+# Project root is mounted at /data (persisted across deploys)
+ENV MERCURY_PROJECT_ROOT=/data
 VOLUME /data
 
 

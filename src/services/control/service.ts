@@ -14,8 +14,8 @@ function sanitizeFilename(id: string): string {
 }
 
 function resolveSessionFile(config: AppConfig, conversationId: string): string {
-  const dataDir = resolveProjectPath(config.dataDir);
-  return path.join(dataDir, "sessions", sanitizeFilename(conversationId), "session.jsonl");
+  const root = resolveProjectPath(config.projectRoot);
+  return path.join(root, "sessions", sanitizeFilename(conversationId), "session.jsonl");
 }
 
 export function createControlService(

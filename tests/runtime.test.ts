@@ -29,7 +29,7 @@ function makeConfig(dir: string, overrides?: Partial<AppConfig>): AppConfig {
     model: "test",
     triggerPatterns: "@bot,bot",
     triggerMatch: "word",
-    dataDir: dir,
+    projectRoot: dir,
     port: 0,
     botUsername: "bot",
     dbPath: path.join(dir, "state.db"),

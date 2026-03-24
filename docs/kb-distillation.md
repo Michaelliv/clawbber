@@ -31,7 +31,7 @@ The extension registers:
 ## Data Layout
 
 ```
-.mercury/workspace/
+workspace/
 ├── .messages/
 │   └── YYYY-MM-DD.jsonl
 └── knowledge/
