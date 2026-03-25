@@ -17,7 +17,8 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      - run: bun install
+      - name: Install dependencies (with retry)
+        run: for i in 1 2 3; do bun install && break || sleep 10; done
 
       - name: Run tests
         run: bun test
