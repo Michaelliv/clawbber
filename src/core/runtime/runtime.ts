@@ -8,6 +8,7 @@ import type { ExtensionRegistry } from "../../extensions/loader.js";
 import type { MercuryExtensionContext } from "../../extensions/types.js";
 import { logger } from "../logger.js";
 import { ensurePiResourceDir } from "./workspace.js";
+import { createTracer, type Tracer } from "../otel.js";
 
 import type {
   AgentOutput,
@@ -45,6 +46,7 @@ export class MercuryCoreRuntime {
   private shuttingDown = false;
   private signalHandlersInstalled = false;
   readonly workspace: string;
+  readonly tracer: Tracer;
 
   constructor(deps: RuntimeDeps) {
     this.config = deps.config;
@@ -55,6 +57,11 @@ export class MercuryCoreRuntime {
 
     this.workspace = resolveProjectPath(deps.config.workspaceDir);
     ensurePiResourceDir(this.workspace);
+
+    this.tracer = createTracer({
+      endpoint: this.config.otelEndpoint ?? "",
+      serviceName: this.config.otelService,
+    });
   }
 
 
@@ -91,11 +98,21 @@ export class MercuryCoreRuntime {
     message: IngressMessage,
     source: Exclude<InputSource, "scheduler">,
   ): Promise<PolicyResult & { result?: AgentOutput }> {
+    const traceId = this.tracer.newTraceId();
+    const msgSpan = this.tracer.startSpan("mercury.message", traceId);
+    msgSpan.attr("message.source", source);
+    msgSpan.attr("message.platform", message.platform);
+    msgSpan.attr("message.caller_id", message.callerId);
+    msgSpan.attr("message.is_dm", message.isDM);
+
     if (source === "cli") {
       const prompt = message.text.trim();
-      if (!prompt) return { action: "ignore" };
+      if (!prompt) { msgSpan.attr("message.action", "ignore"); msgSpan.end(); return { action: "ignore" }; }
 
       if (this.services.mutes.isMuted(message.callerId)) {
+        msgSpan.attr("message.action", "ignore");
+        msgSpan.attr("message.reason", "muted");
+        msgSpan.end();
         return { action: "ignore" };
       }
 
@@ -104,20 +121,32 @@ export class MercuryCoreRuntime {
         const result = await this.executePrompt(
           prompt, source, message.callerId, message.isDM,
           message.conversationExternalId, message.attachments, message.authorName,
+          traceId, msgSpan.id,
         );
+        msgSpan.attr("message.action", "process");
+        msgSpan.end();
         return { action: "process", prompt, callerId: message.callerId, role, result };
       } catch (error) {
+        msgSpan.end(false);
         return this.handleAgentError(error);
       }
     }
 
+    const policySpan = this.tracer.startSpan("mercury.policy", traceId, msgSpan.id);
     const policy = this.services.policy.evaluate(message);
+    policySpan.attr("policy.action", policy.action);
+    if (policy.action === "deny") policySpan.attr("policy.reason", policy.reason);
+    policySpan.end();
 
     if (policy.action === "ignore") {
+      msgSpan.attr("message.action", "ignore");
+      msgSpan.end();
       return policy;
     }
 
     if (policy.action === "deny") {
+      msgSpan.attr("message.action", "deny");
+      msgSpan.end();
       return policy;
     }
 
@@ -130,9 +159,14 @@ export class MercuryCoreRuntime {
         message.conversationExternalId,
         message.attachments,
         message.authorName,
+        traceId,
+        msgSpan.id,
       );
+      msgSpan.attr("message.action", "process");
+      msgSpan.end();
       return { ...policy, result };
     } catch (error) {
+      msgSpan.end(false);
       return this.handleAgentError(error);
     }
   }
@@ -238,6 +272,9 @@ export class MercuryCoreRuntime {
         }
       }
 
+      logger.info("Shutdown: flushing telemetry");
+      await this.tracer.shutdown();
+
       logger.info("Shutdown: closing database");
       this.database.close();
 
@@ -255,6 +292,8 @@ export class MercuryCoreRuntime {
     conversationId: string,
     attachments?: MessageAttachment[],
     authorName?: string,
+    traceId?: string,
+    parentSpanId?: string,
   ): Promise<AgentOutput> {
     this.services.messages.create("user", prompt, conversationId, attachments);
 
@@ -335,6 +374,21 @@ export class MercuryCoreRuntime {
         }
       }
 
+      const agentSpan = traceId
+        ? this.tracer.startSpan("mercury.agent", traceId, parentSpanId)
+        : undefined;
+      agentSpan?.attr("agent.caller_id", callerId);
+      agentSpan?.attr("agent.caller_role", callerRole);
+      agentSpan?.attr("agent.conversation_id", conversationId);
+
+      if (traceId) {
+        extraEnv = {
+          ...extraEnv,
+          MERCURY_OTEL_TRACE_ID: traceId,
+          MERCURY_OTEL_PARENT_SPAN_ID: agentSpan?.id ?? "",
+        };
+      }
+
       const history = this.services.messages.list(conversationId, 200);
       const startTime = Date.now();
 
@@ -367,7 +421,9 @@ export class MercuryCoreRuntime {
         }
       }
 
+      agentSpan?.attr("agent.duration_ms", durationMs);
       this.services.messages.create("assistant", result.text, conversationId);
+      agentSpan?.end();
       return result;
     });
   }

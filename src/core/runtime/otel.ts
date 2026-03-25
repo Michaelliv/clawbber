@@ -17,7 +17,11 @@ export default function (pi: ExtensionAPI) {
     serviceName: process.env.MERCURY_OTEL_SERVICE || "mercury",
   });
 
-  let currentTraceId = tracer.newTraceId();
+  // Pick up trace context from Mercury host process if available
+  const parentTraceId = process.env.MERCURY_OTEL_TRACE_ID || "";
+  const parentSpanId = process.env.MERCURY_OTEL_PARENT_SPAN_ID || "";
+  let currentTraceId = parentTraceId || tracer.newTraceId();
+
   let sessionSpan: SpanHandle | undefined;
   let agentSpan: SpanHandle | undefined;
   let turnSpan: SpanHandle | undefined;
@@ -29,8 +33,8 @@ export default function (pi: ExtensionAPI) {
   let totalTokensOut = 0;
 
   pi.on("session_start", async (_event, ctx) => {
-    currentTraceId = tracer.newTraceId();
-    sessionSpan = tracer.startSpan("session", currentTraceId);
+    if (!parentTraceId) currentTraceId = tracer.newTraceId();
+    sessionSpan = tracer.startSpan("pi.session", currentTraceId, parentSpanId || undefined);
     sessionSpan.attr("session.id", ctx.sessionManager.getSessionFile() ?? "ephemeral");
     sessionSpan.attr("session.cwd", ctx.cwd);
     turnCount = 0;
@@ -52,7 +56,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("agent_start", async () => {
-    agentSpan = tracer.startSpan("agent.prompt", currentTraceId, sessionSpan?.id);
+    agentSpan = tracer.startSpan("pi.agent.prompt", currentTraceId, sessionSpan?.id);
   });
 
   pi.on("agent_end", async (event) => {
@@ -65,7 +69,7 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("turn_start", async (event) => {
     turnCount++;
-    turnSpan = tracer.startSpan("agent.turn", currentTraceId, agentSpan?.id);
+    turnSpan = tracer.startSpan("pi.agent.turn", currentTraceId, agentSpan?.id);
     turnSpan.attr("turn.index", event.turnIndex);
     turnSpan.attr("turn.number", turnCount);
   });
