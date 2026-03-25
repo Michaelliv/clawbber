@@ -77,13 +77,19 @@ export class MercuryCoreRuntime {
 
   startScheduler(sender?: MessageSender): void {
     this.services.tasks.startScheduler(async (task) => {
+      const traceId = this.tracer.newTraceId();
+      const span = this.tracer.startSpan("mercury.scheduled_task", traceId);
+      span.attr("task.id", String(task.id));
       const result = await this.executePrompt({
         prompt: task.prompt,
         source: "scheduler",
         callerId: task.createdBy,
         isDM: false,
         conversationId: task.conversationId,
+        traceId,
+        parentSpanId: span.id,
       });
+      span.end();
       if (!task.silent && sender) {
         await sender.send(result.text, task.conversationId, result.files);
       }
@@ -283,8 +289,8 @@ export class MercuryCoreRuntime {
     conversationId: string;
     attachments?: MessageAttachment[];
     authorName?: string;
-    traceId?: string;
-    parentSpanId?: string;
+    traceId: string;
+    parentSpanId: string;
   }): Promise<AgentOutput> {
     const { prompt, callerId, isDM, conversationId, attachments, authorName, traceId, parentSpanId } = opts;
     this.services.messages.create("user", prompt, conversationId, attachments);
@@ -350,19 +356,15 @@ export class MercuryCoreRuntime {
       }
 
       // Trace: agent execution span, propagate context to pi subprocess
-      const agentSpan = traceId
-        ? this.tracer.startSpan("mercury.agent", traceId, parentSpanId)
-        : undefined;
-      agentSpan?.attr("agent.caller_id", callerId);
-      agentSpan?.attr("agent.caller_role", callerRole);
-      agentSpan?.attr("agent.conversation_id", conversationId);
-      if (traceId) {
-        extraEnv = {
-          ...extraEnv,
-          OTEL_TRACE_ID: traceId,
-          OTEL_PARENT_SPAN_ID: agentSpan?.id ?? "",
-        };
-      }
+      const agentSpan = this.tracer.startSpan("mercury.agent", traceId, parentSpanId);
+      agentSpan.attr("agent.caller_id", callerId);
+      agentSpan.attr("agent.caller_role", callerRole);
+      agentSpan.attr("agent.conversation_id", conversationId);
+      extraEnv = {
+        ...extraEnv,
+        OTEL_TRACE_ID: traceId,
+        OTEL_PARENT_SPAN_ID: agentSpan.id,
+      };
 
       const history = this.services.messages.list(conversationId, 200);
       const startTime = Date.now();
@@ -374,7 +376,7 @@ export class MercuryCoreRuntime {
         });
 
         const durationMs = Date.now() - startTime;
-        agentSpan?.attr("agent.duration_ms", durationMs);
+        agentSpan.attr("agent.duration_ms", durationMs);
 
         if (this.hooks && this.extensionCtx) {
           const hookResult = await this.hooks.emitAfterContainer(
@@ -382,7 +384,7 @@ export class MercuryCoreRuntime {
             this.extensionCtx,
           );
           if (hookResult?.suppress) {
-            agentSpan?.end();
+            agentSpan.end();
             return { text: "", files: [] };
           }
           if (hookResult?.reply !== undefined) {
@@ -391,10 +393,10 @@ export class MercuryCoreRuntime {
         }
 
         this.services.messages.create("assistant", result.text, conversationId);
-        agentSpan?.end();
+        agentSpan.end();
         return result;
       } catch (error) {
-        agentSpan?.end(false);
+        agentSpan.end(false);
         throw error;
       }
     });
