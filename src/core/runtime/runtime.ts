@@ -77,13 +77,13 @@ export class MercuryCoreRuntime {
 
   startScheduler(sender?: MessageSender): void {
     this.services.tasks.startScheduler(async (task) => {
-      const result = await this.executePrompt(
-        task.prompt,
-        "scheduler",
-        task.createdBy,
-        false,
-        task.conversationId,
-      );
+      const result = await this.executePrompt({
+        prompt: task.prompt,
+        source: "scheduler",
+        callerId: task.createdBy,
+        isDM: false,
+        conversationId: task.conversationId,
+      });
       if (!task.silent && sender) {
         await sender.send(result.text, task.conversationId, result.files);
       }
@@ -99,74 +99,65 @@ export class MercuryCoreRuntime {
     source: Exclude<InputSource, "scheduler">,
   ): Promise<PolicyResult & { result?: AgentOutput }> {
     const traceId = this.tracer.newTraceId();
-    const msgSpan = this.tracer.startSpan("mercury.message", traceId);
-    msgSpan.attr("message.source", source);
-    msgSpan.attr("message.platform", message.platform);
-    msgSpan.attr("message.caller_id", message.callerId);
-    msgSpan.attr("message.is_dm", message.isDM);
+    const span = this.tracer.startSpan("mercury.message", traceId);
+    span.attr("message.source", source);
+    span.attr("message.platform", message.platform);
+    span.attr("message.caller_id", message.callerId);
+    span.attr("message.is_dm", message.isDM);
 
+    try {
+      const outcome = await this.routeMessage(message, source, traceId, span.id);
+      span.attr("message.action", outcome.action);
+      span.end(outcome.action !== "deny");
+      return outcome;
+    } catch (error) {
+      span.end(false);
+      throw error;
+    }
+  }
+
+  private async routeMessage(
+    message: IngressMessage,
+    source: Exclude<InputSource, "scheduler">,
+    traceId: string,
+    parentSpanId: string,
+  ): Promise<PolicyResult & { result?: AgentOutput }> {
     if (source === "cli") {
       const prompt = message.text.trim();
-      if (!prompt) { msgSpan.attr("message.action", "ignore"); msgSpan.end(); return { action: "ignore" }; }
-
-      if (this.services.mutes.isMuted(message.callerId)) {
-        msgSpan.attr("message.action", "ignore");
-        msgSpan.attr("message.reason", "muted");
-        msgSpan.end();
-        return { action: "ignore" };
-      }
+      if (!prompt) return { action: "ignore" };
+      if (this.services.mutes.isMuted(message.callerId)) return { action: "ignore" };
 
       const role = this.services.roles.resolveRole(message.callerId);
       try {
-        const result = await this.executePrompt(
-          prompt, source, message.callerId, message.isDM,
-          message.conversationExternalId, message.attachments, message.authorName,
-          traceId, msgSpan.id,
-        );
-        msgSpan.attr("message.action", "process");
-        msgSpan.end();
+        const result = await this.executePrompt({
+          prompt, source, callerId: message.callerId, isDM: message.isDM,
+          conversationId: message.conversationExternalId,
+          attachments: message.attachments, authorName: message.authorName,
+          traceId, parentSpanId,
+        });
         return { action: "process", prompt, callerId: message.callerId, role, result };
       } catch (error) {
-        msgSpan.end(false);
         return this.handleAgentError(error);
       }
     }
 
-    const policySpan = this.tracer.startSpan("mercury.policy", traceId, msgSpan.id);
+    const policySpan = this.tracer.startSpan("mercury.policy", traceId, parentSpanId);
     const policy = this.services.policy.evaluate(message);
     policySpan.attr("policy.action", policy.action);
     if (policy.action === "deny") policySpan.attr("policy.reason", policy.reason);
     policySpan.end();
 
-    if (policy.action === "ignore") {
-      msgSpan.attr("message.action", "ignore");
-      msgSpan.end();
-      return policy;
-    }
-
-    if (policy.action === "deny") {
-      msgSpan.attr("message.action", "deny");
-      msgSpan.end();
-      return policy;
-    }
+    if (policy.action !== "process") return policy;
 
     try {
-      const result = await this.executePrompt(
-        policy.prompt,
-        source,
-        policy.callerId,
-        message.isDM,
-        message.conversationExternalId,
-        message.attachments,
-        message.authorName,
-        traceId,
-        msgSpan.id,
-      );
-      msgSpan.attr("message.action", "process");
-      msgSpan.end();
+      const result = await this.executePrompt({
+        prompt: policy.prompt, source, callerId: policy.callerId,
+        isDM: message.isDM, conversationId: message.conversationExternalId,
+        attachments: message.attachments, authorName: message.authorName,
+        traceId, parentSpanId,
+      });
       return { ...policy, result };
     } catch (error) {
-      msgSpan.end(false);
       return this.handleAgentError(error);
     }
   }
@@ -284,28 +275,25 @@ export class MercuryCoreRuntime {
     }
   }
 
-  private async executePrompt(
-    prompt: string,
-    _source: InputSource,
-    callerId: string,
-    isDM: boolean,
-    conversationId: string,
-    attachments?: MessageAttachment[],
-    authorName?: string,
-    traceId?: string,
-    parentSpanId?: string,
-  ): Promise<AgentOutput> {
+  private async executePrompt(opts: {
+    prompt: string;
+    source: InputSource;
+    callerId: string;
+    isDM: boolean;
+    conversationId: string;
+    attachments?: MessageAttachment[];
+    authorName?: string;
+    traceId?: string;
+    parentSpanId?: string;
+  }): Promise<AgentOutput> {
+    const { prompt, callerId, isDM, conversationId, attachments, authorName, traceId, parentSpanId } = opts;
     this.services.messages.create("user", prompt, conversationId, attachments);
 
     return this.queue.enqueue(async () => {
       const workspace = this.workspace;
 
       if (this.hooks && this.extensionCtx) {
-        await this.hooks.emit(
-          "workspace_init",
-          { workspace },
-          this.extensionCtx,
-        );
+        await this.hooks.emit("workspace_init", { workspace }, this.extensionCtx);
       }
 
       let extraEnv: Record<string, string> | undefined;
@@ -326,25 +314,16 @@ export class MercuryCoreRuntime {
       }
 
       const callerRole = this.services.roles.resolveRole(callerId);
-
       const extensionEnvKeys = new Set<string>();
 
       if (this.extensionRegistry) {
-
         const cliExtensions = this.extensionRegistry.getCliExtensions();
         if (cliExtensions.length > 0) {
           const denied = cliExtensions
-            .filter(
-              (ext) =>
-                ext.clis.length > 0 &&
-                !this.services.roles.hasPermission(callerRole, ext.name),
-            )
+            .filter((ext) => ext.clis.length > 0 && !this.services.roles.hasPermission(callerRole, ext.name))
             .flatMap((ext) => ext.clis.map((c) => c.name));
           if (denied.length > 0) {
-            extraEnv = {
-              ...extraEnv,
-              MERCURY_DENIED_CLIS: denied.join(","),
-            };
+            extraEnv = { ...extraEnv, MERCURY_DENIED_CLIS: denied.join(",") };
           }
         }
 
@@ -353,16 +332,12 @@ export class MercuryCoreRuntime {
             extensionEnvKeys.add(envDef.from);
           }
           if (ext.envVars.length === 0) continue;
-          if (ext.permission && !this.services.roles.hasPermission(callerRole, ext.name))
-            continue;
+          if (ext.permission && !this.services.roles.hasPermission(callerRole, ext.name)) continue;
           for (const envDef of ext.envVars) {
             const value = process.env[envDef.from];
             if (value) {
-              const stripped = envDef.from.startsWith("MERCURY_")
-                ? envDef.from.slice(8)
-                : envDef.from;
-              const key = envDef.as ?? stripped;
-              extraEnv = { ...extraEnv, [key]: value };
+              const stripped = envDef.from.startsWith("MERCURY_") ? envDef.from.slice(8) : envDef.from;
+              extraEnv = { ...extraEnv, [envDef.as ?? stripped]: value };
             }
           }
         }
@@ -374,57 +349,54 @@ export class MercuryCoreRuntime {
         }
       }
 
+      // Trace: agent execution span, propagate context to pi subprocess
       const agentSpan = traceId
         ? this.tracer.startSpan("mercury.agent", traceId, parentSpanId)
         : undefined;
       agentSpan?.attr("agent.caller_id", callerId);
       agentSpan?.attr("agent.caller_role", callerRole);
       agentSpan?.attr("agent.conversation_id", conversationId);
-
       if (traceId) {
         extraEnv = {
           ...extraEnv,
-          MERCURY_OTEL_TRACE_ID: traceId,
-          MERCURY_OTEL_PARENT_SPAN_ID: agentSpan?.id ?? "",
+          OTEL_TRACE_ID: traceId,
+          OTEL_PARENT_SPAN_ID: agentSpan?.id ?? "",
         };
       }
 
       const history = this.services.messages.list(conversationId, 200);
       const startTime = Date.now();
 
-      const result = await this.agent.run({
-        workspace,
-        messages: history,
-        prompt,
-        callerId,
-        callerRole,
-        isDM,
-        conversationId,
-        authorName,
-        attachments,
-        extraEnv,
-        extensionSystemPrompt,
-      });
+      try {
+        const result = await this.agent.run({
+          workspace, messages: history, prompt, callerId, callerRole,
+          isDM, conversationId, authorName, attachments, extraEnv, extensionSystemPrompt,
+        });
 
-      const durationMs = Date.now() - startTime;
+        const durationMs = Date.now() - startTime;
+        agentSpan?.attr("agent.duration_ms", durationMs);
 
-      if (this.hooks && this.extensionCtx) {
-        const hookResult = await this.hooks.emitAfterContainer(
-          { prompt, reply: result.text, durationMs },
-          this.extensionCtx,
-        );
-        if (hookResult?.suppress) {
-          return { text: "", files: [] };
+        if (this.hooks && this.extensionCtx) {
+          const hookResult = await this.hooks.emitAfterContainer(
+            { prompt, reply: result.text, durationMs },
+            this.extensionCtx,
+          );
+          if (hookResult?.suppress) {
+            agentSpan?.end();
+            return { text: "", files: [] };
+          }
+          if (hookResult?.reply !== undefined) {
+            result.text = hookResult.reply;
+          }
         }
-        if (hookResult?.reply !== undefined) {
-          result.text = hookResult.reply;
-        }
+
+        this.services.messages.create("assistant", result.text, conversationId);
+        agentSpan?.end();
+        return result;
+      } catch (error) {
+        agentSpan?.end(false);
+        throw error;
       }
-
-      agentSpan?.attr("agent.duration_ms", durationMs);
-      this.services.messages.create("assistant", result.text, conversationId);
-      agentSpan?.end();
-      return result;
     });
   }
 }

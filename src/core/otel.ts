@@ -5,63 +5,16 @@
  * Fire-and-forget fetch — fully non-blocking.
  *
  * Usage:
- *   const tracer = createTracer({ endpoint, serviceName });
- *   const span = tracer.startSpan("my.operation", parentSpanId);
+ *   const tracer = createTracer({ endpoint: "http://localhost:4318" });
+ *   const span = tracer.startSpan("my.op", tracer.newTraceId());
  *   span.attr("key", "value");
- *   span.event("something.happened");
  *   span.end();
- *   // ... later:
- *   tracer.shutdown();
+ *   await tracer.shutdown();
  */
 
 import { hostname, userInfo } from "node:os";
 
-// ── OTLP wire types ──────────────────────────────────────────────────
-
-export interface OtlpSpan {
-  traceId: string;
-  spanId: string;
-  parentSpanId?: string;
-  name: string;
-  kind: number;
-  startTimeUnixNano: string;
-  endTimeUnixNano: string;
-  attributes: OtlpAttribute[];
-  events: OtlpEvent[];
-  status: { code: number; message?: string };
-}
-
-export interface OtlpAttribute {
-  key: string;
-  value: { stringValue?: string; intValue?: string; doubleValue?: string; boolValue?: boolean };
-}
-
-export interface OtlpEvent {
-  name: string;
-  timeUnixNano: string;
-  attributes: OtlpAttribute[];
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────
-
-function randomHex(bytes: number): string {
-  const buf = new Uint8Array(bytes);
-  crypto.getRandomValues(buf);
-  return Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function nowNano(): string {
-  return `${BigInt(Date.now()) * 1_000_000n}`;
-}
-
-export function otelAttr(key: string, value: string | number | boolean): OtlpAttribute {
-  if (typeof value === "string") return { key, value: { stringValue: value } };
-  if (typeof value === "boolean") return { key, value: { boolValue: value } };
-  if (Number.isInteger(value)) return { key, value: { intValue: String(value) } };
-  return { key, value: { doubleValue: String(value) } };
-}
-
-// ── Span handle ──────────────────────────────────────────────────────
+// ── Public API ───────────────────────────────────────────────────────
 
 export interface SpanHandle {
   readonly id: string;
@@ -71,7 +24,12 @@ export interface SpanHandle {
   end(ok?: boolean): void;
 }
 
-// ── Tracer ───────────────────────────────────────────────────────────
+export interface Tracer {
+  newTraceId(): string;
+  startSpan(name: string, traceId: string, parentSpanId?: string): SpanHandle;
+  flush(): void;
+  shutdown(): Promise<void>;
+}
 
 export interface TracerConfig {
   endpoint: string;
@@ -80,18 +38,8 @@ export interface TracerConfig {
   resourceAttrs?: Record<string, string>;
 }
 
-export interface Tracer {
-  /** Generate a new trace ID. */
-  newTraceId(): string;
-  /** Start a span. Returns a handle to add attributes/events and end it. */
-  startSpan(name: string, traceId: string, parentSpanId?: string): SpanHandle;
-  /** Flush buffered spans immediately. */
-  flush(): void;
-  /** Flush and stop the periodic flush interval. */
-  shutdown(): Promise<void>;
-}
+// ── No-op implementation (when disabled) ─────────────────────────────
 
-/** No-op tracer for when OTEL is disabled. */
 const NOOP_SPAN: SpanHandle = {
   id: "",
   traceId: "",
@@ -107,6 +55,8 @@ const NOOP_TRACER: Tracer = {
   async shutdown() {},
 };
 
+// ── Factory ──────────────────────────────────────────────────────────
+
 export function createTracer(config: TracerConfig): Tracer {
   if (!config.endpoint) return NOOP_TRACER;
 
@@ -114,75 +64,65 @@ export function createTracer(config: TracerConfig): Tracer {
   const serviceName = config.serviceName ?? "mercury";
   const flushMs = config.flushIntervalMs ?? 5000;
 
-  const resourceAttrs: OtlpAttribute[] = [
-    otelAttr("service.name", serviceName),
-    otelAttr("host.name", hostname()),
-    otelAttr("user.name", userInfo().username),
+  const resourceAttrs = [
+    kv("service.name", serviceName),
+    kv("host.name", hostname()),
+    kv("user.name", userInfo().username),
+    ...Object.entries(config.resourceAttrs ?? {}).map(([k, v]) => kv(k, v)),
   ];
-  if (config.resourceAttrs) {
-    for (const [k, v] of Object.entries(config.resourceAttrs)) {
-      resourceAttrs.push(otelAttr(k, v));
-    }
-  }
 
-  const buffer: OtlpSpan[] = [];
+  const buffer: WireSpan[] = [];
 
   function flush(): void {
     if (buffer.length === 0) return;
     const spans = buffer.splice(0);
-    const payload = {
-      resourceSpans: [{
-        resource: { attributes: resourceAttrs },
-        scopeSpans: [{
-          scope: { name: "mercury-otel", version: "1.0.0" },
-          spans,
-        }],
-      }],
-    };
     fetch(`${endpoint}/v1/traces`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        resourceSpans: [{
+          resource: { attributes: resourceAttrs },
+          scopeSpans: [{ scope: { name: "mercury", version: "1.0.0" }, spans }],
+        }],
+      }),
     }).catch(() => {});
   }
 
   const interval = setInterval(flush, flushMs);
 
-  function startSpan(name: string, trId: string, parentSpanId?: string): SpanHandle {
-    const id = randomHex(8);
-    const span: OtlpSpan = {
-      traceId: trId,
-      spanId: id,
-      parentSpanId,
-      name,
-      kind: 1,
-      startTimeUnixNano: nowNano(),
-      endTimeUnixNano: "0",
-      attributes: [],
-      events: [],
-      status: { code: 0 },
-    };
+  function startSpan(name: string, traceId: string, parentSpanId?: string): SpanHandle {
+    const id = hex(8);
+    const attrs: WireAttr[] = [];
+    const events: WireEvent[] = [];
+    const startNano = nowNano();
 
     return {
       id,
-      traceId: trId,
-      attr(key, value) { span.attributes.push(otelAttr(key, value)); },
-      event(evName, attrs) {
-        const evAttrs = attrs
-          ? Object.entries(attrs).map(([k, v]) => otelAttr(k, v))
-          : [];
-        span.events.push({ name: evName, timeUnixNano: nowNano(), attributes: evAttrs });
+      traceId,
+      attr(key, value) { attrs.push(kv(key, value)); },
+      event(evName, evAttrs) {
+        events.push({
+          name: evName,
+          timeUnixNano: nowNano(),
+          attributes: evAttrs ? Object.entries(evAttrs).map(([k, v]) => kv(k, v)) : [],
+        });
       },
       end(ok = true) {
-        span.endTimeUnixNano = nowNano();
-        span.status = { code: ok ? 1 : 2 };
-        buffer.push(span);
+        buffer.push({
+          traceId, spanId: id, parentSpanId, name,
+          kind: 1, // INTERNAL
+          startTimeUnixNano: startNano,
+          endTimeUnixNano: nowNano(),
+          attributes: attrs,
+          events,
+          status: { code: ok ? 1 : 2 },
+        });
       },
     };
   }
 
   return {
-    newTraceId: () => randomHex(16),
+    newTraceId: () => hex(16),
     startSpan,
     flush,
     async shutdown() {
@@ -191,4 +131,47 @@ export function createTracer(config: TracerConfig): Tracer {
       await new Promise((r) => setTimeout(r, 200));
     },
   };
+}
+
+// ── OTLP wire format (internal) ──────────────────────────────────────
+
+interface WireSpan {
+  traceId: string;
+  spanId: string;
+  parentSpanId?: string;
+  name: string;
+  kind: number;
+  startTimeUnixNano: string;
+  endTimeUnixNano: string;
+  attributes: WireAttr[];
+  events: WireEvent[];
+  status: { code: number };
+}
+
+interface WireAttr {
+  key: string;
+  value: { stringValue?: string; intValue?: string; doubleValue?: string; boolValue?: boolean };
+}
+
+interface WireEvent {
+  name: string;
+  timeUnixNano: string;
+  attributes: WireAttr[];
+}
+
+function hex(bytes: number): string {
+  const buf = new Uint8Array(bytes);
+  crypto.getRandomValues(buf);
+  return Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function nowNano(): string {
+  return `${BigInt(Date.now()) * 1_000_000n}`;
+}
+
+function kv(key: string, value: string | number | boolean): WireAttr {
+  if (typeof value === "string") return { key, value: { stringValue: value } };
+  if (typeof value === "boolean") return { key, value: { boolValue: value } };
+  if (Number.isInteger(value)) return { key, value: { intValue: String(value) } };
+  return { key, value: { doubleValue: String(value) } };
 }
