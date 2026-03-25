@@ -70,7 +70,9 @@ const schema = z.object({
   mediaEnabled: booleanFromEnv.default(true),
   mediaMaxSizeMb: z.coerce.number().min(1).max(100).default(10),
 
-
+  // ─── Telemetry ──────────────────────────────────────────────────────
+  otelEndpoint: z.string().optional(),
+  otelService: z.string().default("mercury"),
 });
 
 export type AppConfig = z.infer<typeof schema> & {
@@ -126,8 +128,9 @@ export function loadConfig(): AppConfig {
     mediaEnabled: process.env.MERCURY_MEDIA_ENABLED,
     mediaMaxSizeMb: process.env.MERCURY_MEDIA_MAX_SIZE_MB,
 
-    // Permissions
-
+    // Telemetry
+    otelEndpoint: process.env.MERCURY_OTEL_ENDPOINT,
+    otelService: process.env.MERCURY_OTEL_SERVICE,
   });
 
   const projectRoot = ".";

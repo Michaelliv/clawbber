@@ -6,6 +6,7 @@ import path from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PERMISSION_GUARD_PATH = join(__dirname, "permission-guard.ts");
+const OTEL_EXTENSION_PATH = join(__dirname, "otel.ts");
 import type { AppConfig } from "../config.js";
 import { scanOutbox } from "./outbox.js";
 import { type Logger, logger } from "../logger.js";
@@ -222,8 +223,13 @@ export class SubprocessAgent implements Agent {
       systemPrompt,
       "-e",
       PERMISSION_GUARD_PATH,
-      userPrompt,
     ];
+
+    if (this.config.otelEndpoint) {
+      args.push("-e", OTEL_EXTENSION_PATH);
+    }
+
+    args.push(userPrompt);
 
     const env: Record<string, string> = {
       ...(process.env as Record<string, string>),
