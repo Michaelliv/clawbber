@@ -97,13 +97,4 @@ jobs:
             ghcr.io/${{ steps.version.outputs.owner }}/mercury-agent:latest
             ghcr.io/${{ steps.version.outputs.owner }}/mercury-agent:${{ steps.version.outputs.version }}
 
-      - name: Build and push minimal image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: container/Dockerfile.minimal
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ghcr.io/${{ steps.version.outputs.owner }}/mercury-agent:minimal
-            ghcr.io/${{ steps.version.outputs.owner }}/mercury-agent:${{ steps.version.outputs.version }}-minimal
+
