@@ -89,6 +89,7 @@ export function createTracer(config: TracerConfig): Tracer {
   }
 
   const interval = setInterval(flush, flushMs);
+  interval.unref(); // Don't keep the process alive just for flushing
 
   function startSpan(name: string, traceId: string, parentSpanId?: string): SpanHandle {
     const id = hex(8);
