@@ -46,12 +46,14 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", async () => {
+    // Session span may already be ended by agent_end (--print mode)
     if (sessionSpan) {
       sessionSpan.attr("session.turns", turnCount);
       sessionSpan.attr("session.tool_calls", totalToolCalls);
       sessionSpan.attr("session.tokens.input", totalTokensIn);
       sessionSpan.attr("session.tokens.output", totalTokensOut);
       sessionSpan.end();
+      sessionSpan = undefined;
     }
     await tracer.shutdown();
   });
@@ -66,6 +68,18 @@ export default function (pi: ExtensionAPI) {
     agentSpan?.attr("agent.messages_count", event.messages?.length ?? 0);
     agentSpan?.end();
     agentSpan = undefined;
+
+    // In --print mode, session_shutdown may not fire before exit.
+    // End session span and flush to ensure all spans are exported.
+    if (sessionSpan) {
+      sessionSpan.attr("session.turns", turnCount);
+      sessionSpan.attr("session.tool_calls", totalToolCalls);
+      sessionSpan.attr("session.tokens.input", totalTokensIn);
+      sessionSpan.attr("session.tokens.output", totalTokensOut);
+      sessionSpan.end();
+      sessionSpan = undefined;
+    }
+    tracer.flush();
   });
 
   // ── Turn (LLM call + tool execution cycle) ─────────────────────────
