@@ -60,6 +60,11 @@ export default function (pi: ExtensionAPI) {
 
   // ── Agent prompt ───────────────────────────────────────────────────
 
+  pi.on("before_agent_start", async (event) => {
+    sessionSpan?.attr("pi.system_prompt", event.systemPrompt);
+    sessionSpan?.attr("pi.user_prompt", event.prompt);
+  });
+
   pi.on("agent_start", async () => {
     agentSpan = tracer.startSpan("pi.agent.prompt", traceId, sessionSpan?.id);
   });
