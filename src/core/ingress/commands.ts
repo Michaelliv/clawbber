@@ -4,6 +4,7 @@ import {
   createAgentSession,
   SessionManager,
 } from "@mariozechner/pi-coding-agent";
+import { loadWorkspaceConfig, mergeWorkspaceConfig } from "../config.js";
 import { compactSession, newSession } from "../runtime/compact.js";
 import type { MercuryCoreRuntime } from "../runtime/runtime.js";
 
@@ -76,9 +77,15 @@ export async function handleCommand(
     );
     const lines: string[] = [];
 
+    // Load workspace-merged config for accurate status
+    const wsOverrides = loadWorkspaceConfig(
+      path.join(core.config.workspacesDir, workspaceName),
+    );
+    const effectiveConfig = mergeWorkspaceConfig(core.config, wsOverrides);
+
     lines.push(`🪽 Mercury ${pkg.version}`);
     if (workspaceName) lines.push(`📁 Workspace: ${workspaceName}`);
-    lines.push(`🧠 ${core.config.modelProvider}/${core.config.model}`);
+    lines.push(`🧠 ${effectiveConfig.modelProvider}/${effectiveConfig.model}`);
 
     if (fs.existsSync(sessionFile)) {
       try {
@@ -119,7 +126,7 @@ export async function handleCommand(
       `⚙️ Agent: ${agentState}${queueDepth > 0 ? ` · Queue: ${queueDepth}` : ""}`,
     );
 
-    const patterns = core.config.triggerPatterns
+    const patterns = effectiveConfig.triggerPatterns
       .split(",")
       .map((s: string) => s.trim())
       .join(", ");
