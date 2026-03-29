@@ -206,7 +206,7 @@ describe("Unpaired conversations", () => {
       channel,
     );
     expect(sent).toEqual([
-      `✅ Paired to workspace "default". This conversation is now active.`,
+      `✅ Paired to workspace "default". You are now an admin.`,
     ]);
     expect(core.services.conversations.isAssigned("test", "group1")).toBe(true);
   });

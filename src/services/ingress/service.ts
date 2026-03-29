@@ -69,25 +69,17 @@ export function createIngressService(
             externalId,
             ws.id,
           );
-          if (isDM) {
-            core.services.roles.set(ws.id, callerId, "admin", "pair");
-            await channel.send(
-              `✅ Paired to workspace "${ws.name}". You are now an admin.`,
-            );
-            log.info("DM paired to workspace", {
-              callerId,
-              workspace: ws.name,
-            });
-          } else {
-            await channel.send(
-              `✅ Paired to workspace "${ws.name}". This conversation is now active.`,
-            );
-            log.info("Conversation paired to workspace", {
-              platform,
-              externalId,
-              workspace: ws.name,
-            });
-          }
+          core.services.roles.set(ws.id, callerId, "admin", "pair");
+          await channel.send(
+            `✅ Paired to workspace "${ws.name}". You are now an admin.`,
+          );
+          log.info("Conversation paired to workspace", {
+            callerId,
+            platform,
+            externalId,
+            isDM,
+            workspace: ws.name,
+          });
         } else {
           await channel.send("❌ Invalid pairing code.");
         }
